@@ -12,7 +12,11 @@ def test_mobile_sales_order_create_replays_without_duplicate(client, db, superus
     receipts.create(db.get_bind(), checkfirst=True)
     path = "/api/v1/srm/sales-orders"
     headers = {**superuser_headers, "X-Offline-Operation": str(uuid4())}
-    body = {"title": "Offline sales order", "lines": [{"description": "Consulting", "quantity": 2, "unit_price": 100}]}
+    body = {
+        "title": "Offline sales order",
+        "lines": [{"description": "Consulting", "quantity": "2", "unit_price": "100.00",
+                   "discount_amount": "5.00", "tax_amount": "18.00"}],
+    }
     first = client.post(path, headers=headers, json=body)
     replay = client.post(path, headers=headers, json=body)
     assert first.status_code == replay.status_code == 201
@@ -21,6 +25,8 @@ def test_mobile_sales_order_create_replays_without_duplicate(client, db, superus
     matches = client.get(path, headers=superuser_headers, params={"summary_only": True, "search": body["title"]})
     assert matches.status_code == 200
     assert [row["id"] for row in matches.json()] == [first.json()["id"]]
+    order = matches.json()[0]
+    assert (order["subtotal"], order["discount_amount"], order["tax_amount"], order["total_amount"]) == (200, 5, 18, 213)
 
 
 def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_headers):

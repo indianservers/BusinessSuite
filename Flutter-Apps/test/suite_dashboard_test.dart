@@ -135,6 +135,9 @@ void main() {
       await tester.enterText(fields.at(0), 'Field sale');
       await tester.enterText(fields.at(3), 'Consulting');
       await tester.enterText(fields.at(5), '100.00');
+      await tester.enterText(fields.at(6), '5.00');
+      await tester.enterText(fields.at(7), '18.00');
+      await tester.ensureVisible(find.text('Save order draft'));
       await tester.tap(find.text('Save order draft'));
       await tester.pumpAndSettle();
       expect(requests, isEmpty);
@@ -157,6 +160,8 @@ void main() {
               'quantity': '1',
               'description': 'Consulting',
               'unit_price': '100.00',
+              'discount_amount': '5.00',
+              'tax_amount': '18.00',
             },
           ],
         });

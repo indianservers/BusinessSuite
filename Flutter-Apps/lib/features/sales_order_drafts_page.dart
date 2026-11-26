@@ -77,7 +77,8 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
       'lines': [
         for (final line in _lines)
           <String, dynamic>{
-            ...line,
+            for (final entry in line.entries)
+              if (entry.value.isNotEmpty) entry.key: entry.value,
             if (line['product_id'] case final String id)
               'product_id': int.parse(id),
           },
@@ -151,6 +152,7 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
         final number = num.tryParse(text);
         if (!RegExp('^\\d+(\\.\\d{1,$decimals})?\$').hasMatch(text) ||
             number == null ||
+            number > (key == 'quantity' ? 1000000000 : 99999999999) ||
             (positive && number <= 0)) {
           return 'Enter a valid $label.';
         }
@@ -220,6 +222,20 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
                   positive: true,
                 ),
                 _field(line, 'unit_price', 'Unit price', decimals: 2),
+                _field(
+                  line,
+                  'discount_amount',
+                  'Discount amount',
+                  decimals: 2,
+                  required: false,
+                ),
+                _field(
+                  line,
+                  'tax_amount',
+                  'Tax amount',
+                  decimals: 2,
+                  required: false,
+                ),
               ],
             ),
           TextButton(
