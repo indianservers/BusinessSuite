@@ -23,6 +23,7 @@ import 'branch_settings_panel.dart';
 import 'lead_sources_panel.dart';
 import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
+import 'my_attendance_page.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -939,6 +940,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     appBar: AppBar(
       title: Text(widget.title),
       actions: [
+        if (widget.path == '/employees/')
+          IconButton(
+            tooltip: 'My Attendance',
+            icon: const Icon(LucideIcons.calendarDays),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MyAttendancePage(api: widget.controller.api),
+              ),
+            ),
+          ),
         IconButton(
           tooltip: 'Refresh',
           icon: const Icon(LucideIcons.refreshCw),

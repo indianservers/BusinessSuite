@@ -10,6 +10,7 @@ import 'package:business_suite_mobile/features/branch_membership_page.dart';
 import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
+import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -22,6 +23,57 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'HR attendance records mobile punches and refreshes from the server',
+    (tester) async {
+      final punches = <String>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case '/attendance/today':
+              return response({
+                'attendance': {
+                  if (punches.isNotEmpty) 'check_in': '2026-11-27T09:00:00Z',
+                  if (punches.length == 2) 'check_out': '2026-11-27T17:00:00Z',
+                },
+              });
+            case '/attendance/my':
+              expect(request.queryParameters['from_date'], endsWith('-01'));
+              return response([]);
+            case '/attendance/check-in':
+              expect(request.method, 'POST');
+              expect(request.data, {'source': 'Mobile'});
+            case '/attendance/check-out':
+              expect(request.method, 'POST');
+              expect(request.data, isEmpty);
+            default:
+              fail('Unexpected request ${request.path}');
+          }
+          punches.add(request.path);
+          return response({});
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyAttendancePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Check In'));
+      await tester.pumpAndSettle();
+      expect(find.text('Checked in'), findsOneWidget);
+      await tester.tap(find.text('Check Out'));
+      await tester.pumpAndSettle();
+      expect(find.text('Checked out'), findsOneWidget);
+      expect(find.text('Check Out'), findsNothing);
+      expect(punches, ['/attendance/check-in', '/attendance/check-out']);
+    },
+  );
   testWidgets(
     'GST opens saved invoice summary without a network request or write actions',
     (tester) async {
