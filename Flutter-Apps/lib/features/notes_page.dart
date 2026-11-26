@@ -229,123 +229,128 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Notes'),
-      actions: [
-        PopupMenuButton<String>(
-          tooltip: 'Filter notes',
-          initialValue: _view,
-          onSelected: (view) {
-            _view = view;
-            _load();
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'all', child: Text('My notes')),
-            PopupMenuItem(value: 'shared', child: Text('Shared with me')),
-            PopupMenuItem(value: 'archive', child: Text('Archived')),
-            PopupMenuItem(value: 'trash', child: Text('Trash')),
-          ],
-        ),
-        IconButton(
-          tooltip: 'Refresh notes',
-          onPressed: () => _load(reconnect: true),
-          icon: const Icon(Icons.refresh),
-        ),
-      ],
-    ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _unreachable && widget.cache == null ? null : () => _open(),
-      icon: const Icon(Icons.add),
-      label: const Text('New note'),
-    ),
-    body: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: TextField(
-            maxLength: 200,
-            decoration: const InputDecoration(
-              labelText: 'Search notes',
-              prefixIcon: Icon(Icons.search),
-              counterText: '',
-            ),
-            onChanged: (value) {
-              _query = value;
-              _request++;
-              _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 250), _load);
+  Widget build(BuildContext context) {
+    final term = _query.trim().toLowerCase();
+    final drafts = _view == 'all'
+        ? _creations.where((draft) {
+            final values = draft['values'];
+            return term.isEmpty ||
+                '${values['title']} ${values['content']}'
+                    .toLowerCase()
+                    .contains(term);
+          }).toList()
+        : const <Map<String, dynamic>>[];
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notes'),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Filter notes',
+            initialValue: _view,
+            onSelected: (view) {
+              _view = view;
+              _load();
             },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'all', child: Text('My notes')),
+              PopupMenuItem(value: 'shared', child: Text('Shared with me')),
+              PopupMenuItem(value: 'archive', child: Text('Archived')),
+              PopupMenuItem(value: 'trash', child: Text('Trash')),
+            ],
           ),
-        ),
-        if (_loading) const LinearProgressIndicator(),
-        if (_savedView) const Text('Saved private notes'),
-        if (_error != null)
-          Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
-        if (!_loading && _error == null && _notes.isEmpty && _creations.isEmpty)
-          const Text('No notes found'),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => _load(reconnect: true),
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 88),
-              itemCount:
-                  _notes.length +
-                  (_view == 'all' && _query.trim().isEmpty
-                      ? _creations.length
-                      : 0),
-              itemBuilder: (context, index) {
-                final drafts = _view == 'all' && _query.trim().isEmpty
-                    ? _creations
-                    : const [];
-                if (index < drafts.length) {
-                  final draft = drafts[index] as Map<String, dynamic>;
-                  final title = (draft['values']['title'] as String).trim();
-                  return ListTile(
-                    title: Text(title.isEmpty ? 'Untitled note' : title),
-                    subtitle: Text(
-                      draft['error'] == null
-                          ? 'Saved · Awaiting sync'
-                          : 'Saved note needs review',
-                    ),
-                    onTap: () => _viewCreation(draft),
-                  );
-                }
-                final note = _notes[index - drafts.length];
-                final pending = _pendingFor(note);
-                return ListTile(
-                  title: Text(
-                    _titleFor(note),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    _previewFor(note),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: pending == null
-                      ? null
-                      : Tooltip(
-                          message: pending['error'] == null
-                              ? 'Awaiting sync'
-                              : 'Saved edit needs review',
-                          child: Icon(
-                            pending['error'] == null
-                                ? Icons.cloud_upload_outlined
-                                : Icons.error_outline,
-                          ),
-                        ),
-                  onTap: () => _open(note),
-                );
+          IconButton(
+            tooltip: 'Refresh notes',
+            onPressed: () => _load(reconnect: true),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _unreachable && widget.cache == null ? null : () => _open(),
+        icon: const Icon(Icons.add),
+        label: const Text('New note'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              maxLength: 200,
+              decoration: const InputDecoration(
+                labelText: 'Search notes',
+                prefixIcon: Icon(Icons.search),
+                counterText: '',
+              ),
+              onChanged: (value) {
+                setState(() => _query = value);
+                _request++;
+                _debounce?.cancel();
+                _debounce = Timer(const Duration(milliseconds: 250), _load);
               },
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          if (_loading) const LinearProgressIndicator(),
+          if (_savedView) const Text('Saved private notes'),
+          if (_error != null)
+            Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
+          if (!_loading && _error == null && _notes.isEmpty && drafts.isEmpty)
+            const Text('No notes found'),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => _load(reconnect: true),
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 88),
+                itemCount: _notes.length + drafts.length,
+                itemBuilder: (context, index) {
+                  if (index < drafts.length) {
+                    final draft = drafts[index];
+                    final title = (draft['values']['title'] as String).trim();
+                    return ListTile(
+                      title: Text(title.isEmpty ? 'Untitled note' : title),
+                      subtitle: Text(
+                        draft['error'] == null
+                            ? 'Saved · Awaiting sync'
+                            : 'Saved note needs review',
+                      ),
+                      onTap: () => _viewCreation(draft),
+                    );
+                  }
+                  final note = _notes[index - drafts.length];
+                  final pending = _pendingFor(note);
+                  return ListTile(
+                    title: Text(
+                      _titleFor(note),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      _previewFor(note),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: pending == null
+                        ? null
+                        : Tooltip(
+                            message: pending['error'] == null
+                                ? 'Awaiting sync'
+                                : 'Saved edit needs review',
+                            child: Icon(
+                              pending['error'] == null
+                                  ? Icons.cloud_upload_outlined
+                                  : Icons.error_outline,
+                            ),
+                          ),
+                    onTap: () => _open(note),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NoteEditor extends StatefulWidget {

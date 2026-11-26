@@ -172,10 +172,19 @@ void main() {
       find.byType(TextField).first,
       'Offline created note',
     );
+    await tester.enterText(find.byType(TextField).last, 'Warehouse checklist');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(find.text('Offline created note'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'checklist');
+    await tester.pumpAndSettle();
+    expect(find.text('Offline created note'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'unmatched');
+    await tester.pumpAndSettle();
+    expect(find.text('Offline created note'), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
     final operations = <Object?>[];
     dio.httpClientAdapter = FakeAdapter((request) async {
       if (request.method == 'GET') {
