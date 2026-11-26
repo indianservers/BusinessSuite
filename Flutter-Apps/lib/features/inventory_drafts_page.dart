@@ -9,9 +9,11 @@ class InventoryDraftsPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.drafts,
+    this.offline = false,
   });
   final ApiClient api;
   final InventoryOfflineCreates drafts;
+  final bool offline;
 
   @override
   State<InventoryDraftsPage> createState() => _InventoryDraftsPageState();
@@ -21,6 +23,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
   late Future<List<Json>> _branches = widget.drafts.writableBranches(
     widget.api,
+    offline: widget.offline,
   );
   int? _branchId;
   var _form = GlobalKey<FormState>();
@@ -301,6 +304,7 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                     ? null
                     : 'Enter a three-letter currency code.',
               ),
+              _detailField('category', 'Category', maxLength: 120),
               _detailField('price', 'Base price', decimalPlaces: 2),
               _detailField(
                 'tax',

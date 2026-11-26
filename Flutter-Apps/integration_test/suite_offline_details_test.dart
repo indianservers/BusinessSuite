@@ -391,11 +391,13 @@ void main() {
         {'id': 2, 'sku': 'PREVIOUS'},
       ]);
       final submissions = <RequestOptions>[];
+      var branchRequests = 0;
       var connected = true;
       final dio = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expectSync(request.headers['X-Suite-Organization'], '7');
           if (request.method == 'GET') {
+            branchRequests++;
             return response(
               connected
                   ? {
@@ -436,7 +438,7 @@ void main() {
       connected = false;
       await tester.pumpWidget(
         MaterialApp(
-          home: InventoryDraftsPage(api: api, drafts: drafts),
+          home: InventoryDraftsPage(api: api, drafts: drafts, offline: true),
         ),
       );
       final branchPicker = find.byType(DropdownButtonFormField<int>);
@@ -455,6 +457,7 @@ void main() {
         (0, 'QA Product'),
         (1, 'QA-SKU'),
         (2, 'INR'),
+        (3, 'QA Accessories'),
       ]) {
         final field = fields.at(index);
         await tester.ensureVisible(field);
@@ -475,6 +478,8 @@ void main() {
       final saved = (await drafts.entries()).single;
       expect(saved['branch'], 3);
       expect(saved['product']['code'], 'QA-SKU');
+      expect(saved['product']['category'], 'QA Accessories');
+      expect(branchRequests, 1);
       expect(submissions, isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
       final reopened = InventoryOfflineCreates(
@@ -501,6 +506,7 @@ void main() {
         expect(request.path, '/catalog/items');
         expect(request.headers['X-Suite-Branch'], '3');
         expect(request.headers['X-Offline-Operation'], saved['operation']);
+        expect(request.data['category'], 'QA Accessories');
       }
     },
   );

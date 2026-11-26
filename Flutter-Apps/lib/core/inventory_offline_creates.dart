@@ -23,8 +23,20 @@ class InventoryOfflineCreates {
     return raw == null ? [] : (jsonDecode(raw) as List).cast<Json>();
   }
 
-  Future<List<Json>> writableBranches(ApiClient api) async {
+  Future<List<Json>> writableBranches(
+    ApiClient api, {
+    bool offline = false,
+  }) async {
     final cacheKey = '${_key}_branches';
+    Future<List<Json>?> savedBranches() async {
+      final raw = await _storage.read(key: cacheKey);
+      return raw == null ? null : (jsonDecode(raw) as List).cast<Json>();
+    }
+
+    if (offline) {
+      return await savedBranches() ??
+          (throw ApiFailure('Connect to load writable branches.'));
+    }
     try {
       final data =
           await api.request(
@@ -46,9 +58,9 @@ class InventoryOfflineCreates {
       return branches;
     } on ApiFailure catch (error) {
       if (error.status != null && error.status! < 500) rethrow;
-      final raw = await _storage.read(key: cacheKey);
-      if (raw == null) rethrow;
-      return (jsonDecode(raw) as List).cast<Json>();
+      final saved = await savedBranches();
+      if (saved == null) rethrow;
+      return saved;
     }
   }
 

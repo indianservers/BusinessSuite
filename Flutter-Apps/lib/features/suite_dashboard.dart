@@ -1161,6 +1161,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               await Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => InventoryDraftsPage(
+                    offline: _offlineOnly,
                     api: widget.controller.api,
                     drafts: InventoryOfflineCreates(
                       widget.cachePrefix!,
