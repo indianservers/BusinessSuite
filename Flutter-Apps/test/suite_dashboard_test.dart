@@ -106,6 +106,13 @@ void main() {
         'title': 'Corrected order',
         'expected_end_date': '2026-12-20',
       });
+      expect(find.text('Corrected order'), findsOneWidget);
+      dio.httpClientAdapter = FakeAdapter(
+        (_) async => response({'id': 19}, 201),
+      );
+      await tester.runAsync(() => SalesOrderDrafts('["$base",7,7]').sync(api));
+      await tester.pumpAndSettle();
+      expect(find.text('No saved order drafts'), findsOneWidget);
     },
   );
   testWidgets('Sales uses a shared inventory product on an order line', (

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -506,9 +508,28 @@ class SalesOrderDraftsPage extends StatefulWidget {
 class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
   bool _syncing = false;
+  late final StreamSubscription<String> _changes;
+
+  @override
+  void initState() {
+    super.initState();
+    _changes = widget.drafts.changes.listen((_) {
+      if (mounted && !_syncing) {
+        setState(() {
+          _entries = widget.drafts.entries();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _changes.cancel();
+    super.dispose();
+  }
 
   Future<void> _correct(Json draft) async {
-    final saved = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => NewSalesOrderPage(
           api: widget.api,
@@ -518,11 +539,6 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
         ),
       ),
     );
-    if (saved == true && mounted) {
-      setState(() {
-        _entries = widget.drafts.entries();
-      });
-    }
   }
 
   Future<void> _discard(String operation) async {
@@ -545,11 +561,6 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
     if (ok != true || !mounted) return;
     try {
       await widget.drafts.discard(operation);
-      if (mounted) {
-        setState(() {
-          _entries = widget.drafts.entries();
-        });
-      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(

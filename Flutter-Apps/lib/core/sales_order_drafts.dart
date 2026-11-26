@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -17,8 +18,10 @@ class SalesOrderDrafts {
   static const productsEndpoint = '/srm/inventory/items';
   static const _storage = FlutterSecureStorage();
   static final _running = <String, Future<void>>{};
+  static final _changes = StreamController<String>.broadcast();
   final String _key, _company, _scope;
   final Future<void> Function(String)? invalidate;
+  Stream<String> get changes => _changes.stream.where((scope) => scope == _key);
   static String productPickerCacheKey(String scope) =>
       '$scope:$productsEndpoint:order-picker';
 
@@ -193,8 +196,10 @@ class SalesOrderDrafts {
     }
   }
 
-  Future<void> _write(Json drafts) =>
-      _storage.write(key: _key, value: jsonEncode(drafts));
+  Future<void> _write(Json drafts) async {
+    await _storage.write(key: _key, value: jsonEncode(drafts));
+    _changes.add(_key);
+  }
 
   Future<void> save(
     String operation,
