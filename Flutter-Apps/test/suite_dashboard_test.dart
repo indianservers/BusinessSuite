@@ -7,6 +7,7 @@ import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
 import 'package:business_suite_mobile/features/branch_membership_page.dart';
+import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -19,6 +20,60 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('lead source settings save normalized lines to the shared API', (
+    tester,
+  ) async {
+    var writes = 0;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/access/settings/crm-lead-sources/options');
+        if (request.method == 'GET') {
+          return response({
+            'sources': ['Existing'],
+            'defaults': ['Referral'],
+          });
+        }
+        expect(request.method, 'PUT');
+        expect(request.data, {
+          'sources': ['Referral', 'Event'],
+        });
+        writes++;
+        return response({
+          'sources': ['Referral', 'Event', 'Other'],
+        });
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LeadSourcesPanel(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            editable: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byType(TextField);
+    await tester.tap(find.text('Use starter list'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text, 'Referral');
+    await tester.enterText(field, 'Referral\nreferral');
+    await tester.tap(find.text('Save sources'));
+    await tester.pumpAndSettle();
+    expect(writes, 0);
+    await tester.enterText(field, 'Referral\n\n Event ');
+    await tester.tap(find.text('Save sources'));
+    await tester.pumpAndSettle();
+    expect(writes, 1);
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      'Referral\nEvent\nOther',
+    );
+  });
   testWidgets(
     'branch assignments preserve existing module roles and policy version',
     (tester) async {

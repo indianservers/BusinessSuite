@@ -20,6 +20,7 @@ import 'account_settings_panel.dart';
 import 'company_profile_panel.dart';
 import 'business_defaults_panel.dart';
 import 'branch_settings_panel.dart';
+import 'lead_sources_panel.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -662,6 +663,12 @@ class _SettingOptionState extends State<_SettingOption> {
             api: widget.controller.api,
             editable: data['editable'] == true,
             actorId: widget.controller.user?.id,
+          );
+        }
+        if (widget.id == 'crm-lead-sources') {
+          return LeadSourcesPanel(
+            api: widget.controller.api,
+            editable: data['editable'] == true,
           );
         }
         return ListView(
