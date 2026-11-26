@@ -1888,10 +1888,20 @@ void main() {
                   : 1,
             }),
             '/power-apps/environments' ||
-            '/employees/' ||
             '/crm/lead-management/leads' ||
             '/fam/parties' ||
             '/project-management/notes' => response([]),
+            '/employees/' => response({
+              'items': [
+                {'id': 27, 'first_name': 'Sample', 'last_name': 'Employee'},
+              ],
+            }),
+            '/employees/27' => response({
+              'first_name': 'Sample',
+              'last_name': 'Employee',
+              'work_email': 'qa@example.test',
+              'employment_type': 'Full-time',
+            }),
             '/srm/sales-orders' => response([
               {'id': 8, 'title': 'Sample order'},
             ]),
@@ -1986,6 +1996,13 @@ void main() {
       }.entries) {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
+        if (entry.key == 'AI HRMS') {
+          await open('Sample Employee');
+          expect(find.text('Employee profile'), findsOneWidget);
+          expect(find.text('Work email'), findsOneWidget);
+          expect(calls.any((r) => r.path == '/employees/27'), isTrue);
+          await back();
+        }
         if (entry.key == 'Sales & POS') {
           await open('Sample order');
           expect(find.text('Sample line'), findsOneWidget);

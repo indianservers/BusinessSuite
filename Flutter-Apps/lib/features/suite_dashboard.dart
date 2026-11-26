@@ -1440,6 +1440,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           onTap:
                               (_inventory ||
                                       _stockAlerts ||
+                                      widget.path == '/employees/' ||
                                       widget.path == '/srm/sales-orders' ||
                                       widget.path ==
                                           GstInvoicePage.listEndpoint ||
@@ -1449,8 +1450,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   item['id'] is int
                               ? () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        widget.path == CrmLeadPage.endpoint
+                                    builder: (_) => widget.path == '/employees/'
+                                        ? _EmployeeDetailsPage(
+                                            api: widget.controller.api,
+                                            id: item['id'] as int,
+                                          )
+                                        : widget.path == CrmLeadPage.endpoint
                                         ? CrmLeadPage(
                                             api: widget.controller.api,
                                             summary: item,
@@ -1553,6 +1558,84 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               );
             },
           ),
+  );
+}
+
+class _EmployeeDetailsPage extends StatefulWidget {
+  const _EmployeeDetailsPage({required this.api, required this.id});
+
+  final ApiClient api;
+  final int id;
+
+  @override
+  State<_EmployeeDetailsPage> createState() => _EmployeeDetailsPageState();
+}
+
+class _EmployeeDetailsPageState extends State<_EmployeeDetailsPage> {
+  late Future<Json> _employee = _load();
+
+  Future<Json> _load() async {
+    final revision = widget.api.sessionRevision;
+    final employee =
+        await widget.api.request('GET', '/employees/${widget.id}') as Json;
+    if (revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    return employee;
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Employee profile')),
+    body: FutureBuilder<Json>(
+      future: _employee,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return ListTile(
+            title: Text('${snapshot.error}'),
+            trailing: TextButton(
+              onPressed: () => setState(() {
+                _employee = _load();
+              }),
+              child: const Text('Retry'),
+            ),
+          );
+        }
+        final employee = snapshot.requireData;
+        final name = [
+          employee['first_name'],
+          employee['middle_name'],
+          employee['last_name'],
+        ].whereType<String>().where((part) => part.isNotEmpty).join(' ');
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              name.isEmpty ? 'Employee' : name,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            for (final field in const {
+              'employee_id': 'Employee code',
+              'work_email': 'Work email',
+              'office_extension': 'Office extension',
+              'employment_type': 'Employment type',
+              'work_location': 'Work location',
+              'date_of_joining': 'Date of joining',
+              'status': 'Status',
+            }.entries)
+              if (employee[field.key] case final String value
+                  when value.isNotEmpty)
+                ListTile(
+                  title: Text(field.value),
+                  subtitle: SelectableText(value),
+                ),
+          ],
+        );
+      },
+    ),
   );
 }
 
