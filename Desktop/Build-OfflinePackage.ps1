@@ -21,6 +21,8 @@ $release = Join-Path $OutputRoot ('BusinessSuite-' + [Guid]::NewGuid().ToString(
 New-Item -ItemType Directory -Path $release | Out-Null
 
 $desktopProject = Join-Path $PSScriptRoot 'Business Suite\Business Suite.csproj'
+& dotnet restore $desktopProject --runtime win-x64 --ignore-failed-sources
+if ($LASTEXITCODE -ne 0) { throw 'The Windows app restore failed for the x64 offline package target.' }
 & dotnet publish $desktopProject -c Release --no-restore -p:PlatformTarget=x64 -o $release
 if ($LASTEXITCODE -ne 0) { throw 'The Windows app publish failed.' }
 

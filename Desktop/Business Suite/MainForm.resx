@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -58,8 +58,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Drawing.Common" name="System.Drawing.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" />
-  <data name="administrationAdministrationRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="administrationAdministrationRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKklJREFUeF51m3d4VUX3ttfsk56Q3nvvhYQkkEIHRQRpAtI70nsHaQICCgKCNOmh
@@ -245,7 +245,7 @@
         brPxmRsszr/G7IzfGJl0kqKAAdZIUP8/wPyLbOXcZC2MWCEfwf8DZjEgzVa8cecAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="administrationLocalCompaniesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="administrationLocalCompaniesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKI5JREFUeF6VmgVwFFnXhk/HlbgrEBwCBEJIQiBIkODuros7LO62OAR3Xdx2sUWX
@@ -424,7 +424,7 @@
         8zzn/f8f+2/P/7dx/2/7P8BK3+NLmJLNAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="appointmentSchedulerRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="appointmentSchedulerRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAALK1JREFUeF51mwdUVFe7hvcZEHuNxpIYe0k0RhNLmiZGTUx+EzVRo8YYNSbG3ntD
@@ -621,7 +621,7 @@
         AAAASUVORK5CYII=
 </value>
   </data>
-  <data name="companiesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="companiesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAALMVJREFUeF5tmwd4FsX2/8++oSMi0qVeAbFRRKpIEa9Ix4oiFwFRlCbSQYog0nvv
@@ -818,7 +818,7 @@
         HjdswKsfYGrQCaXxm/w/jnh3z90DCgUAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="contactsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="contactsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKxtJREFUeF59uwdUFdf3/n3OoSj2rth7770XbNhQVIqigoooUkRRUEQEBBEFFERB
@@ -1008,7 +1008,7 @@
         Zjh3OWxtjf8/5uAoPnKbh6oAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="crmWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="crmWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAL49JREFUeF51uwdU1cr3/p1DUVR6770jIAgIomDHroACimJBFCtix96w9+61YL32
@@ -1217,7 +1217,7 @@
         Q4oXRBhm8/8Aii6/b6O0n0MAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="dealsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="dealsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAALM9JREFUeF51mwd4Ddkf98+ZiM4WFiGJNKJ3Vm9rlWWxul299967ECFKghAEIUQL
@@ -1414,7 +1414,7 @@
         fNuXA/3Mz/CgBLyozdP9pdjcIysr6wv+DwjEtHNvpZPaAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="financeLedgersRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="financeLedgersRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAALs1JREFUeF5luwVUVN33uL/PYGNgomICFliESiio2CgqqYKEIoiKit3dYovd3d3d
@@ -1620,7 +1620,7 @@
         SxpOAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="financeWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="financeWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAMGBJREFUeF61u2dUFFnXv32qGlQwD0ZGkNTkqJgVEBVzGCNmEbMomHPOOYdxzDmO
@@ -1832,7 +1832,7 @@
         Z3sjKczvgrymN6pdvujtHoZqRR+kyR6ISe2RPNyQq5ggGZjz/wAcmfbEL2XAvgAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="financeWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="financeWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKf5JREFUeF5lm3WcFdX7x5+5W4CESucGoIJ0h4IidisqIYJiK6UiLSAKSMPS3Y10
@@ -2017,7 +2017,7 @@
         jVNvWf/vYGgrNfNXLX3WJmjVEKjaEfo/wvMrYG3h3CIAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="helpHelpRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="helpHelpRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAJ9FJREFUeF6lm3dUFVcX9s9cBFQ6Fy69CUaNvWNBBKSDvYsldo0t9l5QBAvd3lsS
@@ -2193,7 +2193,7 @@
         /uU5/yL/B9DN4evUOffNAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="homeHomeRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="homeHomeRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAK0BJREFUeF51m3V8FFnz9atnkqAhaIDgGtwtBJfF3Z1lcXd3Wdzd3W3xXRZZWFg0
@@ -2384,7 +2384,7 @@
         TkSuQmCC
 </value>
   </data>
-  <data name="hrWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="hrWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKrRJREFUeF59ugdUFcf//j+zF1s0ajR2xd4LHRs2pCOCvUbsvcWONRpjEo0ae4m9
@@ -2572,7 +2572,7 @@
         rsgBDZF9XZC9XZB9XJB9lSs7IwLsEA41+H8aNe3L1Ud9dAAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="hrWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="hrWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKv5JREFUeF5dmwVUldnXxve5YGOOOjZ2t46dgMGAYMzY3d2D3T0G9ow6ds3Y3TmK
@@ -2761,7 +2761,7 @@
         nauuAKPMDdIVRf8txfTf5ag4RRwKsnAv1I9tkTxNkWyVUJkKGV7+f3uQ0o2iCansAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="leadsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="leadsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAL5ZJREFUeF5tmwV0FOf3/icJxG3j7koIMSIkkAQL7l60hWIFihR3d3eXAkUKFFoo
@@ -2970,7 +2970,7 @@
         tPSof4zLBca7/8l494v8P4KksiuTbfrQAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="projectMyWorkRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="projectMyWorkRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKJpJREFUeF69m3d4FdUW9tc+VEWvDaVYUNGrYKNaUawgSBHw2hAV7OWiotjrVUR6
@@ -3149,7 +3149,7 @@
         e8h1E5HLhzjNTtsvRD3h/tfjcO35ttdjnIj4P9wF5vtCGnFPAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="projectWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="projectWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAMLlJREFUeF6Vu3VUFl37vj+2YpGCpAqC0ggICFiISijYrZgIIqAiBiKpgkgp2C0l
@@ -3363,7 +3363,7 @@
         Ra31a9//A+uQd09iDAx1AAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="projectWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="projectWorkspacesRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAALoJJREFUeF5VmwVUldnXxvd5QUXHUccmrBm7Y+yxGxUDE0RQpBFUGgEVO8bu7u5E
@@ -3567,7 +3567,7 @@
         +fqifHxQ3t621cMT1ckdqdkI9WMplBRFZdcBT1s+66FpMwCWMAX4P/AIccNxkOoQAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="reportsReportingRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="reportsReportingRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAJ99JREFUeF7Nu3dYVUfU9r0GsERN7L1GjQWxUaQI9hZjjC32bhJjVywxsSaa2FAB
@@ -3743,7 +3743,7 @@
         GEvhif/3KPc/y5w+bPP/0/b/Ifx/lzFUODJDRSMAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="salesAppointmentsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="salesAppointmentsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAL1NJREFUeF6Vu2VUVd33/r3plO7uUsLO2+7uwu4OFAQVFQMVQRQsULELBBVbUZEQ
@@ -3951,7 +3951,7 @@
         kfDZiYRNB/4fN8QG03ZDVkYAAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="salesWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="salesWorkspaceRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKPBJREFUeF51m3V4FNf79p+zETQEdwIUDwTXAEFKcC+uRYsWimspElyLuxS3UiRI
@@ -4132,7 +4132,7 @@
         7V8AAAAASUVORK5CYII=
 </value>
   </data>
-  <data name="sharedDataRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="sharedDataRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKh1JREFUeF51mgV0FlfUrvf5cKhQwZ3i3uJW3N1dW6xYkRZKkRaKu2sIhCAhEBJC
@@ -4318,7 +4318,7 @@
         RZbTAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="sharedDocumentsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="sharedDocumentsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAJ49JREFUeF5lmwd0XNX19e+MZkajrtGo927ZstxtuVcwmB56C4QQAoSEQBIgdAgl
@@ -4493,7 +4493,7 @@
         f8uJ/fDn85gWAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="toolsPowerRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="toolsPowerRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAJbhJREFUeF6lmgWUFce39avu4OM4Y0BwBplBg7sEQggECMFhGNyJ+z8kwd3dXaO4
@@ -4660,7 +4660,7 @@
         /3rN/9FyZB7/FwhkOp8+Djv8AAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="toolsSettingsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing.Common" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="toolsSettingsRibbonButton.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wgAADsIBFShKgAAAKV1JREFUeF6lmwdUVcf37/cciiXGhmBFRVRELAgiIoooFrAgCooIAkoRLEhVQey9
