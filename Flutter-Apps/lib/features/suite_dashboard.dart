@@ -1022,16 +1022,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (_offlineOnly && !reconnect) {
       await loadSavedLeadPages();
-      final saved = _cached;
-      if (saved != null &&
-          loadRevision == _loadRevision &&
-          api.sessionRevision == revision) {
-        _usedSavedFallback = true;
-        return saved;
+      if (api.sessionRevision != revision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
       }
-      throw ApiFailure(
-        'Offline. Open this page online to save records on this device.',
-      );
+      if (loadRevision == _loadRevision) {
+        _usedSavedFallback = true;
+      }
+      return _cached ?? [];
     }
     dynamic data;
     try {
@@ -1431,7 +1428,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (rows == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (rows.isEmpty && !_searchOnServer) {
+              if (rows.isEmpty && !_searchOnServer && !_usedSavedFallback) {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null || _usedSavedFallback;
@@ -1520,7 +1517,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         ),
                       ),
                     ),
-                  if (visible.isEmpty)
+                  if (visible.isEmpty &&
+                      (rows.isNotEmpty || !_usedSavedFallback))
                     Text(
                       _stockAlerts && _term.isEmpty
                           ? 'No low stock items'
@@ -1552,7 +1550,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         if (cached && index == 0) {
                           return ListTile(
                             title: Text(
-                              snapshot.hasError || _usedSavedFallback
+                              _offlineOnly && rows.isEmpty
+                                  ? 'Offline · No saved records'
+                                  : snapshot.hasError || _usedSavedFallback
                                   ? 'Refresh unavailable · Saved records'
                                   : 'Saved records · Refreshing',
                             ),

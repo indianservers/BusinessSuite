@@ -4,6 +4,7 @@ import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
+import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
@@ -23,6 +24,123 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Android creates an offline sales order from saved inventory', (
+    tester,
+  ) async {
+    const base = 'https://example.test/api/v1';
+    final id = DateTime.now().microsecondsSinceEpoch;
+    final scope = '["$base",$id,7]';
+    final drafts = SalesOrderDrafts(scope);
+    await SuiteReadCache.write('$scope:${SalesOrderDrafts.productsEndpoint}', [
+      {
+        'id': 8,
+        'item_name': 'Saved inventory cable',
+        'sku': 'SKU-8',
+        'sales_rate': 75,
+      },
+    ]);
+    final submitted = <RequestOptions>[];
+    var connected = false;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (!connected) {
+          throw DioException(
+            requestOptions: request,
+            type: DioExceptionType.connectionError,
+          );
+        }
+        if (request.path != SalesOrderDrafts.endpoint) {
+          throw StateError('Unexpected request ${request.path}');
+        }
+        if (request.method == 'GET') {
+          return response([
+            if (submitted.isNotEmpty)
+              {
+                'id': 19,
+                'title': 'Android offline order',
+                'order_number': 'SO-19',
+              },
+          ]);
+        }
+        submitted.add(request);
+        return response({'id': 19, 'order_number': 'SO-19'}, 201);
+      });
+    final api = ApiClient(baseUrl: base, store: MemoryStore(), transport: dio);
+    await api.acceptTokens({
+      'access_token': 'device-qa',
+      'refresh_token': 'device-qa',
+    });
+    final identity = {'id': id, 'email': 'qa@example.test'};
+    await api.rememberSuite(identity, {
+      'companyId': 7,
+      'canCreateOrder': true,
+      'grants': {
+        'srm': {'enabled': true},
+      },
+    });
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson(identity)
+      ..offline = true;
+    Future<void> waitFor(Finder finder) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 20));
+      while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(finder, findsOneWidget);
+    }
+
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await waitFor(find.text('Sales & POS'));
+    await tester.ensureVisible(find.text('Sales & POS'));
+    await tester.tap(find.text('Sales & POS'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Sales order actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New sales order'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'Android offline order',
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final picker = find.text('Choose product').hitTestable();
+    await tester.scrollUntilVisible(
+      picker,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(picker);
+    await waitFor(find.text('Saved inventory cable'));
+    await tester.tap(find.text('Saved inventory cable'));
+    await tester.pumpAndSettle();
+    final save = find.text('Save order draft').hitTestable();
+    await tester.scrollUntilVisible(
+      save,
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(save);
+    await waitFor(find.byTooltip('Sales order actions'));
+    final saved = (await drafts.entries()).single;
+    expect(saved['payload']['lines'][0]['product_id'], 8);
+    expect(submitted, isEmpty);
+    await tester.tap(find.byTooltip('Sales order actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Order drafts'));
+    await waitFor(find.text('Awaiting sync'));
+    connected = true;
+    await tester.tap(find.byTooltip('Sync order drafts'));
+    await waitFor(find.text('No saved order drafts'));
+    expect(submitted, hasLength(1));
+    expect(submitted.single.headers['X-Offline-Operation'], saved['operation']);
+    expect(submitted.single.data, saved['payload']);
+    await tester.pageBack();
+    await waitFor(find.text('Android offline order'));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'Android creates a CRM lead from the offline dashboard and syncs it',
