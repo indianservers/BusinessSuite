@@ -3,6 +3,8 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/company_profile_panel.dart';
+import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
@@ -13,6 +15,126 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'business defaults keep unrelated overrides and send the server version',
+    (tester) async {
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/access/settings/defaults/configuration');
+          if (request.method == 'PUT') {
+            expect(request.headers['X-Suite-Organization'], '7');
+            expect(request.queryParameters, {'module': 'crm', 'branch_id': 6});
+            expect(request.data, {
+              'version': 3,
+              'values': {
+                'currency': 'INR',
+                'lead_source': 'Referral',
+                'task_priority': 'High',
+              },
+            });
+            return response({'saved': true, 'version': 4});
+          }
+          return response({
+            'companyId': 7,
+            'version': 3,
+            'inherited': {'currency': 'USD', 'lead_source': 'Website'},
+            'overrides': {'lead_source': 'Website', 'task_priority': 'High'},
+            'fields': [
+              {
+                'key': 'lead_source',
+                'label': 'Lead source',
+                'type': 'select',
+                'options': [
+                  {'value': 'Website', 'label': 'Website'},
+                  {'value': 'Referral', 'label': 'Referral'},
+                ],
+              },
+            ],
+            'choices': {
+              'branches': [
+                {'value': 6, 'label': 'Main Branch'},
+              ],
+            },
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BusinessDefaultsPanel(
+              api: ApiClient(
+                baseUrl: 'https://example.test/api/v1',
+                store: MemoryStore(),
+                transport: dio,
+              ),
+              editable: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CRM').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Main Branch').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SwitchListTile).first);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField), 'inr');
+      await tester.pump();
+      await tester.ensureVisible(find.byType(DropdownButton<Object>));
+      await tester.tap(find.byType(DropdownButton<Object>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Referral').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Save defaults'));
+      await tester.tap(find.text('Save defaults'));
+      await tester.pumpAndSettle();
+      expect(find.text('Business defaults saved.'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'company profile saves only changed fields for the loaded company',
+    (tester) async {
+      var name = 'Before';
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/access/settings/company-profile');
+          if (request.method == 'PATCH') {
+            expect(request.headers['X-Suite-Organization'], '7');
+            expect(request.data, {'name': 'After'});
+            name = 'After';
+            return response({'saved': true});
+          }
+          return response({
+            'companyId': 7,
+            'editable': true,
+            'profile': {'name': name, 'city': 'Hyderabad'},
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CompanyProfilePanel(
+              api: ApiClient(
+                baseUrl: 'https://example.test/api/v1',
+                store: MemoryStore(),
+                transport: dio,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'After');
+      await tester.pump();
+      await tester.tap(find.text('Save company details'));
+      await tester.pumpAndSettle();
+      expect(name, 'After');
+    },
+  );
   testWidgets(
     'signed-in dashboard uploads queued CRM edits without opening CRM',
     (tester) async {
@@ -265,6 +387,22 @@ void main() {
                 {'movement_number': 'STOCK-1', 'quantity_in': 3},
               ],
             }),
+            '/srm/inventory/reports/stock-summary' => response({
+              'items': [
+                {
+                  'id': 12,
+                  'item_name': 'Sample product',
+                  'current_quantity': 0,
+                  'reorder_threshold': 3,
+                },
+                {
+                  'id': 13,
+                  'item_name': 'Healthy product',
+                  'current_quantity': 20,
+                  'reorder_threshold': 3,
+                },
+              ],
+            }),
             _ => throw StateError('Unexpected request: ${request.path}'),
           };
         });
@@ -331,6 +469,12 @@ void main() {
           expect(calls.any((r) => r.path == '/srm/inventory/items'), isTrue);
           await open('Sample product');
           expect(find.text('STOCK-1'), findsOneWidget);
+          await back();
+          await tester.tap(find.byTooltip('Low stock alerts'));
+          await tester.pumpAndSettle();
+          expect(find.text('1 item needs attention'), findsOneWidget);
+          expect(find.text('Out of stock'), findsOneWidget);
+          expect(find.text('Healthy product'), findsNothing);
           await back();
           await back();
         }

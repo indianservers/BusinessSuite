@@ -15,6 +15,8 @@ import 'crm_lead_page.dart';
 import 'sales_order_page.dart';
 import 'suite_notifications_page.dart';
 import 'account_settings_panel.dart';
+import 'company_profile_panel.dart';
+import 'business_defaults_panel.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -637,6 +639,15 @@ class _SettingOptionState extends State<_SettingOption> {
             user: widget.controller.user,
           );
         }
+        if (widget.id == 'company-profile') {
+          return CompanyProfilePanel(api: widget.controller.api);
+        }
+        if (widget.id == 'business-defaults') {
+          return BusinessDefaultsPanel(
+            api: widget.controller.api,
+            editable: data['editable'] == true,
+          );
+        }
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -733,6 +744,22 @@ class _SuiteRecords extends StatefulWidget {
 }
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
+  static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
+  bool get _stockAlerts => widget.path == _stockSummaryPath;
+  bool get _inventory => widget.path == '/srm/inventory/items';
+
+  num? _stockNumber(Object? value) =>
+      value is num ? value : num.tryParse('${value ?? ''}');
+
+  bool _lowStock(Json row) {
+    final threshold = _stockNumber(row['reorder_threshold']);
+    final quantity = _stockNumber(row['current_quantity']);
+    return threshold != null &&
+        threshold > 0 &&
+        quantity != null &&
+        quantity <= threshold;
+  }
+
   CrmOfflineEdits? get _crmEdits {
     final scope = widget.cachePrefix;
     return widget.path == CrmLeadPage.endpoint && scope != null
@@ -837,6 +864,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'item_name',
               'current_quantity',
               'reorder_level',
+              'reorder_threshold',
               'unit_code',
             ])
               if (record[field] is String || record[field] is num)
@@ -862,6 +890,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             _records = _load();
           }),
         ),
+        if (_inventory)
+          IconButton(
+            tooltip: 'Low stock alerts',
+            icon: const Icon(LucideIcons.bell),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Low stock alerts',
+                  controller: widget.controller,
+                  path: _stockSummaryPath,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: widget.offlineOnly,
+                ),
+              ),
+            ),
+          ),
         if (widget.showInventory)
           IconButton(
             tooltip: 'Inventory',
@@ -922,10 +966,17 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null;
-              final search = widget.cachePrefix != null;
+              final search = widget.cachePrefix != null || _stockAlerts;
+              final candidates = _stockAlerts
+                  ? (rows.where(_lowStock).toList()..sort(
+                      (a, b) => _stockNumber(
+                        a['current_quantity'],
+                      )!.compareTo(_stockNumber(b['current_quantity'])!),
+                    ))
+                  : rows;
               final visible = _term.isEmpty
-                  ? rows
-                  : rows
+                  ? candidates
+                  : candidates
                         .where(
                           (item) =>
                               [
@@ -948,6 +999,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         .toList();
               return Column(
                 children: [
+                  if (_stockAlerts)
+                    ListTile(
+                      leading: const Icon(LucideIcons.bell),
+                      title: Text(
+                        candidates.length == 1
+                            ? '1 item needs attention'
+                            : '${candidates.length} items need attention',
+                      ),
+                      subtitle: const Text(
+                        'Stock at or below the reorder threshold',
+                      ),
+                    ),
                   if (search)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -958,13 +1021,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           prefixIcon: const Icon(LucideIcons.search),
                           labelText: switch (widget.path) {
                             CrmLeadPage.endpoint => 'Search saved leads',
-                            '/srm/inventory/items' => 'Search saved products',
+                            '/srm/inventory/items' ||
+                            _stockSummaryPath => 'Search products',
                             _ => 'Search saved orders',
                           },
                         ),
                       ),
                     ),
-                  if (visible.isEmpty) const Text('No matching records'),
+                  if (visible.isEmpty)
+                    Text(
+                      _stockAlerts && _term.isEmpty
+                          ? 'No low stock items'
+                          : 'No matching records',
+                    ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: visible.length + (cached ? 1 : 0),
@@ -996,12 +1065,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         final subtitle = [
                           item['sku'],
                           item['status'],
+                          if (_stockAlerts)
+                            'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
                         return ListTile(
                           title: Text('$label'),
                           subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                          trailing: _stockAlerts
+                              ? Text(
+                                  _stockNumber(item['current_quantity'])! <= 0
+                                      ? 'Out of stock'
+                                      : '${item['current_quantity']} left',
+                                )
+                              : null,
                           onTap:
-                              (widget.path == '/srm/inventory/items' ||
+                              (_inventory ||
+                                      _stockAlerts ||
                                       widget.path == '/srm/sales-orders' ||
                                       widget.path == CrmLeadPage.endpoint) &&
                                   item['id'] is int
