@@ -237,7 +237,7 @@ void main() {
     expect(savedSearch, findsOneWidget);
     await tester.enterText(search, 'QA-SALE-2');
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('QA-SALE-2'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsOneWidget);
     expect(searches, ['archived', 'QA-SALE']);
     await tester.pumpWidget(const SizedBox.shrink());
   });
