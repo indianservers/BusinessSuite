@@ -92,6 +92,15 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
                 ),
             ],
             const Divider(),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      _PartyStatement(load: () => _read('/statement')),
+                ),
+              ),
+              child: const Text('View statement'),
+            ),
             if (_outstanding == null)
               OutlinedButton(
                 onPressed: _loadOutstanding,
@@ -132,6 +141,107 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
                     ],
                   );
                 },
+              ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _PartyStatement extends StatefulWidget {
+  const _PartyStatement({required this.load});
+  final Future<Json> Function() load;
+
+  @override
+  State<_PartyStatement> createState() => _PartyStatementState();
+}
+
+class _PartyStatementState extends State<_PartyStatement> {
+  late Future<Json> _statement = widget.load();
+
+  void _refresh() {
+    setState(() {
+      _statement = widget.load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Party statement'),
+      actions: [
+        IconButton(
+          tooltip: 'Refresh statement',
+          onPressed: _refresh,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    ),
+    body: FutureBuilder<Json>(
+      future: _statement,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return ListTile(
+            title: Text('${snapshot.error}'),
+            trailing: TextButton(
+              onPressed: _refresh,
+              child: const Text('Retry'),
+            ),
+          );
+        }
+        final statement = snapshot.requireData;
+        final bills = (statement['billReferences'] as List? ?? [])
+            .whereType<Json>()
+            .toList();
+        final allocations = (statement['allocations'] as List? ?? [])
+            .whereType<Json>();
+        final billNumbers = {
+          for (final bill in bills) bill['id']: bill['bill_number'],
+        };
+        String reference(Object? id) => '${billNumbers[id] ?? 'Bill #$id'}';
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            ListTile(
+              title: Text(
+                '${(statement['party'] as Json?)?['legal_name'] ?? 'Party'}',
+              ),
+              subtitle: Text('Outstanding · ${statement['outstanding']}'),
+            ),
+            Text(
+              'Bill references',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (bills.isEmpty)
+              const ListTile(title: Text('No bill references')),
+            for (final bill in bills)
+              ListTile(
+                title: Text('${bill['bill_number']} · ${bill['status']}'),
+                subtitle: Text(
+                  '${bill['bill_type']} · ${bill['bill_date']} · Due ${bill['due_date']}',
+                ),
+                trailing: Text(
+                  'Original ${bill['original_amount']}\nOpen ${bill['outstanding_amount']}',
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            const Divider(),
+            Text('Allocations', style: Theme.of(context).textTheme.titleMedium),
+            if (allocations.isEmpty)
+              const ListTile(title: Text('No allocations')),
+            for (final allocation in allocations)
+              ListTile(
+                title: Text(
+                  '${reference(allocation['from_bill_reference_id'])} → ${reference(allocation['to_bill_reference_id'])}',
+                ),
+                subtitle: Text(
+                  '${allocation['allocation_date']} · ${allocation['allocation_type']}',
+                ),
+                trailing: Text('${allocation['allocated_amount']}'),
               ),
           ],
         );

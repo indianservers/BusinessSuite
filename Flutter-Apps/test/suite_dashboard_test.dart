@@ -25,56 +25,77 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets(
-    'finance opens party details and loads outstanding bills on demand',
-    (tester) async {
-      final requests = <String>[];
-      final dio = Dio()
-        ..httpClientAdapter = FakeAdapter((request) async {
-          requests.add(request.path);
-          if (request.path == '/fam/parties/4') {
-            return response({
-              'legal_name': 'QA Supplier',
-              'contacts': [
-                {'name': 'Accounts desk'},
-              ],
-            });
-          }
-          expect(request.path, '/fam/parties/4/outstanding');
+  testWidgets('finance loads outstanding bills and statements on demand', (
+    tester,
+  ) async {
+    final requests = <String>[];
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        requests.add(request.path);
+        if (request.path == '/fam/parties/4') {
           return response({
-            'openBills': 1,
+            'legal_name': 'QA Supplier',
+            'contacts': [
+              {'name': 'Accounts desk'},
+            ],
+          });
+        }
+        if (request.path == '/fam/parties/4/statement') {
+          return response({
+            'party': {'legal_name': 'QA Supplier'},
             'outstanding': 75,
-            'items': [
+            'billReferences': [
+              {'id': 1, 'bill_number': 'B-22', 'status': 'open'},
+              {'id': 2, 'bill_number': 'R-7', 'status': 'closed'},
+            ],
+            'allocations': [
               {
-                'bill_number': 'B-22',
-                'due_date': '2026-12-12',
-                'outstanding_amount': '75.00',
+                'from_bill_reference_id': 2,
+                'to_bill_reference_id': 1,
+                'allocation_date': '2026-11-26',
+                'allocated_amount': '25.00',
               },
             ],
           });
+        }
+        expect(request.path, '/fam/parties/4/outstanding');
+        return response({
+          'openBills': 1,
+          'outstanding': 75,
+          'items': [
+            {
+              'bill_number': 'B-22',
+              'due_date': '2026-12-12',
+              'outstanding_amount': '75.00',
+            },
+          ],
         });
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FinancePartyPage(
-            api: ApiClient(
-              baseUrl: 'https://example.test/api/v1',
-              store: MemoryStore(),
-              transport: dio,
-            ),
-            id: 4,
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FinancePartyPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+            transport: dio,
           ),
+          id: 4,
         ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('QA Supplier'), findsOneWidget);
-      expect(find.text('Accounts desk'), findsOneWidget);
-      expect(requests, ['/fam/parties/4']);
-      await tester.tap(find.text('View outstanding bills'));
-      await tester.pumpAndSettle();
-      expect(find.text('B-22'), findsOneWidget);
-      expect(find.text('75.00'), findsOneWidget);
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('QA Supplier'), findsOneWidget);
+    expect(find.text('Accounts desk'), findsOneWidget);
+    expect(requests, ['/fam/parties/4']);
+    await tester.tap(find.text('View outstanding bills'));
+    await tester.pumpAndSettle();
+    expect(find.text('B-22'), findsOneWidget);
+    expect(find.text('75.00'), findsOneWidget);
+    await tester.tap(find.text('View statement'));
+    await tester.pumpAndSettle();
+    expect(find.text('R-7 → B-22'), findsOneWidget);
+    expect(find.text('25.00'), findsOneWidget);
+  });
   testWidgets(
     'HR leave applies and confirms cancellation through the shared API',
     (tester) async {
