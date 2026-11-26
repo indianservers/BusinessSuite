@@ -12,6 +12,7 @@ import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
+import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -24,6 +25,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'finance opens party details and loads outstanding bills on demand',
+    (tester) async {
+      final requests = <String>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request.path);
+          if (request.path == '/fam/parties/4') {
+            return response({
+              'legal_name': 'QA Supplier',
+              'contacts': [
+                {'name': 'Accounts desk'},
+              ],
+            });
+          }
+          expect(request.path, '/fam/parties/4/outstanding');
+          return response({
+            'openBills': 1,
+            'outstanding': 75,
+            'items': [
+              {
+                'bill_number': 'B-22',
+                'due_date': '2026-12-12',
+                'outstanding_amount': '75.00',
+              },
+            ],
+          });
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FinancePartyPage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            id: 4,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('QA Supplier'), findsOneWidget);
+      expect(find.text('Accounts desk'), findsOneWidget);
+      expect(requests, ['/fam/parties/4']);
+      await tester.tap(find.text('View outstanding bills'));
+      await tester.pumpAndSettle();
+      expect(find.text('B-22'), findsOneWidget);
+      expect(find.text('75.00'), findsOneWidget);
+    },
+  );
   testWidgets(
     'HR leave applies and confirms cancellation through the shared API',
     (tester) async {

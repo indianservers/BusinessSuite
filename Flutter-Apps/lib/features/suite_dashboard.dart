@@ -25,6 +25,7 @@ import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
+import 'finance_party_page.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
@@ -91,7 +92,7 @@ const List<_App> _apps = [
     caption: 'Accounts & ledgers',
     icon: LucideIcons.chartNoAxesColumnIncreasing,
     color: Color(0xff6244c6),
-    endpoint: '/fam/parties',
+    endpoint: FinancePartyPage.endpoint,
   ),
 ];
 
@@ -1090,7 +1091,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               final search =
                   widget.cachePrefix != null ||
                   _stockAlerts ||
-                  widget.path == GstInvoicePage.listEndpoint;
+                  widget.path == GstInvoicePage.listEndpoint ||
+                  widget.path == FinancePartyPage.endpoint;
               final candidates = _stockAlerts
                   ? (rows.where(_lowStock).toList()..sort(
                       (a, b) => _stockNumber(
@@ -1110,6 +1112,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'last_name',
                                     'order_number',
                                     'invoice_number',
+                                    'legal_name',
+                                    'trade_name',
+                                    'party_code',
                                     'status',
                                     'sku',
                                     'item_name',
@@ -1210,7 +1215,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path == '/srm/sales-orders' ||
                                       widget.path ==
                                           GstInvoicePage.listEndpoint ||
-                                      widget.path == CrmLeadPage.endpoint) &&
+                                      widget.path == CrmLeadPage.endpoint ||
+                                      widget.path ==
+                                          FinancePartyPage.endpoint) &&
                                   item['id'] is int
                               ? () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
@@ -1269,6 +1276,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                           }.contains,
                                                         ) ==
                                                     true,
+                                          )
+                                        : widget.path ==
+                                              FinancePartyPage.endpoint
+                                        ? FinancePartyPage(
+                                            api: widget.controller.api,
+                                            id: item['id'] as int,
                                           )
                                         : InventoryProductPage(
                                             api: widget.controller.api,
