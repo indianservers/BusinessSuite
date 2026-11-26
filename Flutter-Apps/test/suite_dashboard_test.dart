@@ -1,6 +1,7 @@
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
+import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
@@ -15,6 +16,46 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  test('offline inventory creations reuse one server receipt key', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    FlutterSecureStorage.setMockInitialValues({});
+    const base = 'https://example.test/api/v1';
+    const scope = '["https://example.test/api/v1",2,7]';
+    await InventoryOfflineCreates(scope).enqueue({
+      'kind': 'product',
+      'name': 'Sample product',
+      'code': 'SAMPLE-1',
+      'currency': 'INR',
+    });
+    final queue = InventoryOfflineCreates(scope);
+    final operations = <String>[];
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        expect(request.method, 'POST');
+        expect(request.path, '/catalog/items');
+        expect(request.queryParameters['source'], 'srm');
+        expect(request.headers['X-Suite-Organization'], '7');
+        operations.add(request.headers['X-Offline-Operation'] as String);
+        if (operations.length == 1) {
+          throw DioException(
+            requestOptions: request,
+            type: DioExceptionType.connectionError,
+          );
+        }
+        return response({'id': 12}, 201);
+      });
+    final api = ApiClient(baseUrl: base, store: MemoryStore(), transport: dio);
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await queue.sync(api);
+    expect(await queue.entries(), hasLength(1));
+    await queue.sync(api);
+    expect(await queue.entries(), isEmpty);
+    expect(operations, hasLength(2));
+    expect(operations.first, operations.last);
+  });
   testWidgets(
     'business defaults keep unrelated overrides and send the server version',
     (tester) async {

@@ -8,11 +8,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../app_controller.dart';
 import '../core/api_client.dart';
 import '../core/crm_offline_edits.dart';
+import '../core/inventory_offline_creates.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'sales_order_page.dart';
+import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
 import 'account_settings_panel.dart';
 import 'company_profile_panel.dart';
@@ -176,18 +178,24 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       final access = await accessFuture;
       if (!mounted ||
           !identical(_access, accessFuture) ||
-          revision != controller.api.sessionRevision ||
-          !_allowed(access, 'crm')) {
+          revision != controller.api.sessionRevision) {
         return;
       }
       final scope = _localScope(access);
       if (scope == null) return;
       final edits = CrmOfflineEdits(scope);
-      if (await edits.hasPending &&
+      if (_allowed(access, 'crm') &&
+          await edits.hasPending &&
           mounted &&
           identical(_access, accessFuture) &&
           revision == controller.api.sessionRevision) {
         await edits.sync(controller.api);
+      }
+      if (_allowed(access, 'srm') &&
+          mounted &&
+          identical(_access, accessFuture) &&
+          revision == controller.api.sessionRevision) {
+        await InventoryOfflineCreates(scope).sync(controller.api);
       }
     } catch (_) {
       // Leave the durable queue available when local storage or the API is unavailable.
@@ -905,6 +913,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_inventory && widget.cachePrefix != null)
+          IconButton(
+            tooltip: 'Product drafts',
+            icon: const Icon(LucideIcons.packagePlus),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => InventoryDraftsPage(
+                    api: widget.controller.api,
+                    drafts: InventoryOfflineCreates(widget.cachePrefix!),
+                  ),
+                ),
+              );
+              if (mounted) {
+                setState(() {
+                  _records = _load();
+                });
+              }
+            },
           ),
         if (widget.showInventory)
           IconButton(
