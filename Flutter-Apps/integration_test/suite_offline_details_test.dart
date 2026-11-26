@@ -41,8 +41,9 @@ void main() {
             'content': 'QA body',
           });
           operations.add(request.headers['X-Offline-Operation']);
-          if (operations.length == 1)
+          if (operations.length == 1) {
             return response({'detail': 'Unavailable'}, 503);
+          }
           return response({
             'id': 10,
             'title': 'Android offline note',
