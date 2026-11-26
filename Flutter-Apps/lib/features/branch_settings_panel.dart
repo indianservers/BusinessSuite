@@ -19,19 +19,46 @@ class BranchSettingsPanel extends StatefulWidget {
 
 class _BranchSettingsPanelState extends State<BranchSettingsPanel> {
   late Future<Json> _branches = _load();
-  Future<Json> _load() async =>
-      await widget.api.request('GET', '/branches/context') as Json;
+  String _tab = 'active';
+  Future<Json> _load() async {
+    final context =
+        await widget.api.request('GET', '/branches/context') as Json;
+    if (!widget.editable || context['manage_access'] != true) return context;
+    final management =
+        await widget.api.request('GET', '/branches/manage') as Json;
+    return {...context, 'management': management};
+  }
 
-  Future<void> _create() async {
+  Future<void> _change({
+    Json? branch,
+    _BranchAction action = _BranchAction.create,
+  }) async {
     final created = await showDialog<String>(
       context: context,
-      builder: (_) => _CreateBranchDialog(api: widget.api),
+      builder: (_) =>
+          _BranchDialog(api: widget.api, branch: branch, action: action),
     );
-    if (!mounted || created == null) return;
+    if (!mounted) return;
+    if (created == null) {
+      if (branch != null) _refresh();
+      return;
+    }
+    _tab = switch (action) {
+      _BranchAction.trash => 'trash',
+      _BranchAction.protect => 'protected',
+      _ => 'active',
+    };
     _refresh();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$created created. Assign users in Users & permissions.'),
+        content: Text(switch (action) {
+          _BranchAction.create =>
+            '$created created. Assign users in Users & permissions.',
+          _BranchAction.rename => 'Branch renamed to $created.',
+          _BranchAction.trash => '$created moved to Trash.',
+          _BranchAction.protect => '$created moved to protected recovery.',
+          _BranchAction.restore => '$created restored.',
+        }),
       ),
     );
   }
@@ -52,23 +79,46 @@ class _BranchSettingsPanelState extends State<BranchSettingsPanel> {
       if (snapshot.hasError) {
         return ListTile(
           title: Text('${snapshot.error}'),
-          trailing: TextButton(
-            onPressed: _refresh,
-            child: const Text('Retry'),
-          ),
+          trailing: TextButton(onPressed: _refresh, child: const Text('Retry')),
         );
       }
       final data = snapshot.requireData;
-      final branches = (data['branches'] as List? ?? []).whereType<Json>();
+      final management = data['management'] as Json?;
+      final branches = ((management ?? data)['branches'] as List? ?? [])
+          .whereType<Json>()
+          .where(
+            (branch) =>
+                management == null ||
+                branch['state'] == _tab ||
+                (_tab == 'trash' && branch['state'] == 'archived'),
+          );
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (widget.editable && data['manage_access'] == true)
             FilledButton.icon(
-              onPressed: _create,
+              onPressed: () => _change(),
               icon: const Icon(Icons.add),
               label: const Text('Create branch'),
             ),
+          if (management != null) ...[
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'active', label: Text('Active')),
+                ButtonSegment(value: 'trash', label: Text('Trash')),
+                ButtonSegment(value: 'protected', label: Text('Recovery')),
+              ],
+              selected: {_tab},
+              onSelectionChanged: (selected) =>
+                  setState(() => _tab = selected.single),
+            ),
+            if (_tab != 'active')
+              ListTile(
+                title: Text(
+                  'Branches are retained for at least ${management['retention_days']} days.',
+                ),
+              ),
+          ],
           if (branches.isEmpty)
             const ListTile(title: Text('No accessible branches')),
           for (final branch in branches)
@@ -76,13 +126,42 @@ class _BranchSettingsPanelState extends State<BranchSettingsPanel> {
               leading: const Icon(Icons.location_on_outlined),
               title: Text('${branch['name']}'),
               subtitle: Text('${branch['code']}'),
-              trailing: Text(
-                branch['is_active'] != true
-                    ? 'Inactive'
-                    : branch['can_write'] == true
-                    ? 'Can edit'
-                    : 'Read-only',
-              ),
+              trailing: branch['can_manage'] == true && branch['version'] is int
+                  ? PopupMenuButton<_BranchAction>(
+                      tooltip: 'Manage ${branch['name']}',
+                      onSelected: (action) =>
+                          _change(branch: branch, action: action),
+                      itemBuilder: (_) => [
+                        if (_tab == 'active') ...[
+                          const PopupMenuItem(
+                            value: _BranchAction.rename,
+                            child: Text('Rename branch'),
+                          ),
+                          PopupMenuItem(
+                            value: _BranchAction.trash,
+                            enabled: branch['can_trash'] == true,
+                            child: const Text('Move to Trash'),
+                          ),
+                        ] else ...[
+                          const PopupMenuItem(
+                            value: _BranchAction.restore,
+                            child: Text('Restore branch'),
+                          ),
+                          if (branch['state'] == 'trash')
+                            const PopupMenuItem(
+                              value: _BranchAction.protect,
+                              child: Text('Move to protected recovery'),
+                            ),
+                        ],
+                      ],
+                    )
+                  : Text(
+                      branch['is_active'] != true
+                          ? 'Inactive'
+                          : branch['can_write'] == true
+                          ? 'Can edit'
+                          : 'Read-only',
+                    ),
             ),
         ],
       );
@@ -90,18 +169,39 @@ class _BranchSettingsPanelState extends State<BranchSettingsPanel> {
   );
 }
 
-class _CreateBranchDialog extends StatefulWidget {
-  const _CreateBranchDialog({required this.api});
-  final ApiClient api;
+enum _BranchAction {
+  create('Create branch'),
+  rename('Rename branch'),
+  trash('Move to Trash'),
+  protect('Move to protected recovery'),
+  restore('Restore branch');
 
-  @override
-  State<_CreateBranchDialog> createState() => _CreateBranchDialogState();
+  const _BranchAction(this.label);
+  final String label;
 }
 
-class _CreateBranchDialogState extends State<_CreateBranchDialog> {
+class _BranchDialog extends StatefulWidget {
+  const _BranchDialog({
+    required this.api,
+    required this.branch,
+    required this.action,
+  });
+  final ApiClient api;
+  final Json? branch;
+  final _BranchAction action;
+
+  @override
+  State<_BranchDialog> createState() => _BranchDialogState();
+}
+
+class _BranchDialogState extends State<_BranchDialog> {
   final _form = GlobalKey<FormState>();
-  final _values = <String, String>{};
+  late final _values = <String, String>{
+    if (widget.action == _BranchAction.rename)
+      'name': '${widget.branch!['name']}',
+  };
   bool _saving = false;
+  bool _stale = false;
   String? _error;
 
   Future<void> _submit() async {
@@ -111,13 +211,31 @@ class _CreateBranchDialogState extends State<_CreateBranchDialog> {
       _error = null;
     });
     try {
-      await widget.api.request('POST', '/branches', data: _values);
-      if (mounted) Navigator.of(context).pop(_values['name']);
+      final branch = widget.branch;
+      final action = widget.action;
+      final path = branch == null ? '/branches' : '/branches/${branch['id']}';
+      await widget.api.request(
+        action == _BranchAction.rename ? 'PATCH' : 'POST',
+        branch == null || action == _BranchAction.rename
+            ? path
+            : '$path/${action.name}',
+        data: {
+          ..._values,
+          if (branch != null) 'expected_version': branch['version'],
+        },
+      );
+      if (mounted) {
+        Navigator.of(context).pop(_values['name'] ?? branch?['name']);
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
           _saving = false;
           _error = '$error';
+          _stale =
+              widget.branch != null &&
+              error is ApiFailure &&
+              error.status == 409;
         });
       }
     }
@@ -127,20 +245,30 @@ class _CreateBranchDialogState extends State<_CreateBranchDialog> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_saving,
     child: AlertDialog(
-      title: const Text('Create a branch'),
+      title: Text(widget.action.label),
       content: SingleChildScrollView(
         child: Form(
           key: _form,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final (key, label, maximum) in const [
-                ('name', 'Branch name', 150),
-                ('code', 'Branch code', 20),
-                ('reason', 'Reason for creating branch', 1000),
+              if (widget.branch != null)
+                Text('${widget.branch!['name']} · ${widget.branch!['code']}'),
+              if (widget.action == _BranchAction.trash)
+                const Text(
+                  'Users lose access until this branch is restored. Its records are retained.',
+                ),
+              for (final (key, label, maximum) in [
+                if (widget.action == _BranchAction.create ||
+                    widget.action == _BranchAction.rename)
+                  ('name', 'Branch name', 150),
+                if (widget.action == _BranchAction.create)
+                  ('code', 'Branch code', 20),
+                ('reason', 'Reason', 1000),
               ])
                 TextFormField(
                   enabled: !_saving,
+                  initialValue: _values[key],
                   maxLength: maximum,
                   decoration: InputDecoration(labelText: label),
                   onChanged: (value) => _values[key] = value.trim(),
@@ -165,11 +293,11 @@ class _CreateBranchDialogState extends State<_CreateBranchDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(_stale ? 'Close and refresh' : 'Cancel'),
         ),
         FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: Text(_saving ? 'Creating…' : 'Create branch'),
+          onPressed: _saving || _stale ? null : _submit,
+          child: Text(_saving ? 'Saving…' : widget.action.label),
         ),
       ],
     ),

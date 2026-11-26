@@ -18,63 +18,94 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('branch settings creates a branch and reloads the shared list', (
-    tester,
-  ) async {
-    var created = false;
-    final dio = Dio()
-      ..httpClientAdapter = FakeAdapter((request) async {
-        if (request.method == 'POST') {
-          expect(request.path, '/branches');
-          expect(request.data, {
-            'name': 'Pune',
-            'code': 'PNQ',
-            'reason': 'New office',
+  testWidgets(
+    'branch settings creates and renames a branch with the server version',
+    (tester) async {
+      var created = false;
+      var name = 'Pune';
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            expect(request.path, '/branches');
+            expect(request.data, {
+              'name': 'Pune',
+              'code': 'PNQ',
+              'reason': 'New office',
+            });
+            created = true;
+            return response({'id': 3, 'name': 'Pune', 'code': 'PNQ'}, 201);
+          }
+          if (request.method == 'PATCH') {
+            expect(request.path, '/branches/3');
+            expect(request.data, {
+              'name': 'Pune Central',
+              'reason': 'Updated office name',
+              'expected_version': 4,
+            });
+            name = 'Pune Central';
+            return response({'id': 3, 'name': name, 'version': 5});
+          }
+          if (request.path == '/branches/context') {
+            return response({'manage_access': true, 'branches': []});
+          }
+          expect(request.path, '/branches/manage');
+          return response({
+            'retention_days': 45,
+            'branches': [
+              if (created)
+                {
+                  'id': 3,
+                  'name': name,
+                  'code': 'PNQ',
+                  'is_active': true,
+                  'can_manage': true,
+                  'can_trash': false,
+                  'state': 'active',
+                  'version': 4,
+                },
+            ],
           });
-          created = true;
-          return response({'id': 3, 'name': 'Pune', 'code': 'PNQ'}, 201);
-        }
-        expect(request.path, '/branches/context');
-        return response({
-          'manage_access': true,
-          'branches': [
-            if (created)
-              {
-                'id': 3,
-                'name': 'Pune',
-                'code': 'PNQ',
-                'is_active': true,
-                'can_write': true,
-              },
-          ],
         });
-      });
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: BranchSettingsPanel(
-            api: ApiClient(
-              baseUrl: 'https://example.test/api/v1',
-              store: MemoryStore(),
-              transport: dio,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BranchSettingsPanel(
+              api: ApiClient(
+                baseUrl: 'https://example.test/api/v1',
+                store: MemoryStore(),
+                transport: dio,
+              ),
+              editable: true,
             ),
-            editable: true,
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Create branch'));
-    await tester.pumpAndSettle();
-    for (final (index, value) in [(0, 'Pune'), (1, 'PNQ'), (2, 'New office')]) {
-      await tester.enterText(find.byType(TextFormField).at(index), value);
-    }
-    await tester.tap(find.widgetWithText(FilledButton, 'Create branch').last);
-    await tester.pumpAndSettle();
-    expect(created, isTrue);
-    expect(find.text('Pune'), findsOneWidget);
-    expect(find.text('Can edit'), findsOneWidget);
-  });
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create branch'));
+      await tester.pumpAndSettle();
+      for (final (index, value) in [
+        (0, 'Pune'),
+        (1, 'PNQ'),
+        (2, 'New office'),
+      ]) {
+        await tester.enterText(find.byType(TextFormField).at(index), value);
+      }
+      await tester.tap(find.widgetWithText(FilledButton, 'Create branch').last);
+      await tester.pumpAndSettle();
+      expect(created, isTrue);
+      expect(find.text('Pune'), findsOneWidget);
+      await tester.tap(find.byTooltip('Manage Pune'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename branch'));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.first, 'Pune Central');
+      await tester.enterText(fields.last, 'Updated office name');
+      await tester.tap(find.widgetWithText(FilledButton, 'Rename branch'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pune Central'), findsOneWidget);
+    },
+  );
   test('offline inventory creations reuse one server receipt key', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     FlutterSecureStorage.setMockInitialValues({});
