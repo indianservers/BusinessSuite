@@ -1612,7 +1612,13 @@ void main() {
             store: MemoryStore(),
             transport: dio,
           ),
-          summary: const {'id': 9, 'first_name': 'Saved lead', 'version': 4},
+          summary: const {
+            'id': 9,
+            'first_name': 'Saved lead',
+            'version': 4,
+            'source': 'Website',
+            'rating': 'Hot',
+          },
           offline: true,
         ),
       ),
@@ -1620,6 +1626,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(reads, 0);
     expect(find.text('Saved lead'), findsOneWidget);
+    expect(find.text('Website'), findsOneWidget);
+    expect(find.text('Hot'), findsOneWidget);
     await tester.tap(find.text('Reconnect'));
     await tester.pumpAndSettle();
     expect(reads, 1);

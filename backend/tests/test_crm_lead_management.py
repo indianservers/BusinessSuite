@@ -13,7 +13,7 @@ ROOT = "/api/v1/crm/lead-management"
 
 
 def test_mobile_lead_summary_preserves_queue_and_edit_version(client, superuser_headers):
-    lead = create(client, superuser_headers, full_name="Summary Lead")
+    lead = create(client, superuser_headers, full_name="Summary Lead", source="Website")
     path = ROOT + "/leads"
     params = {"search": "Summary Lead", "queue": "all", "per_page": 1}
     full = client.get(path, headers=superuser_headers, params=params)
@@ -23,6 +23,7 @@ def test_mobile_lead_summary_preserves_queue_and_edit_version(client, superuser_
     summary = mobile.json()["items"][0]
     assert summary["id"] == lead["id"]
     assert summary["version"] == lead["version"]
+    assert (summary["source"], summary["rating"]) == ("Website", "Cold")
     assert summary == {key: full.json()["items"][0].get(key) for key in summary}
     assert {"email", "phone", "details", "signals"}.isdisjoint(summary)
 

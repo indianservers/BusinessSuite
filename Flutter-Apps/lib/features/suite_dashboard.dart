@@ -984,6 +984,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'full_name',
               'version',
               'company_name',
+              if (_isCrm) ...['source', 'rating'],
               'order_number',
               'currency',
               'subtotal',
