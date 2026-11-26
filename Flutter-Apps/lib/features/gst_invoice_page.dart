@@ -52,6 +52,7 @@ class GstInvoicePage extends StatefulWidget {
 
 class _GstInvoicePageState extends State<GstInvoicePage> {
   late Future<(Json, bool)> _invoice = _load();
+  late bool _offline = widget.offline;
   Json? _saved;
   bool _exporting = false;
   bool _issuing = false;
@@ -87,7 +88,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     }
   }
 
-  Future<(Json, bool)> _load() async {
+  Future<(Json, bool)> _load({bool reconnect = false}) async {
     final api = widget.api;
     final revision = api.sessionRevision;
     final key = _key;
@@ -104,7 +105,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     final fallback = cached ?? widget.summary;
-    if (widget.offline) {
+    if (_offline && !reconnect) {
       if (fallback != null) return (fallback, true);
       throw ApiFailure('Open this invoice online to save it on this device.');
     }
@@ -114,6 +115,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
       await _saveSnapshot(invoice);
+      _offline = false;
       return (invoice, false);
     } on ApiFailure catch (error) {
       if (fallback != null &&
@@ -131,6 +133,10 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       rethrow;
     }
   }
+
+  void _refresh() => setState(() {
+    _invoice = _load(reconnect: true);
+  });
 
   Future<void> _issue(Json invoice) async {
     if (_issuing) return;
@@ -371,10 +377,8 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
           return ListTile(
             title: Text('${snapshot.error}'),
             trailing: TextButton(
-              onPressed: () => setState(() {
-                _invoice = _load();
-              }),
-              child: const Text('Retry'),
+              onPressed: _refresh,
+              child: Text(_offline ? 'Reconnect' : 'Retry'),
             ),
           );
         }
@@ -401,18 +405,14 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
             if (!loading && saved)
               ListTile(
                 title: Text(
-                  widget.offline
+                  _offline
                       ? 'Offline · Saved invoice'
                       : 'Refresh unavailable · Saved invoice',
                 ),
-                trailing: widget.offline
-                    ? null
-                    : TextButton(
-                        onPressed: () => setState(() {
-                          _invoice = _load();
-                        }),
-                        child: const Text('Retry'),
-                      ),
+                trailing: TextButton(
+                  onPressed: _refresh,
+                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                ),
               ),
             if (!saved && widget.canExport)
               OutlinedButton.icon(

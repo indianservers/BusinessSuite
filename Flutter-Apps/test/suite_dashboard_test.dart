@@ -754,6 +754,14 @@ void main() {
       expect(find.text('Edit dates'), findsNothing);
       expect(find.text('Issue invoice'), findsNothing);
       expect(find.text('Save invoice PDF'), findsNothing);
+      dio.httpClientAdapter = FakeAdapter((request) async {
+        expect(request.path, '/srm/invoices/7');
+        return response({'invoice_number': 'GST-7', 'status': 'draft'});
+      });
+      await tester.tap(find.text('Reconnect'));
+      await tester.pumpAndSettle();
+      expect(find.text('Offline · Saved invoice'), findsNothing);
+      expect(find.text('Save invoice PDF'), findsOneWidget);
     },
   );
   testWidgets(
