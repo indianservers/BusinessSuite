@@ -145,8 +145,30 @@ class SalesOrderDrafts {
   Future<void> _write(Json drafts) =>
       _storage.write(key: _key, value: jsonEncode(drafts));
 
-  Future<void> save(String operation, Json payload) => _modify((drafts) async {
-    drafts[operation] = {'payload': payload};
+  Future<void> save(
+    String operation,
+    Json payload, {
+    String? customerName,
+    String? replaceRejected,
+  }) => _modify((drafts) async {
+    if (replaceRejected != null) {
+      final previous = drafts[replaceRejected] as Json?;
+      if (previous?['status'] != 422) {
+        throw StateError(
+          'This saved order draft has changed. Reopen it first.',
+        );
+      }
+      drafts.remove(replaceRejected);
+    }
+    drafts[operation] = {
+      'payload': payload,
+      'customer_name': ?customerName,
+    };
+    await _write(drafts);
+  });
+
+  Future<void> discard(String operation) => _modify((drafts) async {
+    drafts.remove(operation);
     await _write(drafts);
   });
 
@@ -180,6 +202,7 @@ class SalesOrderDrafts {
             return;
           }
           draft['error'] = error.toString();
+          draft['status'] = error.status;
         }
         await _write(drafts);
         if (!drafts.containsKey(operation) && api.sessionRevision == revision) {

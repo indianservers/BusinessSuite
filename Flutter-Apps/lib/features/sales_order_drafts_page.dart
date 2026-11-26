@@ -11,10 +11,12 @@ class NewSalesOrderPage extends StatefulWidget {
     required this.api,
     this.drafts,
     this.offline = false,
+    this.rejectedDraft,
   });
   final ApiClient api;
   final SalesOrderDrafts? drafts;
   final bool offline;
+  final Json? rejectedDraft;
 
   @override
   State<NewSalesOrderPage> createState() => _NewSalesOrderPageState();
@@ -23,13 +25,35 @@ class NewSalesOrderPage extends StatefulWidget {
 class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   final _form = GlobalKey<FormState>();
   final _operation = const Uuid().v4();
-  final _details = <String, String>{'currency': 'INR'};
-  final _lines = <Map<String, String>>[
-    {'quantity': '1'},
-  ];
+  late final _previous = widget.rejectedDraft?['payload'] as Json? ?? const {};
+  late final _details = <String, String>{
+    'currency': 'INR',
+    for (final key in ['title', 'currency', 'terms'])
+      if (_previous[key] case final String value) key: value,
+  };
+  late final _lines = <Map<String, String>>[
+    for (final line in (_previous['lines'] as List? ?? []).whereType<Json>())
+      {
+        for (final entry in line.entries)
+          if (entry.value != null) entry.key: '${entry.value}',
+      },
+  ]..removeWhere((line) => line.isEmpty);
   bool _saving = false;
   String? _error;
-  Json? _customer;
+  late Json? _customer = _previous['customer_id'] is int
+      ? {
+          'id': _previous['customer_id'],
+          'name':
+              widget.rejectedDraft?['customer_name'] ??
+              'Customer #${_previous['customer_id']}',
+        }
+      : null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_lines.isEmpty) _lines.add({'quantity': '1'});
+  }
 
   Future<void> _chooseCustomer() async {
     final customer = await showDialog<Json>(
@@ -91,7 +115,12 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
     final drafts = widget.drafts;
     try {
       if (widget.offline && drafts != null) {
-        await drafts.save(_operation, payload);
+        await drafts.save(
+          _operation,
+          payload,
+          customerName: _customer?['name'] as String?,
+          replaceRejected: widget.rejectedDraft?['operation'] as String?,
+        );
       } else {
         try {
           if (drafts == null) {
@@ -110,7 +139,11 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
               revision != widget.api.sessionRevision) {
             rethrow;
           }
-          await drafts.save(_operation, payload);
+          await drafts.save(
+            _operation,
+            payload,
+            customerName: _customer?['name'] as String?,
+          );
         }
       }
       if (mounted && revision == widget.api.sessionRevision) {
@@ -163,7 +196,13 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New sales order')),
+    appBar: AppBar(
+      title: Text(
+        widget.rejectedDraft == null
+            ? 'New sales order'
+            : 'Correct order draft',
+      ),
+    ),
     body: Form(
       key: _form,
       child: ListView(
@@ -412,6 +451,58 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
   late Future<List<Json>> _entries = widget.drafts.entries();
   bool _syncing = false;
 
+  Future<void> _correct(Json draft) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => NewSalesOrderPage(
+          api: widget.api,
+          drafts: widget.drafts,
+          offline: true,
+          rejectedDraft: draft,
+        ),
+      ),
+    );
+    if (saved == true && mounted) {
+      setState(() {
+        _entries = widget.drafts.entries();
+      });
+    }
+  }
+
+  Future<void> _discard(String operation) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard saved order draft?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await widget.drafts.discard(operation);
+      if (mounted) {
+        setState(() {
+          _entries = widget.drafts.entries();
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    }
+  }
+
   Future<void> _sync() async {
     setState(() => _syncing = true);
     var uploaded = false;
@@ -462,7 +553,18 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
             for (final row in rows)
               ListTile(
                 title: Text('${row['payload']['title']}'),
-                subtitle: Text(row['error'] as String? ?? 'Awaiting sync'),
+                subtitle: Text(
+                  [
+                    row['customer_name'],
+                    row['error'] ?? 'Awaiting sync',
+                  ].whereType<String>().join(' · '),
+                ),
+                onTap: row['status'] == 422 ? () => _correct(row) : null,
+                trailing: IconButton(
+                  tooltip: 'Discard order draft',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _discard(row['operation'] as String),
+                ),
               ),
           ],
         );

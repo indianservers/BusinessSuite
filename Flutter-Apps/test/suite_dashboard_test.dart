@@ -32,6 +32,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'Sales corrects a rejected draft without losing its customer or lines',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      tester.view.physicalSize = const Size(430, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const base = 'https://example.test/api/v1';
+      final drafts = SalesOrderDrafts('["$base",7,7]');
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter(
+          (_) async => response({'detail': 'Invalid order'}, 422),
+        );
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      final payload = {
+        'title': 'Rejected order',
+        'currency': 'INR',
+        'customer_id': 101,
+        'lines': [
+          {
+            'product_id': 8,
+            'description': 'Saved cable',
+            'quantity': '2',
+            'unit_price': '75.00',
+          },
+        ],
+      };
+      await drafts.save('original', payload, customerName: 'Saved customer');
+      await tester.runAsync(() => drafts.sync(api));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SalesOrderDraftsPage(api: api, drafts: drafts),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rejected order'));
+      await tester.pumpAndSettle();
+      expect(find.text('Correct order draft'), findsOneWidget);
+      expect(find.text('Saved customer'), findsOneWidget);
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Corrected order',
+      );
+      await tester.ensureVisible(find.text('Save order draft'));
+      await tester.tap(find.text('Save order draft'));
+      await tester.pumpAndSettle();
+      final saved = (await drafts.entries()).single;
+      expect(saved['operation'], isNot('original'));
+      expect(saved['payload'], {...payload, 'title': 'Corrected order'});
+    },
+  );
   testWidgets('Sales uses a shared inventory product on an order line', (
     tester,
   ) async {
