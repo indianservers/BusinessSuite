@@ -157,7 +157,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 trailing: widget.offline
                     ? null
                     : TextButton(
-                        onPressed: () => setState(() => _order = _load()),
+                        onPressed: () => setState(() {
+                          _order = _load();
+                        }),
                         child: const Text('Retry'),
                       ),
               ),

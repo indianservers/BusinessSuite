@@ -5,6 +5,7 @@ import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
+import 'package:business_suite_mobile/features/branch_settings_panel.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -17,6 +18,63 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('branch settings creates a branch and reloads the shared list', (
+    tester,
+  ) async {
+    var created = false;
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (request.method == 'POST') {
+          expect(request.path, '/branches');
+          expect(request.data, {
+            'name': 'Pune',
+            'code': 'PNQ',
+            'reason': 'New office',
+          });
+          created = true;
+          return response({'id': 3, 'name': 'Pune', 'code': 'PNQ'}, 201);
+        }
+        expect(request.path, '/branches/context');
+        return response({
+          'manage_access': true,
+          'branches': [
+            if (created)
+              {
+                'id': 3,
+                'name': 'Pune',
+                'code': 'PNQ',
+                'is_active': true,
+                'can_write': true,
+              },
+          ],
+        });
+      });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BranchSettingsPanel(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            editable: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create branch'));
+    await tester.pumpAndSettle();
+    for (final (index, value) in [(0, 'Pune'), (1, 'PNQ'), (2, 'New office')]) {
+      await tester.enterText(find.byType(TextFormField).at(index), value);
+    }
+    await tester.tap(find.widgetWithText(FilledButton, 'Create branch').last);
+    await tester.pumpAndSettle();
+    expect(created, isTrue);
+    expect(find.text('Pune'), findsOneWidget);
+    expect(find.text('Can edit'), findsOneWidget);
+  });
   test('offline inventory creations reuse one server receipt key', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     FlutterSecureStorage.setMockInitialValues({});
