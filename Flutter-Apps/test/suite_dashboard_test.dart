@@ -23,6 +23,45 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   testWidgets(
+    'GST opens saved invoice summary without a network request or write actions',
+    (tester) async {
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((_) async {
+          fail('Offline invoice must not call the server');
+        });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GstInvoicePage(
+            api: ApiClient(
+              baseUrl: 'https://example.test/api/v1',
+              store: MemoryStore(),
+              transport: dio,
+            ),
+            id: 7,
+            offline: true,
+            canEdit: true,
+            canIssue: true,
+            canExport: true,
+            summary: const {
+              'invoice_number': 'GST-7',
+              'document_status': 'draft',
+              'status': 'draft',
+              'currency': 'INR',
+              'total_amount': '118.00',
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('GST-7'), findsOneWidget);
+      expect(find.text('Offline · Saved invoice'), findsOneWidget);
+      expect(find.text('INR 118.00'), findsOneWidget);
+      expect(find.text('Edit dates'), findsNothing);
+      expect(find.text('Issue invoice'), findsNothing);
+      expect(find.text('Save invoice PDF'), findsNothing);
+    },
+  );
+  testWidgets(
     'issuing a GST invoice requires confirmation and reloads its status',
     (tester) async {
       var issued = false;

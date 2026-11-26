@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class GstInvoicePage extends StatefulWidget {
   const GstInvoicePage({
@@ -15,6 +16,9 @@ class GstInvoicePage extends StatefulWidget {
     this.canEdit = false,
     this.canExport = false,
     this.canIssue = false,
+    this.cacheScope,
+    this.summary,
+    this.offline = false,
   });
   static const listEndpoint = '/srm/invoices';
   final ApiClient api;
@@ -22,17 +26,111 @@ class GstInvoicePage extends StatefulWidget {
   final bool canEdit;
   final bool canExport;
   final bool canIssue;
+  final String? cacheScope;
+  final Json? summary;
+  final bool offline;
+
+  static const summaryFields = [
+    'invoice_number',
+    'status',
+    'currency',
+    'issue_date',
+    'due_date',
+    'document_status',
+    'delivery_status',
+    'payment_status',
+    'subtotal',
+    'tax_amount',
+    'total_amount',
+    'paid_amount',
+    'balance_amount',
+  ];
 
   @override
   State<GstInvoicePage> createState() => _GstInvoicePageState();
 }
 
 class _GstInvoicePageState extends State<GstInvoicePage> {
-  late Future<Json> _invoice = _load();
+  late Future<(Json, bool)> _invoice = _load();
+  Json? _saved;
   bool _exporting = false;
   bool _issuing = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
-  Future<Json> _load() async => await widget.api.request('GET', _path) as Json;
+  String? get _key =>
+      widget.cacheScope == null ? null : '${widget.cacheScope}:$_path';
+
+  Future<void> _saveSnapshot(Json invoice) async {
+    final key = _key;
+    if (key == null) return;
+    try {
+      final lines = (invoice['lines'] as List? ?? []).whereType<Json>();
+      await SuiteReadCache.write(key, [
+        {
+          for (final field in GstInvoicePage.summaryFields)
+            field: invoice[field],
+          'lines': [
+            for (final line in lines)
+              {
+                for (final field in const [
+                  'description',
+                  'item_name',
+                  'quantity',
+                  'line_total',
+                ])
+                  field: line[field],
+              },
+          ],
+        },
+      ]);
+    } catch (_) {
+      // A failed cache write leaves the online invoice available.
+    }
+  }
+
+  Future<(Json, bool)> _load() async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final key = _key;
+    Json? cached;
+    if (key != null) {
+      try {
+        cached = (await SuiteReadCache.read(key))?.firstOrNull;
+        if (mounted && api.sessionRevision == revision) {
+          setState(() => _saved = cached);
+        }
+      } catch (_) {}
+    }
+    if (api.sessionRevision != revision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    final fallback = cached ?? widget.summary;
+    if (widget.offline) {
+      if (fallback != null) return (fallback, true);
+      throw ApiFailure('Open this invoice online to save it on this device.');
+    }
+    try {
+      final invoice = await api.request('GET', _path) as Json;
+      if (api.sessionRevision != revision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      await _saveSnapshot(invoice);
+      return (invoice, false);
+    } on ApiFailure catch (error) {
+      if (fallback != null &&
+          (error.connectionFailure ||
+              (error.status ?? 0) >= 500 ||
+              error.status == 429)) {
+        return (fallback, true);
+      }
+      if (key != null && const {401, 403, 404}.contains(error.status)) {
+        if (mounted) setState(() => _saved = null);
+        try {
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+  }
 
   Future<void> _issue(Json invoice) async {
     if (_issuing) return;
@@ -149,8 +247,9 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     );
     if (mounted && updated != null) {
       setState(() {
-        _invoice = Future.value(updated);
+        _invoice = Future.value((updated, false));
       });
+      await _saveSnapshot(updated);
     }
   }
 
@@ -264,13 +363,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sales invoice')),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder<(Json, bool)>(
       future: _invoice,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
+        final loading = snapshot.connectionState != ConnectionState.done;
+        if (!loading && snapshot.hasError) {
           return ListTile(
             title: Text('${snapshot.error}'),
             trailing: TextButton(
@@ -281,10 +378,16 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
             ),
           );
         }
-        final invoice = snapshot.requireData;
+        final data = loading ? null : snapshot.data;
+        final invoice = data?.$1 ?? _saved ?? widget.summary;
+        if (invoice == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final saved = data?.$2 ?? true;
         final currency = invoice['currency'] ?? '';
         final lines = (invoice['lines'] as List? ?? []).whereType<Json>();
         final editable =
+            !saved &&
             widget.canEdit &&
             const {'draft', 'pending_approval'}.contains(invoice['status']);
         return ListView(
@@ -294,7 +397,24 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
               '${invoice['invoice_number']}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            if (widget.canExport)
+            if (loading) const LinearProgressIndicator(),
+            if (!loading && saved)
+              ListTile(
+                title: Text(
+                  widget.offline
+                      ? 'Offline · Saved invoice'
+                      : 'Refresh unavailable · Saved invoice',
+                ),
+                trailing: widget.offline
+                    ? null
+                    : TextButton(
+                        onPressed: () => setState(() {
+                          _invoice = _load();
+                        }),
+                        child: const Text('Retry'),
+                      ),
+              ),
+            if (!saved && widget.canExport)
               OutlinedButton.icon(
                 onPressed: _exporting ? null : () => _export(invoice),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -309,7 +429,8 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                   title: Text(field.value),
                   trailing: Text('${invoice[field.key]}'),
                 ),
-            if (widget.canIssue &&
+            if (!saved &&
+                widget.canIssue &&
                 invoice['document_status'] == 'draft' &&
                 const {
                   'draft',
@@ -351,7 +472,14 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 ),
             const Divider(),
             Text('Line items', style: Theme.of(context).textTheme.titleMedium),
-            if (lines.isEmpty) const ListTile(title: Text('No line items')),
+            if (!loading && lines.isEmpty)
+              ListTile(
+                title: Text(
+                  saved && !invoice.containsKey('lines')
+                      ? 'Line items are unavailable offline'
+                      : 'No line items',
+                ),
+              ),
             for (final line in lines)
               ListTile(
                 title: Text(

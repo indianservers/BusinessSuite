@@ -920,6 +920,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'reorder_level',
               'reorder_threshold',
               'unit_code',
+              if (path == GstInvoicePage.listEndpoint)
+                ...GstInvoicePage.summaryFields,
             ])
               if (record[field] is String || record[field] is num)
                 field: record[field],
@@ -990,6 +992,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'GST Billing',
                   controller: widget.controller,
                   path: GstInvoicePage.listEndpoint,
+                  cachePrefix: widget.cachePrefix,
                   canExportInvoices: widget.canExportInvoices,
                   canIssueInvoices: widget.canIssueInvoices,
                   offlineOnly: widget.offlineOnly,
@@ -1027,7 +1030,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (snapshot.hasError &&
                   (_cached == null ||
                       snapshot.error is! ApiFailure ||
-                      (snapshot.error as ApiFailure).status != null)) {
+                      ((snapshot.error as ApiFailure).status != null &&
+                          !(widget.path == GstInvoicePage.listEndpoint &&
+                              ((snapshot.error as ApiFailure).status == 429 ||
+                                  ((snapshot.error as ApiFailure).status ??
+                                          0) >=
+                                      500))))) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -1217,6 +1225,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? GstInvoicePage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                            summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            offline: widget.offlineOnly,
                                             canExport: widget.canExportInvoices,
                                             canIssue: widget.canIssueInvoices,
                                             canEdit:

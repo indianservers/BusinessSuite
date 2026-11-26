@@ -2,6 +2,7 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -149,6 +150,12 @@ void main() {
         'email': 'qa@example.test',
         'version': 2,
       },
+      '/srm/invoices/1': {
+        'invoice_number': 'QA invoice',
+        'lines': [
+          {'description': 'QA invoice line', 'quantity': 2},
+        ],
+      },
     };
     var requests = 0;
     final transportErrors = <String>[];
@@ -172,6 +179,15 @@ void main() {
       transport: dio,
     );
     final pages = <(Widget Function(bool), String)>[
+      (
+        (offline) => GstInvoicePage(
+          api: api,
+          id: 1,
+          offline: offline,
+          cacheScope: scope,
+        ),
+        'QA invoice line',
+      ),
       (
         (offline) => InventoryProductPage(
           api: api,
@@ -233,6 +249,6 @@ void main() {
       expect(requests, requestsBeforeOffline);
       await tester.pumpWidget(const SizedBox.shrink());
     }
-    expect(requests, 3);
+    expect(requests, 4);
   });
 }
