@@ -11,1620 +11,2190 @@ namespace Business_Suite
     {
         private void InitializeComponent()
         {
-            var resources = new ComponentResourceManager(typeof(MainForm));
-            this.ribbonBar = new RadRibbonBar();
-            this.homeTab = new RibbonTab();
-            this.workspaceGroup = new RadRibbonBarGroup();
-            this.homeHomeRibbonButton = new RadButtonElement();
-            this.appointmentsTab = new RibbonTab();
-            this.appointmentsGroup = new RadRibbonBarGroup();
-            this.appointmentSchedulerRibbonButton = new RadButtonElement();
-            this.crmTab = new RibbonTab();
-            this.crmGroup = new RadRibbonBarGroup();
-            this.crmWorkspaceRibbonButton = new RadButtonElement();
-            this.companiesRibbonButton = new RadButtonElement();
-            this.contactsRibbonButton = new RadButtonElement();
-            this.crmPipelineGroup = new RadRibbonBarGroup();
-            this.leadsRibbonButton = new RadButtonElement();
-            this.dealsRibbonButton = new RadButtonElement();
-            this.financeTab = new RibbonTab();
-            this.financeGroup = new RadRibbonBarGroup();
-            this.financeWorkspaceRibbonButton = new RadButtonElement();
-            this.financeLedgersRibbonButton = new RadButtonElement();
-            this.financeWorkspacesRibbonButton = new RadButtonElement();
-            this.hrmsTab = new RibbonTab();
-            this.hrmsGroup = new RadRibbonBarGroup();
-            this.hrWorkspaceRibbonButton = new RadButtonElement();
-            this.hrWorkspacesRibbonButton = new RadButtonElement();
-            this.projectsTab = new RibbonTab();
-            this.projectsGroup = new RadRibbonBarGroup();
-            this.projectWorkspaceRibbonButton = new RadButtonElement();
-            this.projectWorkspacesRibbonButton = new RadButtonElement();
-            this.projectMyWorkRibbonButton = new RadButtonElement();
-            this.salesTab = new RibbonTab();
-            this.salesGroup = new RadRibbonBarGroup();
-            this.salesWorkspaceRibbonButton = new RadButtonElement();
-            this.salesAppointmentsRibbonButton = new RadButtonElement();
-            this.sharedTab = new RibbonTab();
-            this.sharedGroup = new RadRibbonBarGroup();
-            this.sharedDataRibbonButton = new RadButtonElement();
-            this.sharedDocumentsRibbonButton = new RadButtonElement();
-            this.administrationTab = new RibbonTab();
-            this.companyGroup = new RadRibbonBarGroup();
-            this.administrationAdministrationRibbonButton = new RadButtonElement();
-            this.administrationLocalCompaniesRibbonButton = new RadButtonElement();
-            this.toolsTab = new RibbonTab();
-            this.toolsGroup = new RadRibbonBarGroup();
-            this.toolsSettingsRibbonButton = new RadButtonElement();
-            this.toolsPowerRibbonButton = new RadButtonElement();
-            this.reportsTab = new RibbonTab();
-            this.reportingGroup = new RadRibbonBarGroup();
-            this.reportsReportingRibbonButton = new RadButtonElement();
-            this.helpTab = new RibbonTab();
-            this.helpGroup = new RadRibbonBarGroup();
-            this.helpHelpRibbonButton = new RadButtonElement();
-            this.workspaces = new WorkspaceTabControl();
-            this.homePage = new TabPage();
-            this.homeBody = new Panel();
-            this.homeContent = new Panel();
-            this.homeHeader = new WorkspaceHeader();
-            this.homeTitleLabel = new Label();
-            this.homeDescriptionLabel = new Label();
-            this.modulesHeadingLabel = new Label();
-            this.modulesCards = new FlowLayoutPanel();
-            this.appointmentsCard = new WorkspaceCard();
-            this.crmCard = new WorkspaceCard();
-            this.financeCard = new WorkspaceCard();
-            this.hrmsCard = new WorkspaceCard();
-            this.projectsCard = new WorkspaceCard();
-            this.salesCard = new WorkspaceCard();
-            this.sharedHeadingLabel = new Label();
-            this.sharedCards = new FlowLayoutPanel();
-            this.dataCard = new WorkspaceCard();
-            this.administrationCard = new WorkspaceCard();
-            this.documentsCard = new WorkspaceCard();
-            this.powerCard = new WorkspaceCard();
-            this.reportingCard = new WorkspaceCard();
-            this.localCompaniesCard = new WorkspaceCard();
-            this.crmPage = new TabPage();
-            this.crmBody = new Panel();
-            this.crmContent = new Panel();
-            this.crmHeader = new WorkspaceHeader();
-            this.crmHeaderIcon = new PictureBox();
-            this.crmTitleLabel = new Label();
-            this.crmDescriptionLabel = new Label();
-            this.crmCards = new FlowLayoutPanel();
-            this.crmWorkspaceCard = new WorkspaceCard();
-            this.companiesCard = new WorkspaceCard();
-            this.contactsCard = new WorkspaceCard();
-            this.leadsCard = new WorkspaceCard();
-            this.dealsCard = new WorkspaceCard();
-            this.appointmentsPage = new TabPage();
-            this.appointmentsBody = new Panel();
-            this.appointmentsContent = new Panel();
-            this.appointmentsHeader = new WorkspaceHeader();
-            this.appointmentsHeaderIcon = new PictureBox();
-            this.appointmentsTitleLabel = new Label();
-            this.appointmentsDescriptionLabel = new Label();
-            this.appointmentsCards = new FlowLayoutPanel();
-            this.appointmentSchedulerCard = new WorkspaceCard();
-            this.financePage = new TabPage();
-            this.financeBody = new Panel();
-            this.financeContent = new Panel();
-            this.financeHeader = new WorkspaceHeader();
-            this.financeHeaderIcon = new PictureBox();
-            this.financeTitleLabel = new Label();
-            this.financeDescriptionLabel = new Label();
-            this.financeCards = new FlowLayoutPanel();
-            this.financeWorkspaceCard = new WorkspaceCard();
-            this.financeLedgersCard = new WorkspaceCard();
-            this.financeWorkspacesCard = new WorkspaceCard();
-            this.hrmsPage = new TabPage();
-            this.hrmsBody = new Panel();
-            this.hrmsContent = new Panel();
-            this.hrmsHeader = new WorkspaceHeader();
-            this.hrmsHeaderIcon = new PictureBox();
-            this.hrmsTitleLabel = new Label();
-            this.hrmsDescriptionLabel = new Label();
-            this.hrmsCards = new FlowLayoutPanel();
-            this.hrWorkspaceCard = new WorkspaceCard();
-            this.hrWorkspacesCard = new WorkspaceCard();
-            this.projectsPage = new TabPage();
-            this.projectsBody = new Panel();
-            this.projectsContent = new Panel();
-            this.projectsHeader = new WorkspaceHeader();
-            this.projectsHeaderIcon = new PictureBox();
-            this.projectsTitleLabel = new Label();
-            this.projectsDescriptionLabel = new Label();
-            this.projectsCards = new FlowLayoutPanel();
-            this.projectWorkspaceCard = new WorkspaceCard();
-            this.projectWorkspacesCard = new WorkspaceCard();
-            this.projectMyWorkCard = new WorkspaceCard();
-            this.salesPage = new TabPage();
-            this.salesBody = new Panel();
-            this.salesContent = new Panel();
-            this.salesHeader = new WorkspaceHeader();
-            this.salesHeaderIcon = new PictureBox();
-            this.salesTitleLabel = new Label();
-            this.salesDescriptionLabel = new Label();
-            this.salesCards = new FlowLayoutPanel();
-            this.salesWorkspaceCard = new WorkspaceCard();
-            this.salesAppointmentsCard = new WorkspaceCard();
-            ((ISupportInitialize)this.ribbonBar).BeginInit();
-            ((ISupportInitialize)this.crmHeaderIcon).BeginInit();
-            ((ISupportInitialize)this.appointmentsHeaderIcon).BeginInit();
-            ((ISupportInitialize)this.financeHeaderIcon).BeginInit();
-            ((ISupportInitialize)this.hrmsHeaderIcon).BeginInit();
-            ((ISupportInitialize)this.projectsHeaderIcon).BeginInit();
-            ((ISupportInitialize)this.salesHeaderIcon).BeginInit();
+            this.ribbonBar = new Telerik.WinControls.UI.RadRibbonBar();
+            this.homeTab = new Telerik.WinControls.UI.RibbonTab();
+            this.workspaceGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.homeHomeRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.appointmentsTab = new Telerik.WinControls.UI.RibbonTab();
+            this.appointmentsGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.appointmentSchedulerRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.crmTab = new Telerik.WinControls.UI.RibbonTab();
+            this.crmGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.crmWorkspaceRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.companiesRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.contactsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.crmPipelineGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.leadsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.dealsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.financeTab = new Telerik.WinControls.UI.RibbonTab();
+            this.financeGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.financeWorkspaceRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.financeLedgersRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.financeWorkspacesRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.hrmsTab = new Telerik.WinControls.UI.RibbonTab();
+            this.hrmsGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.hrWorkspaceRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.hrWorkspacesRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.projectsTab = new Telerik.WinControls.UI.RibbonTab();
+            this.projectsGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.projectWorkspaceRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.projectWorkspacesRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.projectMyWorkRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.salesTab = new Telerik.WinControls.UI.RibbonTab();
+            this.salesGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.salesWorkspaceRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.salesAppointmentsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.sharedTab = new Telerik.WinControls.UI.RibbonTab();
+            this.sharedGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.sharedDataRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.sharedDocumentsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.administrationTab = new Telerik.WinControls.UI.RibbonTab();
+            this.companyGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.administrationAdministrationRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.administrationLocalCompaniesRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.toolsTab = new Telerik.WinControls.UI.RibbonTab();
+            this.toolsGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.toolsSettingsRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.toolsPowerRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.reportsTab = new Telerik.WinControls.UI.RibbonTab();
+            this.reportingGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.reportsReportingRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.helpTab = new Telerik.WinControls.UI.RibbonTab();
+            this.helpGroup = new Telerik.WinControls.UI.RadRibbonBarGroup();
+            this.helpHelpRibbonButton = new Telerik.WinControls.UI.RadButtonElement();
+            this.workspaces = new Business_Suite.WorkspaceTabControl();
+            this.homePage = new System.Windows.Forms.TabPage();
+            this.homeBody = new System.Windows.Forms.Panel();
+            this.homeContent = new System.Windows.Forms.Panel();
+            this.sharedCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.dataCard = new Business_Suite.WorkspaceCard();
+            this.administrationCard = new Business_Suite.WorkspaceCard();
+            this.documentsCard = new Business_Suite.WorkspaceCard();
+            this.powerCard = new Business_Suite.WorkspaceCard();
+            this.reportingCard = new Business_Suite.WorkspaceCard();
+            this.localCompaniesCard = new Business_Suite.WorkspaceCard();
+            this.sharedHeadingLabel = new System.Windows.Forms.Label();
+            this.modulesCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.appointmentsCard = new Business_Suite.WorkspaceCard();
+            this.crmCard = new Business_Suite.WorkspaceCard();
+            this.financeCard = new Business_Suite.WorkspaceCard();
+            this.hrmsCard = new Business_Suite.WorkspaceCard();
+            this.projectsCard = new Business_Suite.WorkspaceCard();
+            this.salesCard = new Business_Suite.WorkspaceCard();
+            this.modulesHeadingLabel = new System.Windows.Forms.Label();
+            this.homeHeader = new Business_Suite.WorkspaceHeader();
+            this.homeTitleLabel = new System.Windows.Forms.Label();
+            this.homeDescriptionLabel = new System.Windows.Forms.Label();
+            this.appointmentsPage = new System.Windows.Forms.TabPage();
+            this.appointmentsBody = new System.Windows.Forms.Panel();
+            this.appointmentsContent = new System.Windows.Forms.Panel();
+            this.appointmentsCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.appointmentSchedulerCard = new Business_Suite.WorkspaceCard();
+            this.appointmentsHeader = new Business_Suite.WorkspaceHeader();
+            this.appointmentsHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.appointmentsTitleLabel = new System.Windows.Forms.Label();
+            this.appointmentsDescriptionLabel = new System.Windows.Forms.Label();
+            this.crmPage = new System.Windows.Forms.TabPage();
+            this.crmBody = new System.Windows.Forms.Panel();
+            this.crmContent = new System.Windows.Forms.Panel();
+            this.crmCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.crmWorkspaceCard = new Business_Suite.WorkspaceCard();
+            this.companiesCard = new Business_Suite.WorkspaceCard();
+            this.contactsCard = new Business_Suite.WorkspaceCard();
+            this.leadsCard = new Business_Suite.WorkspaceCard();
+            this.dealsCard = new Business_Suite.WorkspaceCard();
+            this.crmHeader = new Business_Suite.WorkspaceHeader();
+            this.crmHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.crmTitleLabel = new System.Windows.Forms.Label();
+            this.crmDescriptionLabel = new System.Windows.Forms.Label();
+            this.financePage = new System.Windows.Forms.TabPage();
+            this.financeBody = new System.Windows.Forms.Panel();
+            this.financeContent = new System.Windows.Forms.Panel();
+            this.financeCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.financeWorkspaceCard = new Business_Suite.WorkspaceCard();
+            this.financeLedgersCard = new Business_Suite.WorkspaceCard();
+            this.financeWorkspacesCard = new Business_Suite.WorkspaceCard();
+            this.financeHeader = new Business_Suite.WorkspaceHeader();
+            this.financeHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.financeTitleLabel = new System.Windows.Forms.Label();
+            this.financeDescriptionLabel = new System.Windows.Forms.Label();
+            this.hrmsPage = new System.Windows.Forms.TabPage();
+            this.hrmsBody = new System.Windows.Forms.Panel();
+            this.hrmsContent = new System.Windows.Forms.Panel();
+            this.hrmsCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.hrWorkspaceCard = new Business_Suite.WorkspaceCard();
+            this.hrWorkspacesCard = new Business_Suite.WorkspaceCard();
+            this.hrmsHeader = new Business_Suite.WorkspaceHeader();
+            this.hrmsHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.hrmsTitleLabel = new System.Windows.Forms.Label();
+            this.hrmsDescriptionLabel = new System.Windows.Forms.Label();
+            this.projectsPage = new System.Windows.Forms.TabPage();
+            this.projectsBody = new System.Windows.Forms.Panel();
+            this.projectsContent = new System.Windows.Forms.Panel();
+            this.projectsCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.projectWorkspaceCard = new Business_Suite.WorkspaceCard();
+            this.projectWorkspacesCard = new Business_Suite.WorkspaceCard();
+            this.projectMyWorkCard = new Business_Suite.WorkspaceCard();
+            this.projectsHeader = new Business_Suite.WorkspaceHeader();
+            this.projectsHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.projectsTitleLabel = new System.Windows.Forms.Label();
+            this.projectsDescriptionLabel = new System.Windows.Forms.Label();
+            this.salesPage = new System.Windows.Forms.TabPage();
+            this.salesBody = new System.Windows.Forms.Panel();
+            this.salesContent = new System.Windows.Forms.Panel();
+            this.salesCards = new System.Windows.Forms.FlowLayoutPanel();
+            this.salesWorkspaceCard = new Business_Suite.WorkspaceCard();
+            this.salesAppointmentsCard = new Business_Suite.WorkspaceCard();
+            this.salesHeader = new Business_Suite.WorkspaceHeader();
+            this.salesHeaderIcon = new System.Windows.Forms.PictureBox();
+            this.salesTitleLabel = new System.Windows.Forms.Label();
+            this.salesDescriptionLabel = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.ribbonBar)).BeginInit();
             this.workspaces.SuspendLayout();
             this.homePage.SuspendLayout();
             this.homeBody.SuspendLayout();
             this.homeContent.SuspendLayout();
-            this.homeHeader.SuspendLayout();
-            this.modulesCards.SuspendLayout();
             this.sharedCards.SuspendLayout();
-            this.crmPage.SuspendLayout();
-            this.crmBody.SuspendLayout();
-            this.crmContent.SuspendLayout();
-            this.crmHeader.SuspendLayout();
-            this.crmCards.SuspendLayout();
+            this.modulesCards.SuspendLayout();
+            this.homeHeader.SuspendLayout();
             this.appointmentsPage.SuspendLayout();
             this.appointmentsBody.SuspendLayout();
             this.appointmentsContent.SuspendLayout();
-            this.appointmentsHeader.SuspendLayout();
             this.appointmentsCards.SuspendLayout();
+            this.appointmentsHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.appointmentsHeaderIcon)).BeginInit();
+            this.crmPage.SuspendLayout();
+            this.crmBody.SuspendLayout();
+            this.crmContent.SuspendLayout();
+            this.crmCards.SuspendLayout();
+            this.crmHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.crmHeaderIcon)).BeginInit();
             this.financePage.SuspendLayout();
             this.financeBody.SuspendLayout();
             this.financeContent.SuspendLayout();
-            this.financeHeader.SuspendLayout();
             this.financeCards.SuspendLayout();
+            this.financeHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.financeHeaderIcon)).BeginInit();
             this.hrmsPage.SuspendLayout();
             this.hrmsBody.SuspendLayout();
             this.hrmsContent.SuspendLayout();
-            this.hrmsHeader.SuspendLayout();
             this.hrmsCards.SuspendLayout();
+            this.hrmsHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.hrmsHeaderIcon)).BeginInit();
             this.projectsPage.SuspendLayout();
             this.projectsBody.SuspendLayout();
             this.projectsContent.SuspendLayout();
-            this.projectsHeader.SuspendLayout();
             this.projectsCards.SuspendLayout();
+            this.projectsHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.projectsHeaderIcon)).BeginInit();
             this.salesPage.SuspendLayout();
             this.salesBody.SuspendLayout();
             this.salesContent.SuspendLayout();
-            this.salesHeader.SuspendLayout();
             this.salesCards.SuspendLayout();
+            this.salesHeader.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.salesHeaderIcon)).BeginInit();
             this.SuspendLayout();
-
+            // 
+            // ribbonBar
+            // 
+            this.ribbonBar.CommandTabs.AddRange(new Telerik.WinControls.RadItem[] {
+            this.homeTab,
+            this.appointmentsTab,
+            this.crmTab,
+            this.financeTab,
+            this.hrmsTab,
+            this.projectsTab,
+            this.salesTab,
+            this.sharedTab,
+            this.administrationTab,
+            this.toolsTab,
+            this.reportsTab,
+            this.helpTab});
+            // 
+            // 
+            // 
+            this.ribbonBar.ExitButton.Text = "Exit";
+            this.ribbonBar.LocalizationSettings.LayoutModeText = "Simplified Layout";
+            this.ribbonBar.Location = new System.Drawing.Point(0, 0);
             this.ribbonBar.Name = "ribbonBar";
-            this.ribbonBar.Dock = DockStyle.Top;
+            // 
+            // 
+            // 
+            this.ribbonBar.OptionsButton.Text = "Options";
             this.ribbonBar.ShowExpandButton = false;
-            this.ribbonBar.ShowHelpButton = false;
-            this.ribbonBar.ShowLayoutModeButton = false;
-            this.ribbonBar.CollapseRibbonOnTabDoubleClick = false;
-            this.ribbonBar.RibbonBarElement.ApplicationButtonElement.Visibility = ElementVisibility.Collapsed;
-            this.ribbonBar.RibbonBarElement.RibbonCaption.Visibility = ElementVisibility.Collapsed;
-
+            this.ribbonBar.Size = new System.Drawing.Size(1400, 146);
+            this.ribbonBar.TabIndex = 1;
+            this.ribbonBar.Text = "Business Suite";
+            ((Telerik.WinControls.UI.RadRibbonBarCaption)(this.ribbonBar.GetChildAt(0).GetChildAt(3))).Visibility = Telerik.WinControls.ElementVisibility.Collapsed;
+            ((Telerik.WinControls.UI.RadApplicationMenuButtonElement)(this.ribbonBar.GetChildAt(0).GetChildAt(5))).Visibility = Telerik.WinControls.ElementVisibility.Collapsed;
+            // 
+            // homeTab
+            // 
+            this.homeTab.IsSelected = true;
+            this.homeTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.workspaceGroup});
             this.homeTab.Name = "homeTab";
             this.homeTab.Text = "Home";
+            this.homeTab.UseMnemonic = false;
+            // 
+            // workspaceGroup
+            // 
+            this.workspaceGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.homeHomeRibbonButton});
             this.workspaceGroup.Name = "workspaceGroup";
             this.workspaceGroup.Text = "Workspace";
-            this.workspaceGroup.CollapsedImage = (Image)resources.GetObject("home_28");
-            this.homeHomeRibbonButton.Name = "homeHomeRibbonButton";
-            this.homeHomeRibbonButton.Text = "Home";
-            this.homeHomeRibbonButton.ToolTipText = "Home";
+            // 
+            // homeHomeRibbonButton
+            // 
             this.homeHomeRibbonButton.AccessibleDescription = "Return to the home workspace";
-            this.homeHomeRibbonButton.Image = (Image)resources.GetObject("home_44");
-            this.homeHomeRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.homeHomeRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.homeHomeRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.homeHomeRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.homeHomeRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.homeHomeRibbonButton.Image = null;
+            this.homeHomeRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.homeHomeRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.homeHomeRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.homeHomeRibbonButton.Name = "homeHomeRibbonButton";
+            this.homeHomeRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.homeHomeRibbonButton.Text = "Home";
+            this.homeHomeRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.homeHomeRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.homeHomeRibbonButton.TextWrap = true;
-            this.homeHomeRibbonButton.MinSize = new Size(104, 80);
-            this.homeHomeRibbonButton.MaxSize = new Size(112, 86);
-            this.homeHomeRibbonButton.Padding = new Padding(3);
-            this.homeHomeRibbonButton.TextElement.UseMnemonic = false;
-            this.homeHomeRibbonButton.TextElement.AutoEllipsis = false;
-            this.homeHomeRibbonButton.Click += this.homeButton_Click;
-
-            this.workspaceGroup.Items.Add(this.homeHomeRibbonButton);
-            this.homeTab.Items.Add(this.workspaceGroup);
-
+            this.homeHomeRibbonButton.ToolTipText = "Home";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.homeHomeRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.homeHomeRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.homeHomeRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.homeHomeRibbonButton.GetChildAt(1).GetChildAt(1))).LineLimit = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.homeHomeRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // appointmentsTab
+            // 
+            this.appointmentsTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.appointmentsGroup});
             this.appointmentsTab.Name = "appointmentsTab";
             this.appointmentsTab.Text = "Appointments";
+            this.appointmentsTab.UseMnemonic = false;
+            // 
+            // appointmentsGroup
+            // 
+            this.appointmentsGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.appointmentSchedulerRibbonButton});
             this.appointmentsGroup.Name = "appointmentsGroup";
             this.appointmentsGroup.Text = "Schedule";
-            this.appointmentsGroup.CollapsedImage = (Image)resources.GetObject("appointments_28");
-            this.appointmentSchedulerRibbonButton.Name = "appointmentSchedulerRibbonButton";
-            this.appointmentSchedulerRibbonButton.Text = "Appointment\nscheduler";
-            this.appointmentSchedulerRibbonButton.ToolTipText = "Appointment scheduler";
+            // 
+            // appointmentSchedulerRibbonButton
+            // 
             this.appointmentSchedulerRibbonButton.AccessibleDescription = "Open the appointment scheduler";
-            this.appointmentSchedulerRibbonButton.Image = (Image)resources.GetObject("appointments_44");
-            this.appointmentSchedulerRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.appointmentSchedulerRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.appointmentSchedulerRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.appointmentSchedulerRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.appointmentSchedulerRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.appointmentSchedulerRibbonButton.Image = null;
+            this.appointmentSchedulerRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.appointmentSchedulerRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.appointmentSchedulerRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.appointmentSchedulerRibbonButton.Name = "appointmentSchedulerRibbonButton";
+            this.appointmentSchedulerRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.appointmentSchedulerRibbonButton.Text = "Appointment\nscheduler";
+            this.appointmentSchedulerRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.appointmentSchedulerRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.appointmentSchedulerRibbonButton.TextWrap = true;
-            this.appointmentSchedulerRibbonButton.MinSize = new Size(104, 80);
-            this.appointmentSchedulerRibbonButton.MaxSize = new Size(112, 86);
-            this.appointmentSchedulerRibbonButton.Padding = new Padding(3);
-            this.appointmentSchedulerRibbonButton.TextElement.UseMnemonic = false;
-            this.appointmentSchedulerRibbonButton.TextElement.AutoEllipsis = false;
-            this.appointmentSchedulerRibbonButton.Click += this.appointmentSchedulerButton_Click;
-
-            this.appointmentsGroup.Items.AddRange(new RadItem[] { this.appointmentSchedulerRibbonButton });
-
-            this.appointmentsTab.Items.AddRange(new RadItem[] { this.appointmentsGroup });
-
+            this.appointmentSchedulerRibbonButton.ToolTipText = "Appointment scheduler";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.appointmentSchedulerRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.appointmentSchedulerRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.appointmentSchedulerRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.appointmentSchedulerRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // crmTab
+            // 
+            this.crmTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.crmGroup,
+            this.crmPipelineGroup});
             this.crmTab.Name = "crmTab";
             this.crmTab.Text = "VyaparaCRM";
+            this.crmTab.UseMnemonic = false;
+            // 
+            // crmGroup
+            // 
+            this.crmGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.crmWorkspaceRibbonButton,
+            this.companiesRibbonButton,
+            this.contactsRibbonButton});
             this.crmGroup.Name = "crmGroup";
             this.crmGroup.Text = "Customers";
-            this.crmGroup.CollapsedImage = (Image)resources.GetObject("crm_28");
-            this.crmWorkspaceRibbonButton.Name = "crmWorkspaceRibbonButton";
-            this.crmWorkspaceRibbonButton.Text = "CRM workspace";
-            this.crmWorkspaceRibbonButton.ToolTipText = "CRM workspace";
+            // 
+            // crmWorkspaceRibbonButton
+            // 
             this.crmWorkspaceRibbonButton.AccessibleDescription = "Open the CRM workspace";
-            this.crmWorkspaceRibbonButton.Image = (Image)resources.GetObject("workspace_44");
-            this.crmWorkspaceRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.crmWorkspaceRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.crmWorkspaceRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.crmWorkspaceRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.crmWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.crmWorkspaceRibbonButton.Image = null;
+            this.crmWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.crmWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.crmWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.crmWorkspaceRibbonButton.Name = "crmWorkspaceRibbonButton";
+            this.crmWorkspaceRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.crmWorkspaceRibbonButton.Text = "CRM workspace";
+            this.crmWorkspaceRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.crmWorkspaceRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.crmWorkspaceRibbonButton.TextWrap = true;
-            this.crmWorkspaceRibbonButton.MinSize = new Size(104, 80);
-            this.crmWorkspaceRibbonButton.MaxSize = new Size(112, 86);
-            this.crmWorkspaceRibbonButton.Padding = new Padding(3);
-            this.crmWorkspaceRibbonButton.TextElement.UseMnemonic = false;
-            this.crmWorkspaceRibbonButton.TextElement.AutoEllipsis = false;
-            this.crmWorkspaceRibbonButton.Click += this.crmWorkspaceButton_Click;
-
-            this.companiesRibbonButton.Name = "companiesRibbonButton";
-            this.companiesRibbonButton.Text = "Companies";
-            this.companiesRibbonButton.ToolTipText = "Companies";
+            this.crmWorkspaceRibbonButton.ToolTipText = "CRM workspace";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.crmWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.crmWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.crmWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.crmWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // companiesRibbonButton
+            // 
             this.companiesRibbonButton.AccessibleDescription = "Manage companies, accounts and profiles";
-            this.companiesRibbonButton.Image = (Image)resources.GetObject("companies_44");
-            this.companiesRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.companiesRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.companiesRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.companiesRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.companiesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.companiesRibbonButton.Image = null;
+            this.companiesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.companiesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.companiesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.companiesRibbonButton.Name = "companiesRibbonButton";
+            this.companiesRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.companiesRibbonButton.Text = "Companies";
+            this.companiesRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.companiesRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.companiesRibbonButton.TextWrap = true;
-            this.companiesRibbonButton.MinSize = new Size(104, 80);
-            this.companiesRibbonButton.MaxSize = new Size(112, 86);
-            this.companiesRibbonButton.Padding = new Padding(3);
-            this.companiesRibbonButton.TextElement.UseMnemonic = false;
-            this.companiesRibbonButton.TextElement.AutoEllipsis = false;
-            this.companiesRibbonButton.Click += this.companiesButton_Click;
-
-            this.contactsRibbonButton.Name = "contactsRibbonButton";
-            this.contactsRibbonButton.Text = "Contacts";
-            this.contactsRibbonButton.ToolTipText = "Contacts";
+            this.companiesRibbonButton.ToolTipText = "Companies";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.companiesRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.companiesRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.companiesRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.companiesRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // contactsRibbonButton
+            // 
             this.contactsRibbonButton.AccessibleDescription = "Manage contacts and relationships";
-            this.contactsRibbonButton.Image = (Image)resources.GetObject("contacts_44");
-            this.contactsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.contactsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.contactsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.contactsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.contactsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.contactsRibbonButton.Image = null;
+            this.contactsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.contactsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.contactsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.contactsRibbonButton.Name = "contactsRibbonButton";
+            this.contactsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.contactsRibbonButton.Text = "Contacts";
+            this.contactsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.contactsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.contactsRibbonButton.TextWrap = true;
-            this.contactsRibbonButton.MinSize = new Size(104, 80);
-            this.contactsRibbonButton.MaxSize = new Size(112, 86);
-            this.contactsRibbonButton.Padding = new Padding(3);
-            this.contactsRibbonButton.TextElement.UseMnemonic = false;
-            this.contactsRibbonButton.TextElement.AutoEllipsis = false;
-            this.contactsRibbonButton.Click += this.contactsButton_Click;
-
-            this.crmGroup.Items.AddRange(new RadItem[] { this.crmWorkspaceRibbonButton, this.companiesRibbonButton, this.contactsRibbonButton });
-
+            this.contactsRibbonButton.ToolTipText = "Contacts";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.contactsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.contactsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.contactsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.contactsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // crmPipelineGroup
+            // 
+            this.crmPipelineGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.leadsRibbonButton,
+            this.dealsRibbonButton});
             this.crmPipelineGroup.Name = "crmPipelineGroup";
             this.crmPipelineGroup.Text = "Sales pipeline";
-            this.crmPipelineGroup.CollapsedImage = (Image)resources.GetObject("leads_28");
-            this.leadsRibbonButton.Name = "leadsRibbonButton";
-            this.leadsRibbonButton.Text = "Leads";
-            this.leadsRibbonButton.ToolTipText = "Leads";
+            // 
+            // leadsRibbonButton
+            // 
             this.leadsRibbonButton.AccessibleDescription = "Capture and track leads";
-            this.leadsRibbonButton.Image = (Image)resources.GetObject("leads_44");
-            this.leadsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.leadsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.leadsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.leadsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.leadsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.leadsRibbonButton.Image = null;
+            this.leadsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.leadsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.leadsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.leadsRibbonButton.Name = "leadsRibbonButton";
+            this.leadsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.leadsRibbonButton.Text = "Leads";
+            this.leadsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.leadsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.leadsRibbonButton.TextWrap = true;
-            this.leadsRibbonButton.MinSize = new Size(104, 80);
-            this.leadsRibbonButton.MaxSize = new Size(112, 86);
-            this.leadsRibbonButton.Padding = new Padding(3);
-            this.leadsRibbonButton.TextElement.UseMnemonic = false;
-            this.leadsRibbonButton.TextElement.AutoEllipsis = false;
-            this.leadsRibbonButton.Click += this.leadsButton_Click;
-
-            this.dealsRibbonButton.Name = "dealsRibbonButton";
-            this.dealsRibbonButton.Text = "Deals";
-            this.dealsRibbonButton.ToolTipText = "Deals";
+            this.leadsRibbonButton.ToolTipText = "Leads";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.leadsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.leadsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.leadsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.leadsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // dealsRibbonButton
+            // 
             this.dealsRibbonButton.AccessibleDescription = "Manage sales opportunities";
-            this.dealsRibbonButton.Image = (Image)resources.GetObject("deals_44");
-            this.dealsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.dealsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.dealsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.dealsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.dealsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.dealsRibbonButton.Image = null;
+            this.dealsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.dealsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.dealsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.dealsRibbonButton.Name = "dealsRibbonButton";
+            this.dealsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.dealsRibbonButton.Text = "Deals";
+            this.dealsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.dealsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.dealsRibbonButton.TextWrap = true;
-            this.dealsRibbonButton.MinSize = new Size(104, 80);
-            this.dealsRibbonButton.MaxSize = new Size(112, 86);
-            this.dealsRibbonButton.Padding = new Padding(3);
-            this.dealsRibbonButton.TextElement.UseMnemonic = false;
-            this.dealsRibbonButton.TextElement.AutoEllipsis = false;
-            this.dealsRibbonButton.Click += this.dealsButton_Click;
-
-            this.crmPipelineGroup.Items.AddRange(new RadItem[] { this.leadsRibbonButton, this.dealsRibbonButton });
-
-            this.crmTab.Items.AddRange(new RadItem[] { this.crmGroup, this.crmPipelineGroup });
-
+            this.dealsRibbonButton.ToolTipText = "Deals";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.dealsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.dealsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.dealsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.dealsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // financeTab
+            // 
+            this.financeTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.financeGroup});
             this.financeTab.Name = "financeTab";
             this.financeTab.Text = "Finance & Accounting";
+            this.financeTab.UseMnemonic = false;
+            // 
+            // financeGroup
+            // 
+            this.financeGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.financeWorkspaceRibbonButton,
+            this.financeLedgersRibbonButton,
+            this.financeWorkspacesRibbonButton});
             this.financeGroup.Name = "financeGroup";
             this.financeGroup.Text = "Accounting";
-            this.financeGroup.CollapsedImage = (Image)resources.GetObject("finance_28");
-            this.financeWorkspaceRibbonButton.Name = "financeWorkspaceRibbonButton";
-            this.financeWorkspaceRibbonButton.Text = "Finance\nworkspace";
-            this.financeWorkspaceRibbonButton.ToolTipText = "Finance workspace";
+            // 
+            // financeWorkspaceRibbonButton
+            // 
             this.financeWorkspaceRibbonButton.AccessibleDescription = "Open the finance workspace";
-            this.financeWorkspaceRibbonButton.Image = (Image)resources.GetObject("finance_44");
-            this.financeWorkspaceRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.financeWorkspaceRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.financeWorkspaceRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.financeWorkspaceRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.financeWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.financeWorkspaceRibbonButton.Image = null;
+            this.financeWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.financeWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.financeWorkspaceRibbonButton.Name = "financeWorkspaceRibbonButton";
+            this.financeWorkspaceRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.financeWorkspaceRibbonButton.Text = "Finance\nworkspace";
+            this.financeWorkspaceRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeWorkspaceRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.financeWorkspaceRibbonButton.TextWrap = true;
-            this.financeWorkspaceRibbonButton.MinSize = new Size(104, 80);
-            this.financeWorkspaceRibbonButton.MaxSize = new Size(112, 86);
-            this.financeWorkspaceRibbonButton.Padding = new Padding(3);
-            this.financeWorkspaceRibbonButton.TextElement.UseMnemonic = false;
-            this.financeWorkspaceRibbonButton.TextElement.AutoEllipsis = false;
-            this.financeWorkspaceRibbonButton.Click += this.financeWorkspaceButton_Click;
-
-            this.financeLedgersRibbonButton.Name = "financeLedgersRibbonButton";
-            this.financeLedgersRibbonButton.Text = "Ledgers";
-            this.financeLedgersRibbonButton.ToolTipText = "Ledgers";
+            this.financeWorkspaceRibbonButton.ToolTipText = "Finance workspace";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // financeLedgersRibbonButton
+            // 
             this.financeLedgersRibbonButton.AccessibleDescription = "Open accounting ledgers";
-            this.financeLedgersRibbonButton.Image = (Image)resources.GetObject("reporting_44");
-            this.financeLedgersRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.financeLedgersRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.financeLedgersRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.financeLedgersRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.financeLedgersRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.financeLedgersRibbonButton.Image = null;
+            this.financeLedgersRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeLedgersRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.financeLedgersRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.financeLedgersRibbonButton.Name = "financeLedgersRibbonButton";
+            this.financeLedgersRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.financeLedgersRibbonButton.Text = "Ledgers";
+            this.financeLedgersRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeLedgersRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.financeLedgersRibbonButton.TextWrap = true;
-            this.financeLedgersRibbonButton.MinSize = new Size(104, 80);
-            this.financeLedgersRibbonButton.MaxSize = new Size(112, 86);
-            this.financeLedgersRibbonButton.Padding = new Padding(3);
-            this.financeLedgersRibbonButton.TextElement.UseMnemonic = false;
-            this.financeLedgersRibbonButton.TextElement.AutoEllipsis = false;
-            this.financeLedgersRibbonButton.Click += this.financeLedgersButton_Click;
-
-            this.financeWorkspacesRibbonButton.Name = "financeWorkspacesRibbonButton";
-            this.financeWorkspacesRibbonButton.Text = "Workspaces";
-            this.financeWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            this.financeLedgersRibbonButton.ToolTipText = "Ledgers";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeLedgersRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeLedgersRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeLedgersRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeLedgersRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // financeWorkspacesRibbonButton
+            // 
             this.financeWorkspacesRibbonButton.AccessibleDescription = "Browse finance workspaces";
-            this.financeWorkspacesRibbonButton.Image = (Image)resources.GetObject("data_44");
-            this.financeWorkspacesRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.financeWorkspacesRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.financeWorkspacesRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.financeWorkspacesRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.financeWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.financeWorkspacesRibbonButton.Image = null;
+            this.financeWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.financeWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.financeWorkspacesRibbonButton.Name = "financeWorkspacesRibbonButton";
+            this.financeWorkspacesRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.financeWorkspacesRibbonButton.Text = "Workspaces";
+            this.financeWorkspacesRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.financeWorkspacesRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.financeWorkspacesRibbonButton.TextWrap = true;
-            this.financeWorkspacesRibbonButton.MinSize = new Size(104, 80);
-            this.financeWorkspacesRibbonButton.MaxSize = new Size(112, 86);
-            this.financeWorkspacesRibbonButton.Padding = new Padding(3);
-            this.financeWorkspacesRibbonButton.TextElement.UseMnemonic = false;
-            this.financeWorkspacesRibbonButton.TextElement.AutoEllipsis = false;
-            this.financeWorkspacesRibbonButton.Click += this.financeWorkspacesButton_Click;
-
-            this.financeGroup.Items.AddRange(new RadItem[] { this.financeWorkspaceRibbonButton, this.financeLedgersRibbonButton, this.financeWorkspacesRibbonButton });
-
-            this.financeTab.Items.AddRange(new RadItem[] { this.financeGroup });
-
+            this.financeWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.financeWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // hrmsTab
+            // 
+            this.hrmsTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.hrmsGroup});
             this.hrmsTab.Name = "hrmsTab";
             this.hrmsTab.Text = "AI HRMS";
+            this.hrmsTab.UseMnemonic = false;
+            // 
+            // hrmsGroup
+            // 
+            this.hrmsGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.hrWorkspaceRibbonButton,
+            this.hrWorkspacesRibbonButton});
             this.hrmsGroup.Name = "hrmsGroup";
             this.hrmsGroup.Text = "Human resources";
-            this.hrmsGroup.CollapsedImage = (Image)resources.GetObject("hrms_28");
-            this.hrWorkspaceRibbonButton.Name = "hrWorkspaceRibbonButton";
-            this.hrWorkspaceRibbonButton.Text = "HR workspace";
-            this.hrWorkspaceRibbonButton.ToolTipText = "HR workspace";
+            // 
+            // hrWorkspaceRibbonButton
+            // 
             this.hrWorkspaceRibbonButton.AccessibleDescription = "Open the HR workspace";
-            this.hrWorkspaceRibbonButton.Image = (Image)resources.GetObject("hrms_44");
-            this.hrWorkspaceRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.hrWorkspaceRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.hrWorkspaceRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.hrWorkspaceRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.hrWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.hrWorkspaceRibbonButton.Image = null;
+            this.hrWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.hrWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.hrWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.hrWorkspaceRibbonButton.Name = "hrWorkspaceRibbonButton";
+            this.hrWorkspaceRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.hrWorkspaceRibbonButton.Text = "HR workspace";
+            this.hrWorkspaceRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.hrWorkspaceRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.hrWorkspaceRibbonButton.TextWrap = true;
-            this.hrWorkspaceRibbonButton.MinSize = new Size(104, 80);
-            this.hrWorkspaceRibbonButton.MaxSize = new Size(112, 86);
-            this.hrWorkspaceRibbonButton.Padding = new Padding(3);
-            this.hrWorkspaceRibbonButton.TextElement.UseMnemonic = false;
-            this.hrWorkspaceRibbonButton.TextElement.AutoEllipsis = false;
-            this.hrWorkspaceRibbonButton.Click += this.hrWorkspaceButton_Click;
-
-            this.hrWorkspacesRibbonButton.Name = "hrWorkspacesRibbonButton";
-            this.hrWorkspacesRibbonButton.Text = "Workspaces";
-            this.hrWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            this.hrWorkspaceRibbonButton.ToolTipText = "HR workspace";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // hrWorkspacesRibbonButton
+            // 
             this.hrWorkspacesRibbonButton.AccessibleDescription = "Browse HR workspaces";
-            this.hrWorkspacesRibbonButton.Image = (Image)resources.GetObject("companies_44");
-            this.hrWorkspacesRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.hrWorkspacesRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.hrWorkspacesRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.hrWorkspacesRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.hrWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.hrWorkspacesRibbonButton.Image = null;
+            this.hrWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.hrWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.hrWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.hrWorkspacesRibbonButton.Name = "hrWorkspacesRibbonButton";
+            this.hrWorkspacesRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.hrWorkspacesRibbonButton.Text = "Workspaces";
+            this.hrWorkspacesRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.hrWorkspacesRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.hrWorkspacesRibbonButton.TextWrap = true;
-            this.hrWorkspacesRibbonButton.MinSize = new Size(104, 80);
-            this.hrWorkspacesRibbonButton.MaxSize = new Size(112, 86);
-            this.hrWorkspacesRibbonButton.Padding = new Padding(3);
-            this.hrWorkspacesRibbonButton.TextElement.UseMnemonic = false;
-            this.hrWorkspacesRibbonButton.TextElement.AutoEllipsis = false;
-            this.hrWorkspacesRibbonButton.Click += this.hrWorkspacesButton_Click;
-
-            this.hrmsGroup.Items.AddRange(new RadItem[] { this.hrWorkspaceRibbonButton, this.hrWorkspacesRibbonButton });
-
-            this.hrmsTab.Items.AddRange(new RadItem[] { this.hrmsGroup });
-
+            this.hrWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.hrWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // projectsTab
+            // 
+            this.projectsTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.projectsGroup});
             this.projectsTab.Name = "projectsTab";
             this.projectsTab.Text = "KaryaFlow PMS";
+            this.projectsTab.UseMnemonic = false;
+            // 
+            // projectsGroup
+            // 
+            this.projectsGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.projectWorkspaceRibbonButton,
+            this.projectWorkspacesRibbonButton,
+            this.projectMyWorkRibbonButton});
             this.projectsGroup.Name = "projectsGroup";
             this.projectsGroup.Text = "Projects";
-            this.projectsGroup.CollapsedImage = (Image)resources.GetObject("projects_28");
-            this.projectWorkspaceRibbonButton.Name = "projectWorkspaceRibbonButton";
-            this.projectWorkspaceRibbonButton.Text = "Project\nworkspace";
-            this.projectWorkspaceRibbonButton.ToolTipText = "Project workspace";
+            // 
+            // projectWorkspaceRibbonButton
+            // 
             this.projectWorkspaceRibbonButton.AccessibleDescription = "Open the project workspace";
-            this.projectWorkspaceRibbonButton.Image = (Image)resources.GetObject("projects_44");
-            this.projectWorkspaceRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.projectWorkspaceRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.projectWorkspaceRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.projectWorkspaceRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.projectWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.projectWorkspaceRibbonButton.Image = null;
+            this.projectWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.projectWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.projectWorkspaceRibbonButton.Name = "projectWorkspaceRibbonButton";
+            this.projectWorkspaceRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.projectWorkspaceRibbonButton.Text = "Project\nworkspace";
+            this.projectWorkspaceRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectWorkspaceRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.projectWorkspaceRibbonButton.TextWrap = true;
-            this.projectWorkspaceRibbonButton.MinSize = new Size(104, 80);
-            this.projectWorkspaceRibbonButton.MaxSize = new Size(112, 86);
-            this.projectWorkspaceRibbonButton.Padding = new Padding(3);
-            this.projectWorkspaceRibbonButton.TextElement.UseMnemonic = false;
-            this.projectWorkspaceRibbonButton.TextElement.AutoEllipsis = false;
-            this.projectWorkspaceRibbonButton.Click += this.projectWorkspaceButton_Click;
-
-            this.projectWorkspacesRibbonButton.Name = "projectWorkspacesRibbonButton";
-            this.projectWorkspacesRibbonButton.Text = "Workspaces";
-            this.projectWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            this.projectWorkspaceRibbonButton.ToolTipText = "Project workspace";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // projectWorkspacesRibbonButton
+            // 
             this.projectWorkspacesRibbonButton.AccessibleDescription = "Browse project workspaces";
-            this.projectWorkspacesRibbonButton.Image = (Image)resources.GetObject("documents_44");
-            this.projectWorkspacesRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.projectWorkspacesRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.projectWorkspacesRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.projectWorkspacesRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.projectWorkspacesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.projectWorkspacesRibbonButton.Image = null;
+            this.projectWorkspacesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectWorkspacesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.projectWorkspacesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.projectWorkspacesRibbonButton.Name = "projectWorkspacesRibbonButton";
+            this.projectWorkspacesRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.projectWorkspacesRibbonButton.Text = "Workspaces";
+            this.projectWorkspacesRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectWorkspacesRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.projectWorkspacesRibbonButton.TextWrap = true;
-            this.projectWorkspacesRibbonButton.MinSize = new Size(104, 80);
-            this.projectWorkspacesRibbonButton.MaxSize = new Size(112, 86);
-            this.projectWorkspacesRibbonButton.Padding = new Padding(3);
-            this.projectWorkspacesRibbonButton.TextElement.UseMnemonic = false;
-            this.projectWorkspacesRibbonButton.TextElement.AutoEllipsis = false;
-            this.projectWorkspacesRibbonButton.Click += this.projectWorkspacesButton_Click;
-
-            this.projectMyWorkRibbonButton.Name = "projectMyWorkRibbonButton";
-            this.projectMyWorkRibbonButton.Text = "My work";
-            this.projectMyWorkRibbonButton.ToolTipText = "My work";
+            this.projectWorkspacesRibbonButton.ToolTipText = "Workspaces";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectWorkspacesRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // projectMyWorkRibbonButton
+            // 
             this.projectMyWorkRibbonButton.AccessibleDescription = "Open your assigned work";
-            this.projectMyWorkRibbonButton.Image = (Image)resources.GetObject("contacts_44");
-            this.projectMyWorkRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.projectMyWorkRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.projectMyWorkRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.projectMyWorkRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.projectMyWorkRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.projectMyWorkRibbonButton.Image = null;
+            this.projectMyWorkRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectMyWorkRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.projectMyWorkRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.projectMyWorkRibbonButton.Name = "projectMyWorkRibbonButton";
+            this.projectMyWorkRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.projectMyWorkRibbonButton.Text = "My work";
+            this.projectMyWorkRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.projectMyWorkRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.projectMyWorkRibbonButton.TextWrap = true;
-            this.projectMyWorkRibbonButton.MinSize = new Size(104, 80);
-            this.projectMyWorkRibbonButton.MaxSize = new Size(112, 86);
-            this.projectMyWorkRibbonButton.Padding = new Padding(3);
-            this.projectMyWorkRibbonButton.TextElement.UseMnemonic = false;
-            this.projectMyWorkRibbonButton.TextElement.AutoEllipsis = false;
-            this.projectMyWorkRibbonButton.Click += this.projectMyWorkButton_Click;
-
-            this.projectsGroup.Items.AddRange(new RadItem[] { this.projectWorkspaceRibbonButton, this.projectWorkspacesRibbonButton, this.projectMyWorkRibbonButton });
-
-            this.projectsTab.Items.AddRange(new RadItem[] { this.projectsGroup });
-
+            this.projectMyWorkRibbonButton.ToolTipText = "My work";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectMyWorkRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectMyWorkRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectMyWorkRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.projectMyWorkRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // salesTab
+            // 
+            this.salesTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.salesGroup});
             this.salesTab.Name = "salesTab";
             this.salesTab.Text = "Sales & POS";
+            this.salesTab.UseMnemonic = false;
+            // 
+            // salesGroup
+            // 
+            this.salesGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.salesWorkspaceRibbonButton,
+            this.salesAppointmentsRibbonButton});
             this.salesGroup.Name = "salesGroup";
             this.salesGroup.Text = "Sales operations";
-            this.salesGroup.CollapsedImage = (Image)resources.GetObject("sales_28");
-            this.salesWorkspaceRibbonButton.Name = "salesWorkspaceRibbonButton";
-            this.salesWorkspaceRibbonButton.Text = "Sales workspace";
-            this.salesWorkspaceRibbonButton.ToolTipText = "Sales workspace";
+            // 
+            // salesWorkspaceRibbonButton
+            // 
             this.salesWorkspaceRibbonButton.AccessibleDescription = "Open the sales workspace";
-            this.salesWorkspaceRibbonButton.Image = (Image)resources.GetObject("sales_44");
-            this.salesWorkspaceRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.salesWorkspaceRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.salesWorkspaceRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.salesWorkspaceRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.salesWorkspaceRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.salesWorkspaceRibbonButton.Image = null;
+            this.salesWorkspaceRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.salesWorkspaceRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.salesWorkspaceRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.salesWorkspaceRibbonButton.Name = "salesWorkspaceRibbonButton";
+            this.salesWorkspaceRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.salesWorkspaceRibbonButton.Text = "Sales workspace";
+            this.salesWorkspaceRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.salesWorkspaceRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.salesWorkspaceRibbonButton.TextWrap = true;
-            this.salesWorkspaceRibbonButton.MinSize = new Size(104, 80);
-            this.salesWorkspaceRibbonButton.MaxSize = new Size(112, 86);
-            this.salesWorkspaceRibbonButton.Padding = new Padding(3);
-            this.salesWorkspaceRibbonButton.TextElement.UseMnemonic = false;
-            this.salesWorkspaceRibbonButton.TextElement.AutoEllipsis = false;
-            this.salesWorkspaceRibbonButton.Click += this.salesWorkspaceButton_Click;
-
-            this.salesAppointmentsRibbonButton.Name = "salesAppointmentsRibbonButton";
-            this.salesAppointmentsRibbonButton.Text = "Appointments";
-            this.salesAppointmentsRibbonButton.ToolTipText = "Appointments";
+            this.salesWorkspaceRibbonButton.ToolTipText = "Sales workspace";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesWorkspaceRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // salesAppointmentsRibbonButton
+            // 
             this.salesAppointmentsRibbonButton.AccessibleDescription = "Open sales appointments";
-            this.salesAppointmentsRibbonButton.Image = (Image)resources.GetObject("appointments_44");
-            this.salesAppointmentsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.salesAppointmentsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.salesAppointmentsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.salesAppointmentsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.salesAppointmentsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.salesAppointmentsRibbonButton.Image = null;
+            this.salesAppointmentsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.salesAppointmentsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.salesAppointmentsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.salesAppointmentsRibbonButton.Name = "salesAppointmentsRibbonButton";
+            this.salesAppointmentsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.salesAppointmentsRibbonButton.Text = "Appointments";
+            this.salesAppointmentsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.salesAppointmentsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.salesAppointmentsRibbonButton.TextWrap = true;
-            this.salesAppointmentsRibbonButton.MinSize = new Size(104, 80);
-            this.salesAppointmentsRibbonButton.MaxSize = new Size(112, 86);
-            this.salesAppointmentsRibbonButton.Padding = new Padding(3);
-            this.salesAppointmentsRibbonButton.TextElement.UseMnemonic = false;
-            this.salesAppointmentsRibbonButton.TextElement.AutoEllipsis = false;
-            this.salesAppointmentsRibbonButton.Click += this.appointmentSchedulerButton_Click;
-
-            this.salesGroup.Items.AddRange(new RadItem[] { this.salesWorkspaceRibbonButton, this.salesAppointmentsRibbonButton });
-
-            this.salesTab.Items.AddRange(new RadItem[] { this.salesGroup });
-
+            this.salesAppointmentsRibbonButton.ToolTipText = "Appointments";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesAppointmentsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesAppointmentsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesAppointmentsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.salesAppointmentsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // sharedTab
+            // 
+            this.sharedTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.sharedGroup});
             this.sharedTab.Name = "sharedTab";
             this.sharedTab.Text = "Shared";
+            this.sharedTab.UseMnemonic = false;
+            // 
+            // sharedGroup
+            // 
+            this.sharedGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.sharedDataRibbonButton,
+            this.sharedDocumentsRibbonButton});
             this.sharedGroup.Name = "sharedGroup";
             this.sharedGroup.Text = "Shared workspaces";
-            this.sharedGroup.CollapsedImage = (Image)resources.GetObject("data_28");
-            this.sharedDataRibbonButton.Name = "sharedDataRibbonButton";
-            this.sharedDataRibbonButton.Text = "Shared\nBusiness Data";
-            this.sharedDataRibbonButton.ToolTipText = "Shared Business Data";
+            // 
+            // sharedDataRibbonButton
+            // 
             this.sharedDataRibbonButton.AccessibleDescription = "Access shared business records";
-            this.sharedDataRibbonButton.Image = (Image)resources.GetObject("data_44");
-            this.sharedDataRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.sharedDataRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.sharedDataRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.sharedDataRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.sharedDataRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.sharedDataRibbonButton.Image = null;
+            this.sharedDataRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.sharedDataRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.sharedDataRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.sharedDataRibbonButton.Name = "sharedDataRibbonButton";
+            this.sharedDataRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.sharedDataRibbonButton.Text = "Shared\nBusiness Data";
+            this.sharedDataRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.sharedDataRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.sharedDataRibbonButton.TextWrap = true;
-            this.sharedDataRibbonButton.MinSize = new Size(104, 80);
-            this.sharedDataRibbonButton.MaxSize = new Size(112, 86);
-            this.sharedDataRibbonButton.Padding = new Padding(3);
-            this.sharedDataRibbonButton.TextElement.UseMnemonic = false;
-            this.sharedDataRibbonButton.TextElement.AutoEllipsis = false;
-            this.sharedDataRibbonButton.Click += this.dataButton_Click;
-
-            this.sharedDocumentsRibbonButton.Name = "sharedDocumentsRibbonButton";
-            this.sharedDocumentsRibbonButton.Text = "Documents &\nCommunication";
-            this.sharedDocumentsRibbonButton.ToolTipText = "Documents & Communication";
+            this.sharedDataRibbonButton.ToolTipText = "Shared Business Data";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDataRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDataRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDataRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDataRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // sharedDocumentsRibbonButton
+            // 
             this.sharedDocumentsRibbonButton.AccessibleDescription = "Open documents and communication tools";
-            this.sharedDocumentsRibbonButton.Image = (Image)resources.GetObject("documents_44");
-            this.sharedDocumentsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.sharedDocumentsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.sharedDocumentsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.sharedDocumentsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.sharedDocumentsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.sharedDocumentsRibbonButton.Image = null;
+            this.sharedDocumentsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.sharedDocumentsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.sharedDocumentsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.sharedDocumentsRibbonButton.Name = "sharedDocumentsRibbonButton";
+            this.sharedDocumentsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.sharedDocumentsRibbonButton.Text = "Documents &\nCommunication";
+            this.sharedDocumentsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.sharedDocumentsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.sharedDocumentsRibbonButton.TextWrap = true;
-            this.sharedDocumentsRibbonButton.MinSize = new Size(104, 80);
-            this.sharedDocumentsRibbonButton.MaxSize = new Size(112, 86);
-            this.sharedDocumentsRibbonButton.Padding = new Padding(3);
-            this.sharedDocumentsRibbonButton.TextElement.UseMnemonic = false;
-            this.sharedDocumentsRibbonButton.TextElement.AutoEllipsis = false;
-            this.sharedDocumentsRibbonButton.Click += this.documentsButton_Click;
-
-            this.sharedGroup.Items.AddRange(new RadItem[] { this.sharedDataRibbonButton, this.sharedDocumentsRibbonButton });
-            this.sharedTab.Items.Add(this.sharedGroup);
-
+            this.sharedDocumentsRibbonButton.ToolTipText = "Documents & Communication";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDocumentsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDocumentsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDocumentsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.sharedDocumentsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // administrationTab
+            // 
+            this.administrationTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.companyGroup});
             this.administrationTab.Name = "administrationTab";
             this.administrationTab.Text = "Administration";
+            this.administrationTab.UseMnemonic = false;
+            // 
+            // companyGroup
+            // 
+            this.companyGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.administrationAdministrationRibbonButton,
+            this.administrationLocalCompaniesRibbonButton});
             this.companyGroup.Name = "companyGroup";
             this.companyGroup.Text = "Company";
-            this.companyGroup.CollapsedImage = (Image)resources.GetObject("administration_28");
-            this.administrationAdministrationRibbonButton.Name = "administrationAdministrationRibbonButton";
-            this.administrationAdministrationRibbonButton.Text = "Company\nAdministration";
-            this.administrationAdministrationRibbonButton.ToolTipText = "Company Administration";
+            // 
+            // administrationAdministrationRibbonButton
+            // 
             this.administrationAdministrationRibbonButton.AccessibleDescription = "Manage company settings and users";
-            this.administrationAdministrationRibbonButton.Image = (Image)resources.GetObject("administration_44");
-            this.administrationAdministrationRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.administrationAdministrationRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.administrationAdministrationRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.administrationAdministrationRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.administrationAdministrationRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.administrationAdministrationRibbonButton.Image = null;
+            this.administrationAdministrationRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.administrationAdministrationRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.administrationAdministrationRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.administrationAdministrationRibbonButton.Name = "administrationAdministrationRibbonButton";
+            this.administrationAdministrationRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.administrationAdministrationRibbonButton.Text = "Company\nAdministration";
+            this.administrationAdministrationRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.administrationAdministrationRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.administrationAdministrationRibbonButton.TextWrap = true;
-            this.administrationAdministrationRibbonButton.MinSize = new Size(104, 80);
-            this.administrationAdministrationRibbonButton.MaxSize = new Size(112, 86);
-            this.administrationAdministrationRibbonButton.Padding = new Padding(3);
-            this.administrationAdministrationRibbonButton.TextElement.UseMnemonic = false;
-            this.administrationAdministrationRibbonButton.TextElement.AutoEllipsis = false;
-            this.administrationAdministrationRibbonButton.Click += this.administrationButton_Click;
-
-            this.administrationLocalCompaniesRibbonButton.Name = "administrationLocalCompaniesRibbonButton";
-            this.administrationLocalCompaniesRibbonButton.Text = "Local Companies";
-            this.administrationLocalCompaniesRibbonButton.ToolTipText = "Local Companies";
+            this.administrationAdministrationRibbonButton.ToolTipText = "Company Administration";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationAdministrationRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationAdministrationRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationAdministrationRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationAdministrationRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // administrationLocalCompaniesRibbonButton
+            // 
             this.administrationLocalCompaniesRibbonButton.AccessibleDescription = "View and manage local companies";
-            this.administrationLocalCompaniesRibbonButton.Image = (Image)resources.GetObject("local_companies_44");
-            this.administrationLocalCompaniesRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.administrationLocalCompaniesRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.administrationLocalCompaniesRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.administrationLocalCompaniesRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.administrationLocalCompaniesRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.administrationLocalCompaniesRibbonButton.Image = null;
+            this.administrationLocalCompaniesRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.administrationLocalCompaniesRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.administrationLocalCompaniesRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.administrationLocalCompaniesRibbonButton.Name = "administrationLocalCompaniesRibbonButton";
+            this.administrationLocalCompaniesRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.administrationLocalCompaniesRibbonButton.Text = "Local Companies";
+            this.administrationLocalCompaniesRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.administrationLocalCompaniesRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.administrationLocalCompaniesRibbonButton.TextWrap = true;
-            this.administrationLocalCompaniesRibbonButton.MinSize = new Size(104, 80);
-            this.administrationLocalCompaniesRibbonButton.MaxSize = new Size(112, 86);
-            this.administrationLocalCompaniesRibbonButton.Padding = new Padding(3);
-            this.administrationLocalCompaniesRibbonButton.TextElement.UseMnemonic = false;
-            this.administrationLocalCompaniesRibbonButton.TextElement.AutoEllipsis = false;
-            this.administrationLocalCompaniesRibbonButton.Click += this.localCompaniesButton_Click;
-
-            this.companyGroup.Items.AddRange(new RadItem[] { this.administrationAdministrationRibbonButton, this.administrationLocalCompaniesRibbonButton });
-            this.administrationTab.Items.Add(this.companyGroup);
-
+            this.administrationLocalCompaniesRibbonButton.ToolTipText = "Local Companies";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationLocalCompaniesRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationLocalCompaniesRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationLocalCompaniesRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.administrationLocalCompaniesRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // toolsTab
+            // 
+            this.toolsTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.toolsGroup});
             this.toolsTab.Name = "toolsTab";
             this.toolsTab.Text = "Tools";
+            this.toolsTab.UseMnemonic = false;
+            // 
+            // toolsGroup
+            // 
+            this.toolsGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.toolsSettingsRibbonButton,
+            this.toolsPowerRibbonButton});
             this.toolsGroup.Name = "toolsGroup";
             this.toolsGroup.Text = "Tools";
-            this.toolsGroup.CollapsedImage = (Image)resources.GetObject("settings_28");
-            this.toolsSettingsRibbonButton.Name = "toolsSettingsRibbonButton";
-            this.toolsSettingsRibbonButton.Text = "Settings";
-            this.toolsSettingsRibbonButton.ToolTipText = "Settings";
+            // 
+            // toolsSettingsRibbonButton
+            // 
             this.toolsSettingsRibbonButton.AccessibleDescription = "Configure the desktop connection";
-            this.toolsSettingsRibbonButton.Image = (Image)resources.GetObject("settings_44");
-            this.toolsSettingsRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.toolsSettingsRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.toolsSettingsRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.toolsSettingsRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.toolsSettingsRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.toolsSettingsRibbonButton.Image = null;
+            this.toolsSettingsRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.toolsSettingsRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.toolsSettingsRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.toolsSettingsRibbonButton.Name = "toolsSettingsRibbonButton";
+            this.toolsSettingsRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.toolsSettingsRibbonButton.Text = "Settings";
+            this.toolsSettingsRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.toolsSettingsRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.toolsSettingsRibbonButton.TextWrap = true;
-            this.toolsSettingsRibbonButton.MinSize = new Size(104, 80);
-            this.toolsSettingsRibbonButton.MaxSize = new Size(112, 86);
-            this.toolsSettingsRibbonButton.Padding = new Padding(3);
-            this.toolsSettingsRibbonButton.TextElement.UseMnemonic = false;
-            this.toolsSettingsRibbonButton.TextElement.AutoEllipsis = false;
-            this.toolsSettingsRibbonButton.Click += this.settingsButton_Click;
-
-            this.toolsPowerRibbonButton.Name = "toolsPowerRibbonButton";
-            this.toolsPowerRibbonButton.Text = "Power Apps";
-            this.toolsPowerRibbonButton.ToolTipText = "Power Apps";
+            this.toolsSettingsRibbonButton.ToolTipText = "Settings";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsSettingsRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsSettingsRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsSettingsRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsSettingsRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // toolsPowerRibbonButton
+            // 
             this.toolsPowerRibbonButton.AccessibleDescription = "Open apps, automations and approvals";
-            this.toolsPowerRibbonButton.Image = (Image)resources.GetObject("power_44");
-            this.toolsPowerRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.toolsPowerRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.toolsPowerRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.toolsPowerRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.toolsPowerRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.toolsPowerRibbonButton.Image = null;
+            this.toolsPowerRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.toolsPowerRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.toolsPowerRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.toolsPowerRibbonButton.Name = "toolsPowerRibbonButton";
+            this.toolsPowerRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.toolsPowerRibbonButton.Text = "Power Apps";
+            this.toolsPowerRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.toolsPowerRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.toolsPowerRibbonButton.TextWrap = true;
-            this.toolsPowerRibbonButton.MinSize = new Size(104, 80);
-            this.toolsPowerRibbonButton.MaxSize = new Size(112, 86);
-            this.toolsPowerRibbonButton.Padding = new Padding(3);
-            this.toolsPowerRibbonButton.TextElement.UseMnemonic = false;
-            this.toolsPowerRibbonButton.TextElement.AutoEllipsis = false;
-            this.toolsPowerRibbonButton.Click += this.powerButton_Click;
-
-            this.toolsGroup.Items.AddRange(new RadItem[] { this.toolsSettingsRibbonButton, this.toolsPowerRibbonButton });
-            this.toolsTab.Items.Add(this.toolsGroup);
-
+            this.toolsPowerRibbonButton.ToolTipText = "Power Apps";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsPowerRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsPowerRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsPowerRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.toolsPowerRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // reportsTab
+            // 
+            this.reportsTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.reportingGroup});
             this.reportsTab.Name = "reportsTab";
             this.reportsTab.Text = "Reports";
+            this.reportsTab.UseMnemonic = false;
+            // 
+            // reportingGroup
+            // 
+            this.reportingGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.reportsReportingRibbonButton});
             this.reportingGroup.Name = "reportingGroup";
             this.reportingGroup.Text = "Reporting";
-            this.reportingGroup.CollapsedImage = (Image)resources.GetObject("reporting_28");
-            this.reportsReportingRibbonButton.Name = "reportsReportingRibbonButton";
-            this.reportsReportingRibbonButton.Text = "Reporting &\nCustomization";
-            this.reportsReportingRibbonButton.ToolTipText = "Reporting & Customization";
+            // 
+            // reportsReportingRibbonButton
+            // 
             this.reportsReportingRibbonButton.AccessibleDescription = "Open reports and customization tools";
-            this.reportsReportingRibbonButton.Image = (Image)resources.GetObject("reporting_44");
-            this.reportsReportingRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.reportsReportingRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.reportsReportingRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.reportsReportingRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.reportsReportingRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.reportsReportingRibbonButton.Image = null;
+            this.reportsReportingRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.reportsReportingRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.reportsReportingRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.reportsReportingRibbonButton.Name = "reportsReportingRibbonButton";
+            this.reportsReportingRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.reportsReportingRibbonButton.Text = "Reporting &\nCustomization";
+            this.reportsReportingRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.reportsReportingRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.reportsReportingRibbonButton.TextWrap = true;
-            this.reportsReportingRibbonButton.MinSize = new Size(104, 80);
-            this.reportsReportingRibbonButton.MaxSize = new Size(112, 86);
-            this.reportsReportingRibbonButton.Padding = new Padding(3);
-            this.reportsReportingRibbonButton.TextElement.UseMnemonic = false;
-            this.reportsReportingRibbonButton.TextElement.AutoEllipsis = false;
-            this.reportsReportingRibbonButton.Click += this.reportingButton_Click;
-
-            this.reportingGroup.Items.Add(this.reportsReportingRibbonButton);
-            this.reportsTab.Items.Add(this.reportingGroup);
-
+            this.reportsReportingRibbonButton.ToolTipText = "Reporting & Customization";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.reportsReportingRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.reportsReportingRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.reportsReportingRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.reportsReportingRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // helpTab
+            // 
+            this.helpTab.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.helpGroup});
             this.helpTab.Name = "helpTab";
             this.helpTab.Text = "Help";
+            this.helpTab.UseMnemonic = false;
+            // 
+            // helpGroup
+            // 
+            this.helpGroup.Items.AddRange(new Telerik.WinControls.RadItem[] {
+            this.helpHelpRibbonButton});
             this.helpGroup.Name = "helpGroup";
             this.helpGroup.Text = "Help";
-            this.helpGroup.CollapsedImage = (Image)resources.GetObject("help_28");
-            this.helpHelpRibbonButton.Name = "helpHelpRibbonButton";
-            this.helpHelpRibbonButton.Text = "Navigation Help";
-            this.helpHelpRibbonButton.ToolTipText = "Navigation Help";
+            // 
+            // helpHelpRibbonButton
+            // 
             this.helpHelpRibbonButton.AccessibleDescription = "Learn how to open workspaces";
-            this.helpHelpRibbonButton.Image = (Image)resources.GetObject("help_44");
-            this.helpHelpRibbonButton.DisplayStyle = DisplayStyle.ImageAndText;
-            this.helpHelpRibbonButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            this.helpHelpRibbonButton.ImageAlignment = ContentAlignment.MiddleCenter;
-            this.helpHelpRibbonButton.TextAlignment = ContentAlignment.MiddleCenter;
+            this.helpHelpRibbonButton.DisplayStyle = Telerik.WinControls.DisplayStyle.ImageAndText;
+            this.helpHelpRibbonButton.Image = null;
+            this.helpHelpRibbonButton.ImageAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.helpHelpRibbonButton.MaxSize = new System.Drawing.Size(112, 86);
+            this.helpHelpRibbonButton.MinSize = new System.Drawing.Size(104, 80);
+            this.helpHelpRibbonButton.Name = "helpHelpRibbonButton";
+            this.helpHelpRibbonButton.Padding = new System.Windows.Forms.Padding(3);
+            this.helpHelpRibbonButton.Text = "Navigation Help";
+            this.helpHelpRibbonButton.TextAlignment = System.Drawing.ContentAlignment.MiddleCenter;
+            this.helpHelpRibbonButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.helpHelpRibbonButton.TextWrap = true;
-            this.helpHelpRibbonButton.MinSize = new Size(104, 80);
-            this.helpHelpRibbonButton.MaxSize = new Size(112, 86);
-            this.helpHelpRibbonButton.Padding = new Padding(3);
-            this.helpHelpRibbonButton.TextElement.UseMnemonic = false;
-            this.helpHelpRibbonButton.TextElement.AutoEllipsis = false;
-            this.helpHelpRibbonButton.Click += this.helpButton_Click;
-
-            this.helpGroup.Items.Add(this.helpHelpRibbonButton);
-            this.helpTab.Items.Add(this.helpGroup);
-
-            this.ribbonBar.CommandTabs.AddRange(new RibbonTab[] { this.homeTab, this.appointmentsTab, this.crmTab, this.financeTab, this.hrmsTab, this.projectsTab, this.salesTab, this.sharedTab, this.administrationTab, this.toolsTab, this.reportsTab, this.helpTab });
-
+            this.helpHelpRibbonButton.ToolTipText = "Navigation Help";
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.helpHelpRibbonButton.GetChildAt(1).GetChildAt(1))).AutoEllipsis = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.helpHelpRibbonButton.GetChildAt(1).GetChildAt(1))).TextWrap = true;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.helpHelpRibbonButton.GetChildAt(1).GetChildAt(1))).UseMnemonic = false;
+            ((Telerik.WinControls.Primitives.TextPrimitive)(this.helpHelpRibbonButton.GetChildAt(1).GetChildAt(1))).Alignment = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // workspaces
+            // 
+            this.workspaces.Controls.Add(this.homePage);
+            this.workspaces.Controls.Add(this.appointmentsPage);
+            this.workspaces.Controls.Add(this.crmPage);
+            this.workspaces.Controls.Add(this.financePage);
+            this.workspaces.Controls.Add(this.hrmsPage);
+            this.workspaces.Controls.Add(this.projectsPage);
+            this.workspaces.Controls.Add(this.salesPage);
+            this.workspaces.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.workspaces.Location = new System.Drawing.Point(0, 146);
             this.workspaces.Name = "workspaces";
-            this.workspaces.Dock = DockStyle.Fill;
-            this.workspaces.Padding = new Point(16, 7);
+            this.workspaces.Padding = new System.Drawing.Point(16, 7);
             this.workspaces.SelectedIndex = 0;
-            this.workspaces.SelectedIndexChanged += this.workspaces_SelectedIndexChanged;
-            this.homePage.Name = "homePage";
-            this.homePage.Text = "Home";
-            this.homePage.BackColor = Color.FromArgb(244, 247, 253);
-            this.homePage.UseVisualStyleBackColor = false;
-            this.homeBody.Name = "homeBody";
-            this.homeBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.homeBody.Dock = DockStyle.Fill;
-            this.homeBody.AutoScroll = true;
-            this.homeBody.Padding = new Padding(22, 0, 22, 24);
-            this.homeContent.Name = "homeContent";
-            this.homeContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.homeContent.Dock = DockStyle.Top;
-            this.homeContent.AutoSize = true;
-            this.homeContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.homeHeader.Name = "homeHeader";
-            this.homeHeader.Dock = DockStyle.Top;
-            this.homeHeader.Size = new Size(1300, 150);
-            this.homeHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.homeTitleLabel.Name = "homeTitleLabel";
-            this.homeTitleLabel.Text = "Business Suite";
-            this.homeTitleLabel.Location = new Point(12, 33);
-            this.homeTitleLabel.AutoSize = true;
-            this.homeTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.homeTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.homeTitleLabel.BackColor = Color.Transparent;
-            this.homeDescriptionLabel.Name = "homeDescriptionLabel";
-            this.homeDescriptionLabel.Text = "Open a module or shared workspace.";
-            this.homeDescriptionLabel.Location = new Point(15, 91);
-            this.homeDescriptionLabel.AutoSize = true;
-            this.homeDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.homeDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.homeDescriptionLabel.BackColor = Color.Transparent;
-            this.homeHeader.Controls.AddRange(new Control[] { this.homeTitleLabel, this.homeDescriptionLabel });
-            this.modulesHeadingLabel.Name = "modulesHeadingLabel";
-            this.modulesHeadingLabel.Text = "Modules";
-            this.modulesHeadingLabel.Dock = DockStyle.Top;
-            this.modulesHeadingLabel.Size = new Size(1300, 36);
-            this.modulesHeadingLabel.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.modulesHeadingLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.modulesHeadingLabel.TextAlign = ContentAlignment.MiddleLeft;
-            this.modulesCards.Name = "modulesCards";
-            this.modulesCards.Dock = DockStyle.Top;
-            this.modulesCards.AutoSize = true;
-            this.modulesCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.modulesCards.FlowDirection = FlowDirection.LeftToRight;
-            this.modulesCards.WrapContents = true;
-            this.appointmentsCard.Name = "appointmentsCard";
-            this.appointmentsCard.Text = "Appointments";
-            this.appointmentsCard.AccessibleDescription = "Schedule and manage appointments";
-            this.appointmentsCard.Image = (Image)resources.GetObject("appointments");
-            this.appointmentsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.appointmentsCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.appointmentsCard.Size = new Size(203, 166);
-            this.appointmentsCard.Margin = new Padding(0, 0, 16, 16);
-            this.appointmentsCard.Cursor = Cursors.Hand;
-            this.appointmentsCard.FlatStyle = FlatStyle.Flat;
-            this.appointmentsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.appointmentsCard.TabIndex = 0;
-            this.appointmentsCard.UseVisualStyleBackColor = false;
-            this.appointmentsCard.Click += this.appointmentsButton_Click;
-
-            this.crmCard.Name = "crmCard";
-            this.crmCard.Text = "VyaparaCRM";
-            this.crmCard.AccessibleDescription = "Manage customer relationships and sales";
-            this.crmCard.Image = (Image)resources.GetObject("crm");
-            this.crmCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.crmCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.crmCard.Size = new Size(203, 166);
-            this.crmCard.Margin = new Padding(0, 0, 16, 16);
-            this.crmCard.Cursor = Cursors.Hand;
-            this.crmCard.FlatStyle = FlatStyle.Flat;
-            this.crmCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.crmCard.TabIndex = 1;
-            this.crmCard.UseVisualStyleBackColor = false;
-            this.crmCard.Click += this.crmButton_Click;
-
-            this.financeCard.Name = "financeCard";
-            this.financeCard.Text = "Finance & Accounting";
-            this.financeCard.AccessibleDescription = "Open finance and accounting tools";
-            this.financeCard.Image = (Image)resources.GetObject("finance");
-            this.financeCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.financeCard.AccentColor = Color.FromArgb(247, 161, 30);
-            this.financeCard.Size = new Size(203, 166);
-            this.financeCard.Margin = new Padding(0, 0, 16, 16);
-            this.financeCard.Cursor = Cursors.Hand;
-            this.financeCard.FlatStyle = FlatStyle.Flat;
-            this.financeCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.financeCard.TabIndex = 2;
-            this.financeCard.UseVisualStyleBackColor = false;
-            this.financeCard.Click += this.financeButton_Click;
-
-            this.hrmsCard.Name = "hrmsCard";
-            this.hrmsCard.Text = "AI HRMS";
-            this.hrmsCard.AccessibleDescription = "Open human resources tools";
-            this.hrmsCard.Image = (Image)resources.GetObject("hrms");
-            this.hrmsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrmsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.hrmsCard.AccentColor = Color.FromArgb(143, 72, 237);
-            this.hrmsCard.Size = new Size(203, 166);
-            this.hrmsCard.Margin = new Padding(0, 0, 16, 16);
-            this.hrmsCard.Cursor = Cursors.Hand;
-            this.hrmsCard.FlatStyle = FlatStyle.Flat;
-            this.hrmsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.hrmsCard.TabIndex = 3;
-            this.hrmsCard.UseVisualStyleBackColor = false;
-            this.hrmsCard.Click += this.hrmsButton_Click;
-
-            this.projectsCard.Name = "projectsCard";
-            this.projectsCard.Text = "KaryaFlow PMS";
-            this.projectsCard.AccessibleDescription = "Manage projects and workspaces";
-            this.projectsCard.Image = (Image)resources.GetObject("projects");
-            this.projectsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.projectsCard.AccentColor = Color.FromArgb(10, 157, 233);
-            this.projectsCard.Size = new Size(203, 166);
-            this.projectsCard.Margin = new Padding(0, 0, 16, 16);
-            this.projectsCard.Cursor = Cursors.Hand;
-            this.projectsCard.FlatStyle = FlatStyle.Flat;
-            this.projectsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.projectsCard.TabIndex = 4;
-            this.projectsCard.UseVisualStyleBackColor = false;
-            this.projectsCard.Click += this.projectsButton_Click;
-
-            this.salesCard.Name = "salesCard";
-            this.salesCard.Text = "Sales & POS";
-            this.salesCard.AccessibleDescription = "Open sales and point of sale tools";
-            this.salesCard.Image = (Image)resources.GetObject("sales");
-            this.salesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.salesCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.salesCard.Size = new Size(203, 166);
-            this.salesCard.Margin = new Padding(0, 0, 16, 16);
-            this.salesCard.Cursor = Cursors.Hand;
-            this.salesCard.FlatStyle = FlatStyle.Flat;
-            this.salesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.salesCard.TabIndex = 5;
-            this.salesCard.UseVisualStyleBackColor = false;
-            this.salesCard.Click += this.salesButton_Click;
-
-            this.modulesCards.Controls.AddRange(new Control[] { this.appointmentsCard, this.crmCard, this.financeCard, this.hrmsCard, this.projectsCard, this.salesCard });
-            this.sharedHeadingLabel.Name = "sharedHeadingLabel";
-            this.sharedHeadingLabel.Text = "Shared";
-            this.sharedHeadingLabel.Dock = DockStyle.Top;
-            this.sharedHeadingLabel.Size = new Size(1300, 36);
-            this.sharedHeadingLabel.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.sharedHeadingLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.sharedHeadingLabel.TextAlign = ContentAlignment.MiddleLeft;
-            this.sharedCards.Name = "sharedCards";
-            this.sharedCards.Dock = DockStyle.Top;
-            this.sharedCards.AutoSize = true;
-            this.sharedCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.sharedCards.FlowDirection = FlowDirection.LeftToRight;
-            this.sharedCards.WrapContents = true;
-            this.dataCard.Name = "dataCard";
-            this.dataCard.Text = "Shared Business Data";
-            this.dataCard.AccessibleDescription = "Access shared business records";
-            this.dataCard.Image = (Image)resources.GetObject("data");
-            this.dataCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.dataCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.dataCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.dataCard.Size = new Size(203, 166);
-            this.dataCard.Margin = new Padding(0, 0, 16, 16);
-            this.dataCard.Cursor = Cursors.Hand;
-            this.dataCard.FlatStyle = FlatStyle.Flat;
-            this.dataCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.dataCard.TabIndex = 0;
-            this.dataCard.UseVisualStyleBackColor = false;
-            this.dataCard.Click += this.dataButton_Click;
-
-            this.administrationCard.Name = "administrationCard";
-            this.administrationCard.Text = "Company Administration";
-            this.administrationCard.AccessibleDescription = "Manage company settings and users";
-            this.administrationCard.Image = (Image)resources.GetObject("administration");
-            this.administrationCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.administrationCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.administrationCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.administrationCard.Size = new Size(203, 166);
-            this.administrationCard.Margin = new Padding(0, 0, 16, 16);
-            this.administrationCard.Cursor = Cursors.Hand;
-            this.administrationCard.FlatStyle = FlatStyle.Flat;
-            this.administrationCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.administrationCard.TabIndex = 1;
-            this.administrationCard.UseVisualStyleBackColor = false;
-            this.administrationCard.Click += this.administrationButton_Click;
-
-            this.documentsCard.Name = "documentsCard";
-            this.documentsCard.Text = "Documents & Communication";
-            this.documentsCard.AccessibleDescription = "Open documents and communication tools";
-            this.documentsCard.Image = (Image)resources.GetObject("documents");
-            this.documentsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.documentsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.documentsCard.AccentColor = Color.FromArgb(247, 161, 30);
-            this.documentsCard.Size = new Size(203, 166);
-            this.documentsCard.Margin = new Padding(0, 0, 16, 16);
-            this.documentsCard.Cursor = Cursors.Hand;
-            this.documentsCard.FlatStyle = FlatStyle.Flat;
-            this.documentsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.documentsCard.TabIndex = 2;
-            this.documentsCard.UseVisualStyleBackColor = false;
-            this.documentsCard.Click += this.documentsButton_Click;
-
-            this.powerCard.Name = "powerCard";
-            this.powerCard.Text = "Power Apps";
-            this.powerCard.AccessibleDescription = "Open apps, automations and approvals";
-            this.powerCard.Image = (Image)resources.GetObject("power");
-            this.powerCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.powerCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.powerCard.AccentColor = Color.FromArgb(143, 72, 237);
-            this.powerCard.Size = new Size(203, 166);
-            this.powerCard.Margin = new Padding(0, 0, 16, 16);
-            this.powerCard.Cursor = Cursors.Hand;
-            this.powerCard.FlatStyle = FlatStyle.Flat;
-            this.powerCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.powerCard.TabIndex = 3;
-            this.powerCard.UseVisualStyleBackColor = false;
-            this.powerCard.Click += this.powerButton_Click;
-
-            this.reportingCard.Name = "reportingCard";
-            this.reportingCard.Text = "Reporting & Customization";
-            this.reportingCard.AccessibleDescription = "Open reports and customization tools";
-            this.reportingCard.Image = (Image)resources.GetObject("reporting");
-            this.reportingCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.reportingCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.reportingCard.AccentColor = Color.FromArgb(10, 157, 233);
-            this.reportingCard.Size = new Size(203, 166);
-            this.reportingCard.Margin = new Padding(0, 0, 16, 16);
-            this.reportingCard.Cursor = Cursors.Hand;
-            this.reportingCard.FlatStyle = FlatStyle.Flat;
-            this.reportingCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.reportingCard.TabIndex = 4;
-            this.reportingCard.UseVisualStyleBackColor = false;
-            this.reportingCard.Click += this.reportingButton_Click;
-
-            this.localCompaniesCard.Name = "localCompaniesCard";
-            this.localCompaniesCard.Text = "Local Companies";
-            this.localCompaniesCard.AccessibleDescription = "View and manage local companies";
-            this.localCompaniesCard.Image = (Image)resources.GetObject("local_companies");
-            this.localCompaniesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.localCompaniesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.localCompaniesCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.localCompaniesCard.Size = new Size(203, 166);
-            this.localCompaniesCard.Margin = new Padding(0, 0, 16, 16);
-            this.localCompaniesCard.Cursor = Cursors.Hand;
-            this.localCompaniesCard.FlatStyle = FlatStyle.Flat;
-            this.localCompaniesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.localCompaniesCard.TabIndex = 5;
-            this.localCompaniesCard.UseVisualStyleBackColor = false;
-            this.localCompaniesCard.Click += this.localCompaniesButton_Click;
-
-            this.sharedCards.Controls.AddRange(new Control[] { this.dataCard, this.administrationCard, this.documentsCard, this.powerCard, this.reportingCard, this.localCompaniesCard });
-            this.homeContent.Controls.AddRange(new Control[] { this.sharedCards, this.sharedHeadingLabel, this.modulesCards, this.modulesHeadingLabel, this.homeHeader });
-            this.homeBody.Controls.Add(this.homeContent);
+            this.workspaces.Size = new System.Drawing.Size(1400, 674);
+            this.workspaces.TabIndex = 0;
+            // 
+            // homePage
+            // 
+            this.homePage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.homePage.Controls.Add(this.homeBody);
-
-            this.crmPage.Name = "crmPage";
-            this.crmPage.Text = "VyaparaCRM";
-            this.crmPage.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmPage.UseVisualStyleBackColor = false;
-            this.crmBody.Name = "crmBody";
-            this.crmBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmBody.Dock = DockStyle.Fill;
-            this.crmBody.AutoScroll = true;
-            this.crmBody.Padding = new Padding(22, 0, 22, 24);
-            this.crmContent.Name = "crmContent";
-            this.crmContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmContent.Dock = DockStyle.Top;
-            this.crmContent.AutoSize = true;
-            this.crmContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.crmHeader.Name = "crmHeader";
-            this.crmHeader.Dock = DockStyle.Top;
-            this.crmHeader.Size = new Size(1300, 150);
-            this.crmHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmHeaderIcon.Name = "crmHeaderIcon";
-            this.crmHeaderIcon.Location = new Point(12, 28);
-            this.crmHeaderIcon.Size = new Size(88, 88);
-            this.crmHeaderIcon.BackColor = Color.Transparent;
-            this.crmHeaderIcon.Image = (Image)resources.GetObject("crm");
-            this.crmHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.crmHeaderIcon.TabStop = false;
-            this.crmTitleLabel.Name = "crmTitleLabel";
-            this.crmTitleLabel.Text = "VyaparaCRM";
-            this.crmTitleLabel.Location = new Point(124, 33);
-            this.crmTitleLabel.AutoSize = true;
-            this.crmTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.crmTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.crmTitleLabel.BackColor = Color.Transparent;
-            this.crmDescriptionLabel.Name = "crmDescriptionLabel";
-            this.crmDescriptionLabel.Text = "Customer Relationships  •  Sales Pipeline  •  Companies  •  Contacts  •  Deals";
-            this.crmDescriptionLabel.Location = new Point(127, 91);
-            this.crmDescriptionLabel.AutoSize = true;
-            this.crmDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.crmDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.crmDescriptionLabel.BackColor = Color.Transparent;
-            this.crmHeader.Controls.AddRange(new Control[] { this.crmHeaderIcon, this.crmTitleLabel, this.crmDescriptionLabel });
-            this.crmCards.Name = "crmCards";
-            this.crmCards.Dock = DockStyle.Top;
-            this.crmCards.AutoSize = true;
-            this.crmCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.crmCards.FlowDirection = FlowDirection.LeftToRight;
-            this.crmCards.WrapContents = true;
-            this.crmWorkspaceCard.Name = "crmWorkspaceCard";
-            this.crmWorkspaceCard.Text = "CRM workspace";
-            this.crmWorkspaceCard.AccessibleDescription = "Your CRM command center with key insights";
-            this.crmWorkspaceCard.Image = (Image)resources.GetObject("workspace");
-            this.crmWorkspaceCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.crmWorkspaceCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.crmWorkspaceCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.crmWorkspaceCard.Size = new Size(246, 226);
-            this.crmWorkspaceCard.Margin = new Padding(0, 0, 16, 16);
-            this.crmWorkspaceCard.Cursor = Cursors.Hand;
-            this.crmWorkspaceCard.FlatStyle = FlatStyle.Flat;
-            this.crmWorkspaceCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.crmWorkspaceCard.TabIndex = 0;
-            this.crmWorkspaceCard.UseVisualStyleBackColor = false;
-            this.crmWorkspaceCard.Click += this.crmWorkspaceButton_Click;
-
-            this.companiesCard.Name = "companiesCard";
-            this.companiesCard.Text = "Companies";
-            this.companiesCard.AccessibleDescription = "Manage companies, accounts and profiles";
-            this.companiesCard.Image = (Image)resources.GetObject("companies");
-            this.companiesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.companiesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.companiesCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.companiesCard.Size = new Size(246, 226);
-            this.companiesCard.Margin = new Padding(0, 0, 16, 16);
-            this.companiesCard.Cursor = Cursors.Hand;
-            this.companiesCard.FlatStyle = FlatStyle.Flat;
-            this.companiesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.companiesCard.TabIndex = 1;
-            this.companiesCard.UseVisualStyleBackColor = false;
-            this.companiesCard.Click += this.companiesButton_Click;
-
-            this.contactsCard.Name = "contactsCard";
-            this.contactsCard.Text = "Contacts";
-            this.contactsCard.AccessibleDescription = "Manage contacts, people and relationships";
-            this.contactsCard.Image = (Image)resources.GetObject("contacts");
-            this.contactsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.contactsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.contactsCard.AccentColor = Color.FromArgb(247, 161, 30);
-            this.contactsCard.Size = new Size(246, 226);
-            this.contactsCard.Margin = new Padding(0, 0, 16, 16);
-            this.contactsCard.Cursor = Cursors.Hand;
-            this.contactsCard.FlatStyle = FlatStyle.Flat;
-            this.contactsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.contactsCard.TabIndex = 2;
-            this.contactsCard.UseVisualStyleBackColor = false;
-            this.contactsCard.Click += this.contactsButton_Click;
-
-            this.leadsCard.Name = "leadsCard";
-            this.leadsCard.Text = "Leads";
-            this.leadsCard.AccessibleDescription = "Capture, track and nurture potential customers";
-            this.leadsCard.Image = (Image)resources.GetObject("leads");
-            this.leadsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.leadsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.leadsCard.AccentColor = Color.FromArgb(143, 72, 237);
-            this.leadsCard.Size = new Size(246, 226);
-            this.leadsCard.Margin = new Padding(0, 0, 16, 16);
-            this.leadsCard.Cursor = Cursors.Hand;
-            this.leadsCard.FlatStyle = FlatStyle.Flat;
-            this.leadsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.leadsCard.TabIndex = 3;
-            this.leadsCard.UseVisualStyleBackColor = false;
-            this.leadsCard.Click += this.leadsButton_Click;
-
-            this.dealsCard.Name = "dealsCard";
-            this.dealsCard.Text = "Deals";
-            this.dealsCard.AccessibleDescription = "Manage opportunities and close sales faster";
-            this.dealsCard.Image = (Image)resources.GetObject("deals");
-            this.dealsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.dealsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.dealsCard.AccentColor = Color.FromArgb(10, 157, 233);
-            this.dealsCard.Size = new Size(246, 226);
-            this.dealsCard.Margin = new Padding(0, 0, 16, 16);
-            this.dealsCard.Cursor = Cursors.Hand;
-            this.dealsCard.FlatStyle = FlatStyle.Flat;
-            this.dealsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.dealsCard.TabIndex = 4;
-            this.dealsCard.UseVisualStyleBackColor = false;
-            this.dealsCard.Click += this.dealsButton_Click;
-
-            this.crmCards.Controls.AddRange(new Control[] { this.crmWorkspaceCard, this.companiesCard, this.contactsCard, this.leadsCard, this.dealsCard });
-            this.crmContent.Controls.AddRange(new Control[] { this.crmCards, this.crmHeader });
-            this.crmBody.Controls.Add(this.crmContent);
-            this.crmPage.Controls.Add(this.crmBody);
-
-            this.appointmentsPage.Name = "appointmentsPage";
-            this.appointmentsPage.Text = "Appointments";
-            this.appointmentsPage.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentsPage.UseVisualStyleBackColor = false;
-            this.appointmentsBody.Name = "appointmentsBody";
-            this.appointmentsBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentsBody.Dock = DockStyle.Fill;
-            this.appointmentsBody.AutoScroll = true;
-            this.appointmentsBody.Padding = new Padding(22, 0, 22, 24);
-            this.appointmentsContent.Name = "appointmentsContent";
-            this.appointmentsContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentsContent.Dock = DockStyle.Top;
-            this.appointmentsContent.AutoSize = true;
-            this.appointmentsContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.appointmentsHeader.Name = "appointmentsHeader";
-            this.appointmentsHeader.Dock = DockStyle.Top;
-            this.appointmentsHeader.Size = new Size(1300, 150);
-            this.appointmentsHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentsHeaderIcon.Name = "appointmentsHeaderIcon";
-            this.appointmentsHeaderIcon.Location = new Point(12, 28);
-            this.appointmentsHeaderIcon.Size = new Size(88, 88);
-            this.appointmentsHeaderIcon.BackColor = Color.Transparent;
-            this.appointmentsHeaderIcon.Image = (Image)resources.GetObject("appointments");
-            this.appointmentsHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.appointmentsHeaderIcon.TabStop = false;
-            this.appointmentsTitleLabel.Name = "appointmentsTitleLabel";
-            this.appointmentsTitleLabel.Text = "Appointments";
-            this.appointmentsTitleLabel.Location = new Point(124, 33);
-            this.appointmentsTitleLabel.AutoSize = true;
-            this.appointmentsTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.appointmentsTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.appointmentsTitleLabel.BackColor = Color.Transparent;
-            this.appointmentsDescriptionLabel.Name = "appointmentsDescriptionLabel";
-            this.appointmentsDescriptionLabel.Text = "Schedule services and customer bookings.";
-            this.appointmentsDescriptionLabel.Location = new Point(127, 91);
-            this.appointmentsDescriptionLabel.AutoSize = true;
-            this.appointmentsDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.appointmentsDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.appointmentsDescriptionLabel.BackColor = Color.Transparent;
-            this.appointmentsHeader.Controls.AddRange(new Control[] { this.appointmentsHeaderIcon, this.appointmentsTitleLabel, this.appointmentsDescriptionLabel });
-            this.appointmentsCards.Name = "appointmentsCards";
-            this.appointmentsCards.Dock = DockStyle.Top;
-            this.appointmentsCards.AutoSize = true;
-            this.appointmentsCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.appointmentsCards.FlowDirection = FlowDirection.LeftToRight;
-            this.appointmentsCards.WrapContents = true;
-            this.appointmentSchedulerCard.Name = "appointmentSchedulerCard";
-            this.appointmentSchedulerCard.Text = "Appointment scheduler";
-            this.appointmentSchedulerCard.AccessibleDescription = "View and schedule customer appointments.";
-            this.appointmentSchedulerCard.Image = (Image)resources.GetObject("appointments");
-            this.appointmentSchedulerCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.appointmentSchedulerCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.appointmentSchedulerCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.appointmentSchedulerCard.Size = new Size(246, 226);
-            this.appointmentSchedulerCard.Margin = new Padding(0, 0, 16, 16);
-            this.appointmentSchedulerCard.Cursor = Cursors.Hand;
-            this.appointmentSchedulerCard.FlatStyle = FlatStyle.Flat;
-            this.appointmentSchedulerCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.appointmentSchedulerCard.TabIndex = 0;
-            this.appointmentSchedulerCard.UseVisualStyleBackColor = false;
-            this.appointmentSchedulerCard.Click += this.appointmentSchedulerButton_Click;
-
-            this.appointmentsCards.Controls.AddRange(new Control[] { this.appointmentSchedulerCard });
-            this.appointmentsContent.Controls.AddRange(new Control[] { this.appointmentsCards, this.appointmentsHeader });
-            this.appointmentsBody.Controls.Add(this.appointmentsContent);
+            this.homePage.Location = new System.Drawing.Point(4, 34);
+            this.homePage.Name = "homePage";
+            this.homePage.Size = new System.Drawing.Size(1392, 636);
+            this.homePage.TabIndex = 0;
+            this.homePage.Text = "Home";
+            // 
+            // homeBody
+            // 
+            this.homeBody.AutoScroll = true;
+            this.homeBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.homeBody.Controls.Add(this.homeContent);
+            this.homeBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.homeBody.Location = new System.Drawing.Point(0, 0);
+            this.homeBody.Name = "homeBody";
+            this.homeBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.homeBody.Size = new System.Drawing.Size(1392, 636);
+            this.homeBody.TabIndex = 0;
+            // 
+            // homeContent
+            // 
+            this.homeContent.AutoSize = true;
+            this.homeContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.homeContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.homeContent.Controls.Add(this.sharedCards);
+            this.homeContent.Controls.Add(this.sharedHeadingLabel);
+            this.homeContent.Controls.Add(this.modulesCards);
+            this.homeContent.Controls.Add(this.modulesHeadingLabel);
+            this.homeContent.Controls.Add(this.homeHeader);
+            this.homeContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.homeContent.Location = new System.Drawing.Point(22, 0);
+            this.homeContent.Name = "homeContent";
+            this.homeContent.Size = new System.Drawing.Size(1348, 586);
+            this.homeContent.TabIndex = 0;
+            // 
+            // sharedCards
+            // 
+            this.sharedCards.AutoSize = true;
+            this.sharedCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.sharedCards.Controls.Add(this.dataCard);
+            this.sharedCards.Controls.Add(this.administrationCard);
+            this.sharedCards.Controls.Add(this.documentsCard);
+            this.sharedCards.Controls.Add(this.powerCard);
+            this.sharedCards.Controls.Add(this.reportingCard);
+            this.sharedCards.Controls.Add(this.localCompaniesCard);
+            this.sharedCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.sharedCards.Location = new System.Drawing.Point(0, 404);
+            this.sharedCards.Name = "sharedCards";
+            this.sharedCards.Size = new System.Drawing.Size(1348, 182);
+            this.sharedCards.TabIndex = 0;
+            // 
+            // dataCard
+            // 
+            this.dataCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.dataCard.AccessibleDescription = "Access shared business records";
+            this.dataCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.dataCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dataCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.dataCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.dataCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.dataCard.Location = new System.Drawing.Point(0, 0);
+            this.dataCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.dataCard.Name = "dataCard";
+            this.dataCard.Size = new System.Drawing.Size(203, 166);
+            this.dataCard.TabIndex = 0;
+            this.dataCard.Text = "Shared Business Data";
+            this.dataCard.UseVisualStyleBackColor = false;
+            // 
+            // administrationCard
+            // 
+            this.administrationCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.administrationCard.AccessibleDescription = "Manage company settings and users";
+            this.administrationCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.administrationCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.administrationCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.administrationCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.administrationCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.administrationCard.Location = new System.Drawing.Point(219, 0);
+            this.administrationCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.administrationCard.Name = "administrationCard";
+            this.administrationCard.Size = new System.Drawing.Size(203, 166);
+            this.administrationCard.TabIndex = 1;
+            this.administrationCard.Text = "Company Administration";
+            this.administrationCard.UseVisualStyleBackColor = false;
+            // 
+            // documentsCard
+            // 
+            this.documentsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(161)))), ((int)(((byte)(30)))));
+            this.documentsCard.AccessibleDescription = "Open documents and communication tools";
+            this.documentsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.documentsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.documentsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.documentsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.documentsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.documentsCard.Location = new System.Drawing.Point(438, 0);
+            this.documentsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.documentsCard.Name = "documentsCard";
+            this.documentsCard.Size = new System.Drawing.Size(203, 166);
+            this.documentsCard.TabIndex = 2;
+            this.documentsCard.Text = "Documents & Communication";
+            this.documentsCard.UseVisualStyleBackColor = false;
+            // 
+            // powerCard
+            // 
+            this.powerCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(143)))), ((int)(((byte)(72)))), ((int)(((byte)(237)))));
+            this.powerCard.AccessibleDescription = "Open apps, automations and approvals";
+            this.powerCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.powerCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.powerCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.powerCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.powerCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.powerCard.Location = new System.Drawing.Point(657, 0);
+            this.powerCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.powerCard.Name = "powerCard";
+            this.powerCard.Size = new System.Drawing.Size(203, 166);
+            this.powerCard.TabIndex = 3;
+            this.powerCard.Text = "Power Apps";
+            this.powerCard.UseVisualStyleBackColor = false;
+            // 
+            // reportingCard
+            // 
+            this.reportingCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(10)))), ((int)(((byte)(157)))), ((int)(((byte)(233)))));
+            this.reportingCard.AccessibleDescription = "Open reports and customization tools";
+            this.reportingCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.reportingCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.reportingCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.reportingCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.reportingCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.reportingCard.Location = new System.Drawing.Point(876, 0);
+            this.reportingCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.reportingCard.Name = "reportingCard";
+            this.reportingCard.Size = new System.Drawing.Size(203, 166);
+            this.reportingCard.TabIndex = 4;
+            this.reportingCard.Text = "Reporting & Customization";
+            this.reportingCard.UseVisualStyleBackColor = false;
+            // 
+            // localCompaniesCard
+            // 
+            this.localCompaniesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.localCompaniesCard.AccessibleDescription = "View and manage local companies";
+            this.localCompaniesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.localCompaniesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.localCompaniesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.localCompaniesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.localCompaniesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.localCompaniesCard.Location = new System.Drawing.Point(1095, 0);
+            this.localCompaniesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.localCompaniesCard.Name = "localCompaniesCard";
+            this.localCompaniesCard.Size = new System.Drawing.Size(203, 166);
+            this.localCompaniesCard.TabIndex = 5;
+            this.localCompaniesCard.Text = "Local Companies";
+            this.localCompaniesCard.UseVisualStyleBackColor = false;
+            // 
+            // sharedHeadingLabel
+            // 
+            this.sharedHeadingLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.sharedHeadingLabel.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.sharedHeadingLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.sharedHeadingLabel.Location = new System.Drawing.Point(0, 368);
+            this.sharedHeadingLabel.Name = "sharedHeadingLabel";
+            this.sharedHeadingLabel.Size = new System.Drawing.Size(1348, 36);
+            this.sharedHeadingLabel.TabIndex = 1;
+            this.sharedHeadingLabel.Text = "Shared";
+            this.sharedHeadingLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // modulesCards
+            // 
+            this.modulesCards.AutoSize = true;
+            this.modulesCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.modulesCards.Controls.Add(this.appointmentsCard);
+            this.modulesCards.Controls.Add(this.crmCard);
+            this.modulesCards.Controls.Add(this.financeCard);
+            this.modulesCards.Controls.Add(this.hrmsCard);
+            this.modulesCards.Controls.Add(this.projectsCard);
+            this.modulesCards.Controls.Add(this.salesCard);
+            this.modulesCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.modulesCards.Location = new System.Drawing.Point(0, 186);
+            this.modulesCards.Name = "modulesCards";
+            this.modulesCards.Size = new System.Drawing.Size(1348, 182);
+            this.modulesCards.TabIndex = 2;
+            // 
+            // appointmentsCard
+            // 
+            this.appointmentsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.appointmentsCard.AccessibleDescription = "Schedule and manage appointments";
+            this.appointmentsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.appointmentsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.appointmentsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.appointmentsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.appointmentsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.appointmentsCard.Location = new System.Drawing.Point(0, 0);
+            this.appointmentsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.appointmentsCard.Name = "appointmentsCard";
+            this.appointmentsCard.Size = new System.Drawing.Size(203, 166);
+            this.appointmentsCard.TabIndex = 0;
+            this.appointmentsCard.Text = "Appointments";
+            this.appointmentsCard.UseVisualStyleBackColor = false;
+            // 
+            // crmCard
+            // 
+            this.crmCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.crmCard.AccessibleDescription = "Manage customer relationships and sales";
+            this.crmCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.crmCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.crmCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.crmCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.crmCard.Location = new System.Drawing.Point(219, 0);
+            this.crmCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.crmCard.Name = "crmCard";
+            this.crmCard.Size = new System.Drawing.Size(203, 166);
+            this.crmCard.TabIndex = 1;
+            this.crmCard.Text = "VyaparaCRM";
+            this.crmCard.UseVisualStyleBackColor = false;
+            // 
+            // financeCard
+            // 
+            this.financeCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(161)))), ((int)(((byte)(30)))));
+            this.financeCard.AccessibleDescription = "Open finance and accounting tools";
+            this.financeCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.financeCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.financeCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.financeCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.financeCard.Location = new System.Drawing.Point(438, 0);
+            this.financeCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.financeCard.Name = "financeCard";
+            this.financeCard.Size = new System.Drawing.Size(203, 166);
+            this.financeCard.TabIndex = 2;
+            this.financeCard.Text = "Finance & Accounting";
+            this.financeCard.UseVisualStyleBackColor = false;
+            // 
+            // hrmsCard
+            // 
+            this.hrmsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(143)))), ((int)(((byte)(72)))), ((int)(((byte)(237)))));
+            this.hrmsCard.AccessibleDescription = "Open human resources tools";
+            this.hrmsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrmsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.hrmsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.hrmsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.hrmsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.hrmsCard.Location = new System.Drawing.Point(657, 0);
+            this.hrmsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.hrmsCard.Name = "hrmsCard";
+            this.hrmsCard.Size = new System.Drawing.Size(203, 166);
+            this.hrmsCard.TabIndex = 3;
+            this.hrmsCard.Text = "AI HRMS";
+            this.hrmsCard.UseVisualStyleBackColor = false;
+            // 
+            // projectsCard
+            // 
+            this.projectsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(10)))), ((int)(((byte)(157)))), ((int)(((byte)(233)))));
+            this.projectsCard.AccessibleDescription = "Manage projects and workspaces";
+            this.projectsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.projectsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.projectsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.projectsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.projectsCard.Location = new System.Drawing.Point(876, 0);
+            this.projectsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.projectsCard.Name = "projectsCard";
+            this.projectsCard.Size = new System.Drawing.Size(203, 166);
+            this.projectsCard.TabIndex = 4;
+            this.projectsCard.Text = "KaryaFlow PMS";
+            this.projectsCard.UseVisualStyleBackColor = false;
+            // 
+            // salesCard
+            // 
+            this.salesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.salesCard.AccessibleDescription = "Open sales and point of sale tools";
+            this.salesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.salesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.salesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.salesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.salesCard.Location = new System.Drawing.Point(1095, 0);
+            this.salesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.salesCard.Name = "salesCard";
+            this.salesCard.Size = new System.Drawing.Size(203, 166);
+            this.salesCard.TabIndex = 5;
+            this.salesCard.Text = "Sales & POS";
+            this.salesCard.UseVisualStyleBackColor = false;
+            // 
+            // modulesHeadingLabel
+            // 
+            this.modulesHeadingLabel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.modulesHeadingLabel.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.modulesHeadingLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.modulesHeadingLabel.Location = new System.Drawing.Point(0, 150);
+            this.modulesHeadingLabel.Name = "modulesHeadingLabel";
+            this.modulesHeadingLabel.Size = new System.Drawing.Size(1348, 36);
+            this.modulesHeadingLabel.TabIndex = 3;
+            this.modulesHeadingLabel.Text = "Modules";
+            this.modulesHeadingLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // homeHeader
+            // 
+            this.homeHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.homeHeader.Controls.Add(this.homeTitleLabel);
+            this.homeHeader.Controls.Add(this.homeDescriptionLabel);
+            this.homeHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.homeHeader.Location = new System.Drawing.Point(0, 0);
+            this.homeHeader.Name = "homeHeader";
+            this.homeHeader.Size = new System.Drawing.Size(1348, 150);
+            this.homeHeader.TabIndex = 4;
+            // 
+            // homeTitleLabel
+            // 
+            this.homeTitleLabel.AutoSize = true;
+            this.homeTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.homeTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.homeTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.homeTitleLabel.Location = new System.Drawing.Point(12, 33);
+            this.homeTitleLabel.Name = "homeTitleLabel";
+            this.homeTitleLabel.Size = new System.Drawing.Size(290, 54);
+            this.homeTitleLabel.TabIndex = 0;
+            this.homeTitleLabel.Text = "Business Suite";
+            // 
+            // homeDescriptionLabel
+            // 
+            this.homeDescriptionLabel.AutoSize = true;
+            this.homeDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.homeDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.homeDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.homeDescriptionLabel.Location = new System.Drawing.Point(15, 91);
+            this.homeDescriptionLabel.Name = "homeDescriptionLabel";
+            this.homeDescriptionLabel.Size = new System.Drawing.Size(255, 20);
+            this.homeDescriptionLabel.TabIndex = 1;
+            this.homeDescriptionLabel.Text = "Open a module or shared workspace.";
+            // 
+            // appointmentsPage
+            // 
+            this.appointmentsPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.appointmentsPage.Controls.Add(this.appointmentsBody);
-
-            this.financePage.Name = "financePage";
-            this.financePage.Text = "Finance & Accounting";
-            this.financePage.BackColor = Color.FromArgb(244, 247, 253);
-            this.financePage.UseVisualStyleBackColor = false;
-            this.financeBody.Name = "financeBody";
-            this.financeBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeBody.Dock = DockStyle.Fill;
-            this.financeBody.AutoScroll = true;
-            this.financeBody.Padding = new Padding(22, 0, 22, 24);
-            this.financeContent.Name = "financeContent";
-            this.financeContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeContent.Dock = DockStyle.Top;
-            this.financeContent.AutoSize = true;
-            this.financeContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.financeHeader.Name = "financeHeader";
-            this.financeHeader.Dock = DockStyle.Top;
-            this.financeHeader.Size = new Size(1300, 150);
-            this.financeHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeHeaderIcon.Name = "financeHeaderIcon";
-            this.financeHeaderIcon.Location = new Point(12, 28);
-            this.financeHeaderIcon.Size = new Size(88, 88);
-            this.financeHeaderIcon.BackColor = Color.Transparent;
-            this.financeHeaderIcon.Image = (Image)resources.GetObject("finance");
-            this.financeHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.financeHeaderIcon.TabStop = false;
-            this.financeTitleLabel.Name = "financeTitleLabel";
-            this.financeTitleLabel.Text = "Finance & Accounting";
-            this.financeTitleLabel.Location = new Point(124, 33);
-            this.financeTitleLabel.AutoSize = true;
-            this.financeTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.financeTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.financeTitleLabel.BackColor = Color.Transparent;
-            this.financeDescriptionLabel.Name = "financeDescriptionLabel";
-            this.financeDescriptionLabel.Text = "Accounts, ledgers and financial workspaces.";
-            this.financeDescriptionLabel.Location = new Point(127, 91);
-            this.financeDescriptionLabel.AutoSize = true;
-            this.financeDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.financeDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.financeDescriptionLabel.BackColor = Color.Transparent;
-            this.financeHeader.Controls.AddRange(new Control[] { this.financeHeaderIcon, this.financeTitleLabel, this.financeDescriptionLabel });
-            this.financeCards.Name = "financeCards";
-            this.financeCards.Dock = DockStyle.Top;
-            this.financeCards.AutoSize = true;
-            this.financeCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.financeCards.FlowDirection = FlowDirection.LeftToRight;
-            this.financeCards.WrapContents = true;
-            this.financeWorkspaceCard.Name = "financeWorkspaceCard";
-            this.financeWorkspaceCard.Text = "Finance workspace";
-            this.financeWorkspaceCard.AccessibleDescription = "Open the finance and accounting workspace.";
-            this.financeWorkspaceCard.Image = (Image)resources.GetObject("finance");
-            this.financeWorkspaceCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeWorkspaceCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.financeWorkspaceCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.financeWorkspaceCard.Size = new Size(246, 226);
-            this.financeWorkspaceCard.Margin = new Padding(0, 0, 16, 16);
-            this.financeWorkspaceCard.Cursor = Cursors.Hand;
-            this.financeWorkspaceCard.FlatStyle = FlatStyle.Flat;
-            this.financeWorkspaceCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.financeWorkspaceCard.TabIndex = 0;
-            this.financeWorkspaceCard.UseVisualStyleBackColor = false;
-            this.financeWorkspaceCard.Click += this.financeWorkspaceButton_Click;
-
-            this.financeLedgersCard.Name = "financeLedgersCard";
-            this.financeLedgersCard.Text = "Ledgers";
-            this.financeLedgersCard.AccessibleDescription = "Open accounting ledgers.";
-            this.financeLedgersCard.Image = (Image)resources.GetObject("reporting");
-            this.financeLedgersCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeLedgersCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.financeLedgersCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.financeLedgersCard.Size = new Size(246, 226);
-            this.financeLedgersCard.Margin = new Padding(0, 0, 16, 16);
-            this.financeLedgersCard.Cursor = Cursors.Hand;
-            this.financeLedgersCard.FlatStyle = FlatStyle.Flat;
-            this.financeLedgersCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.financeLedgersCard.TabIndex = 1;
-            this.financeLedgersCard.UseVisualStyleBackColor = false;
-            this.financeLedgersCard.Click += this.financeLedgersButton_Click;
-
-            this.financeWorkspacesCard.Name = "financeWorkspacesCard";
-            this.financeWorkspacesCard.Text = "Workspaces";
-            this.financeWorkspacesCard.AccessibleDescription = "Browse finance workspaces.";
-            this.financeWorkspacesCard.Image = (Image)resources.GetObject("data");
-            this.financeWorkspacesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.financeWorkspacesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.financeWorkspacesCard.AccentColor = Color.FromArgb(247, 161, 30);
-            this.financeWorkspacesCard.Size = new Size(246, 226);
-            this.financeWorkspacesCard.Margin = new Padding(0, 0, 16, 16);
-            this.financeWorkspacesCard.Cursor = Cursors.Hand;
-            this.financeWorkspacesCard.FlatStyle = FlatStyle.Flat;
-            this.financeWorkspacesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.financeWorkspacesCard.TabIndex = 2;
-            this.financeWorkspacesCard.UseVisualStyleBackColor = false;
-            this.financeWorkspacesCard.Click += this.financeWorkspacesButton_Click;
-
-            this.financeCards.Controls.AddRange(new Control[] { this.financeWorkspaceCard, this.financeLedgersCard, this.financeWorkspacesCard });
-            this.financeContent.Controls.AddRange(new Control[] { this.financeCards, this.financeHeader });
-            this.financeBody.Controls.Add(this.financeContent);
+            this.appointmentsPage.Location = new System.Drawing.Point(4, 34);
+            this.appointmentsPage.Name = "appointmentsPage";
+            this.appointmentsPage.Size = new System.Drawing.Size(192, 62);
+            this.appointmentsPage.TabIndex = 1;
+            this.appointmentsPage.Text = "Appointments";
+            // 
+            // appointmentsBody
+            // 
+            this.appointmentsBody.AutoScroll = true;
+            this.appointmentsBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.appointmentsBody.Controls.Add(this.appointmentsContent);
+            this.appointmentsBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.appointmentsBody.Location = new System.Drawing.Point(0, 0);
+            this.appointmentsBody.Name = "appointmentsBody";
+            this.appointmentsBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.appointmentsBody.Size = new System.Drawing.Size(192, 62);
+            this.appointmentsBody.TabIndex = 0;
+            // 
+            // appointmentsContent
+            // 
+            this.appointmentsContent.AutoSize = true;
+            this.appointmentsContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.appointmentsContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.appointmentsContent.Controls.Add(this.appointmentsCards);
+            this.appointmentsContent.Controls.Add(this.appointmentsHeader);
+            this.appointmentsContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.appointmentsContent.Location = new System.Drawing.Point(22, 0);
+            this.appointmentsContent.Name = "appointmentsContent";
+            this.appointmentsContent.Size = new System.Drawing.Size(131, 392);
+            this.appointmentsContent.TabIndex = 0;
+            // 
+            // appointmentsCards
+            // 
+            this.appointmentsCards.AutoSize = true;
+            this.appointmentsCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.appointmentsCards.Controls.Add(this.appointmentSchedulerCard);
+            this.appointmentsCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.appointmentsCards.Location = new System.Drawing.Point(0, 150);
+            this.appointmentsCards.Name = "appointmentsCards";
+            this.appointmentsCards.Size = new System.Drawing.Size(131, 242);
+            this.appointmentsCards.TabIndex = 0;
+            // 
+            // appointmentSchedulerCard
+            // 
+            this.appointmentSchedulerCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.appointmentSchedulerCard.AccessibleDescription = "View and schedule customer appointments.";
+            this.appointmentSchedulerCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.appointmentSchedulerCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.appointmentSchedulerCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.appointmentSchedulerCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.appointmentSchedulerCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.appointmentSchedulerCard.Location = new System.Drawing.Point(0, 0);
+            this.appointmentSchedulerCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.appointmentSchedulerCard.Name = "appointmentSchedulerCard";
+            this.appointmentSchedulerCard.Size = new System.Drawing.Size(246, 226);
+            this.appointmentSchedulerCard.TabIndex = 0;
+            this.appointmentSchedulerCard.Text = "Appointment scheduler";
+            this.appointmentSchedulerCard.UseVisualStyleBackColor = false;
+            // 
+            // appointmentsHeader
+            // 
+            this.appointmentsHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.appointmentsHeader.Controls.Add(this.appointmentsHeaderIcon);
+            this.appointmentsHeader.Controls.Add(this.appointmentsTitleLabel);
+            this.appointmentsHeader.Controls.Add(this.appointmentsDescriptionLabel);
+            this.appointmentsHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.appointmentsHeader.Location = new System.Drawing.Point(0, 0);
+            this.appointmentsHeader.Name = "appointmentsHeader";
+            this.appointmentsHeader.Size = new System.Drawing.Size(131, 150);
+            this.appointmentsHeader.TabIndex = 1;
+            // 
+            // appointmentsHeaderIcon
+            // 
+            this.appointmentsHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.appointmentsHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.appointmentsHeaderIcon.Name = "appointmentsHeaderIcon";
+            this.appointmentsHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.appointmentsHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.appointmentsHeaderIcon.TabIndex = 0;
+            this.appointmentsHeaderIcon.TabStop = false;
+            // 
+            // appointmentsTitleLabel
+            // 
+            this.appointmentsTitleLabel.AutoSize = true;
+            this.appointmentsTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.appointmentsTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.appointmentsTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.appointmentsTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.appointmentsTitleLabel.Name = "appointmentsTitleLabel";
+            this.appointmentsTitleLabel.Size = new System.Drawing.Size(293, 54);
+            this.appointmentsTitleLabel.TabIndex = 1;
+            this.appointmentsTitleLabel.Text = "Appointments";
+            // 
+            // appointmentsDescriptionLabel
+            // 
+            this.appointmentsDescriptionLabel.AutoSize = true;
+            this.appointmentsDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.appointmentsDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.appointmentsDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.appointmentsDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.appointmentsDescriptionLabel.Name = "appointmentsDescriptionLabel";
+            this.appointmentsDescriptionLabel.Size = new System.Drawing.Size(286, 20);
+            this.appointmentsDescriptionLabel.TabIndex = 2;
+            this.appointmentsDescriptionLabel.Text = "Schedule services and customer bookings.";
+            // 
+            // crmPage
+            // 
+            this.crmPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmPage.Controls.Add(this.crmBody);
+            this.crmPage.Location = new System.Drawing.Point(4, 34);
+            this.crmPage.Name = "crmPage";
+            this.crmPage.Size = new System.Drawing.Size(192, 62);
+            this.crmPage.TabIndex = 2;
+            this.crmPage.Text = "VyaparaCRM";
+            // 
+            // crmBody
+            // 
+            this.crmBody.AutoScroll = true;
+            this.crmBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmBody.Controls.Add(this.crmContent);
+            this.crmBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.crmBody.Location = new System.Drawing.Point(0, 0);
+            this.crmBody.Name = "crmBody";
+            this.crmBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.crmBody.Size = new System.Drawing.Size(192, 62);
+            this.crmBody.TabIndex = 0;
+            // 
+            // crmContent
+            // 
+            this.crmContent.AutoSize = true;
+            this.crmContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.crmContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmContent.Controls.Add(this.crmCards);
+            this.crmContent.Controls.Add(this.crmHeader);
+            this.crmContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.crmContent.Location = new System.Drawing.Point(22, 0);
+            this.crmContent.Name = "crmContent";
+            this.crmContent.Size = new System.Drawing.Size(131, 392);
+            this.crmContent.TabIndex = 0;
+            // 
+            // crmCards
+            // 
+            this.crmCards.AutoSize = true;
+            this.crmCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.crmCards.Controls.Add(this.crmWorkspaceCard);
+            this.crmCards.Controls.Add(this.companiesCard);
+            this.crmCards.Controls.Add(this.contactsCard);
+            this.crmCards.Controls.Add(this.leadsCard);
+            this.crmCards.Controls.Add(this.dealsCard);
+            this.crmCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.crmCards.Location = new System.Drawing.Point(0, 150);
+            this.crmCards.Name = "crmCards";
+            this.crmCards.Size = new System.Drawing.Size(131, 1210);
+            this.crmCards.TabIndex = 0;
+            // 
+            // crmWorkspaceCard
+            // 
+            this.crmWorkspaceCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.crmWorkspaceCard.AccessibleDescription = "Your CRM command center with key insights";
+            this.crmWorkspaceCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmWorkspaceCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.crmWorkspaceCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.crmWorkspaceCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.crmWorkspaceCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.crmWorkspaceCard.Location = new System.Drawing.Point(0, 0);
+            this.crmWorkspaceCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.crmWorkspaceCard.Name = "crmWorkspaceCard";
+            this.crmWorkspaceCard.Size = new System.Drawing.Size(246, 226);
+            this.crmWorkspaceCard.TabIndex = 0;
+            this.crmWorkspaceCard.Text = "CRM workspace";
+            this.crmWorkspaceCard.UseVisualStyleBackColor = false;
+            // 
+            // companiesCard
+            // 
+            this.companiesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.companiesCard.AccessibleDescription = "Manage companies, accounts and profiles";
+            this.companiesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.companiesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.companiesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.companiesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.companiesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.companiesCard.Location = new System.Drawing.Point(0, 242);
+            this.companiesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.companiesCard.Name = "companiesCard";
+            this.companiesCard.Size = new System.Drawing.Size(246, 226);
+            this.companiesCard.TabIndex = 1;
+            this.companiesCard.Text = "Companies";
+            this.companiesCard.UseVisualStyleBackColor = false;
+            // 
+            // contactsCard
+            // 
+            this.contactsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(161)))), ((int)(((byte)(30)))));
+            this.contactsCard.AccessibleDescription = "Manage contacts, people and relationships";
+            this.contactsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.contactsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.contactsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.contactsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.contactsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.contactsCard.Location = new System.Drawing.Point(0, 484);
+            this.contactsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.contactsCard.Name = "contactsCard";
+            this.contactsCard.Size = new System.Drawing.Size(246, 226);
+            this.contactsCard.TabIndex = 2;
+            this.contactsCard.Text = "Contacts";
+            this.contactsCard.UseVisualStyleBackColor = false;
+            // 
+            // leadsCard
+            // 
+            this.leadsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(143)))), ((int)(((byte)(72)))), ((int)(((byte)(237)))));
+            this.leadsCard.AccessibleDescription = "Capture, track and nurture potential customers";
+            this.leadsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.leadsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.leadsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.leadsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.leadsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.leadsCard.Location = new System.Drawing.Point(0, 726);
+            this.leadsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.leadsCard.Name = "leadsCard";
+            this.leadsCard.Size = new System.Drawing.Size(246, 226);
+            this.leadsCard.TabIndex = 3;
+            this.leadsCard.Text = "Leads";
+            this.leadsCard.UseVisualStyleBackColor = false;
+            // 
+            // dealsCard
+            // 
+            this.dealsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(10)))), ((int)(((byte)(157)))), ((int)(((byte)(233)))));
+            this.dealsCard.AccessibleDescription = "Manage opportunities and close sales faster";
+            this.dealsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.dealsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dealsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.dealsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.dealsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.dealsCard.Location = new System.Drawing.Point(0, 968);
+            this.dealsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.dealsCard.Name = "dealsCard";
+            this.dealsCard.Size = new System.Drawing.Size(246, 226);
+            this.dealsCard.TabIndex = 4;
+            this.dealsCard.Text = "Deals";
+            this.dealsCard.UseVisualStyleBackColor = false;
+            // 
+            // crmHeader
+            // 
+            this.crmHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.crmHeader.Controls.Add(this.crmHeaderIcon);
+            this.crmHeader.Controls.Add(this.crmTitleLabel);
+            this.crmHeader.Controls.Add(this.crmDescriptionLabel);
+            this.crmHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.crmHeader.Location = new System.Drawing.Point(0, 0);
+            this.crmHeader.Name = "crmHeader";
+            this.crmHeader.Size = new System.Drawing.Size(131, 150);
+            this.crmHeader.TabIndex = 1;
+            // 
+            // crmHeaderIcon
+            // 
+            this.crmHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.crmHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.crmHeaderIcon.Name = "crmHeaderIcon";
+            this.crmHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.crmHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.crmHeaderIcon.TabIndex = 0;
+            this.crmHeaderIcon.TabStop = false;
+            // 
+            // crmTitleLabel
+            // 
+            this.crmTitleLabel.AutoSize = true;
+            this.crmTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.crmTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.crmTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.crmTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.crmTitleLabel.Name = "crmTitleLabel";
+            this.crmTitleLabel.Size = new System.Drawing.Size(268, 54);
+            this.crmTitleLabel.TabIndex = 1;
+            this.crmTitleLabel.Text = "VyaparaCRM";
+            // 
+            // crmDescriptionLabel
+            // 
+            this.crmDescriptionLabel.AutoSize = true;
+            this.crmDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.crmDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.crmDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.crmDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.crmDescriptionLabel.Name = "crmDescriptionLabel";
+            this.crmDescriptionLabel.Size = new System.Drawing.Size(511, 20);
+            this.crmDescriptionLabel.TabIndex = 2;
+            this.crmDescriptionLabel.Text = "Customer Relationships  •  Sales Pipeline  •  Companies  •  Contacts  •  Deals";
+            // 
+            // financePage
+            // 
+            this.financePage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.financePage.Controls.Add(this.financeBody);
-
-            this.hrmsPage.Name = "hrmsPage";
-            this.hrmsPage.Text = "AI HRMS";
-            this.hrmsPage.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrmsPage.UseVisualStyleBackColor = false;
-            this.hrmsBody.Name = "hrmsBody";
-            this.hrmsBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrmsBody.Dock = DockStyle.Fill;
-            this.hrmsBody.AutoScroll = true;
-            this.hrmsBody.Padding = new Padding(22, 0, 22, 24);
-            this.hrmsContent.Name = "hrmsContent";
-            this.hrmsContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrmsContent.Dock = DockStyle.Top;
-            this.hrmsContent.AutoSize = true;
-            this.hrmsContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.hrmsHeader.Name = "hrmsHeader";
-            this.hrmsHeader.Dock = DockStyle.Top;
-            this.hrmsHeader.Size = new Size(1300, 150);
-            this.hrmsHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrmsHeaderIcon.Name = "hrmsHeaderIcon";
-            this.hrmsHeaderIcon.Location = new Point(12, 28);
-            this.hrmsHeaderIcon.Size = new Size(88, 88);
-            this.hrmsHeaderIcon.BackColor = Color.Transparent;
-            this.hrmsHeaderIcon.Image = (Image)resources.GetObject("hrms");
-            this.hrmsHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.hrmsHeaderIcon.TabStop = false;
-            this.hrmsTitleLabel.Name = "hrmsTitleLabel";
-            this.hrmsTitleLabel.Text = "AI HRMS";
-            this.hrmsTitleLabel.Location = new Point(124, 33);
-            this.hrmsTitleLabel.AutoSize = true;
-            this.hrmsTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.hrmsTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.hrmsTitleLabel.BackColor = Color.Transparent;
-            this.hrmsDescriptionLabel.Name = "hrmsDescriptionLabel";
-            this.hrmsDescriptionLabel.Text = "Employees, attendance, leave and payroll.";
-            this.hrmsDescriptionLabel.Location = new Point(127, 91);
-            this.hrmsDescriptionLabel.AutoSize = true;
-            this.hrmsDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.hrmsDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.hrmsDescriptionLabel.BackColor = Color.Transparent;
-            this.hrmsHeader.Controls.AddRange(new Control[] { this.hrmsHeaderIcon, this.hrmsTitleLabel, this.hrmsDescriptionLabel });
-            this.hrmsCards.Name = "hrmsCards";
-            this.hrmsCards.Dock = DockStyle.Top;
-            this.hrmsCards.AutoSize = true;
-            this.hrmsCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.hrmsCards.FlowDirection = FlowDirection.LeftToRight;
-            this.hrmsCards.WrapContents = true;
-            this.hrWorkspaceCard.Name = "hrWorkspaceCard";
-            this.hrWorkspaceCard.Text = "HR workspace";
-            this.hrWorkspaceCard.AccessibleDescription = "Open the human resources workspace.";
-            this.hrWorkspaceCard.Image = (Image)resources.GetObject("hrms");
-            this.hrWorkspaceCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrWorkspaceCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.hrWorkspaceCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.hrWorkspaceCard.Size = new Size(246, 226);
-            this.hrWorkspaceCard.Margin = new Padding(0, 0, 16, 16);
-            this.hrWorkspaceCard.Cursor = Cursors.Hand;
-            this.hrWorkspaceCard.FlatStyle = FlatStyle.Flat;
-            this.hrWorkspaceCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.hrWorkspaceCard.TabIndex = 0;
-            this.hrWorkspaceCard.UseVisualStyleBackColor = false;
-            this.hrWorkspaceCard.Click += this.hrWorkspaceButton_Click;
-
-            this.hrWorkspacesCard.Name = "hrWorkspacesCard";
-            this.hrWorkspacesCard.Text = "Workspaces";
-            this.hrWorkspacesCard.AccessibleDescription = "Browse HR workspaces.";
-            this.hrWorkspacesCard.Image = (Image)resources.GetObject("companies");
-            this.hrWorkspacesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.hrWorkspacesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.hrWorkspacesCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.hrWorkspacesCard.Size = new Size(246, 226);
-            this.hrWorkspacesCard.Margin = new Padding(0, 0, 16, 16);
-            this.hrWorkspacesCard.Cursor = Cursors.Hand;
-            this.hrWorkspacesCard.FlatStyle = FlatStyle.Flat;
-            this.hrWorkspacesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.hrWorkspacesCard.TabIndex = 1;
-            this.hrWorkspacesCard.UseVisualStyleBackColor = false;
-            this.hrWorkspacesCard.Click += this.hrWorkspacesButton_Click;
-
-            this.hrmsCards.Controls.AddRange(new Control[] { this.hrWorkspaceCard, this.hrWorkspacesCard });
-            this.hrmsContent.Controls.AddRange(new Control[] { this.hrmsCards, this.hrmsHeader });
-            this.hrmsBody.Controls.Add(this.hrmsContent);
+            this.financePage.Location = new System.Drawing.Point(4, 34);
+            this.financePage.Name = "financePage";
+            this.financePage.Size = new System.Drawing.Size(192, 62);
+            this.financePage.TabIndex = 3;
+            this.financePage.Text = "Finance & Accounting";
+            // 
+            // financeBody
+            // 
+            this.financeBody.AutoScroll = true;
+            this.financeBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeBody.Controls.Add(this.financeContent);
+            this.financeBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.financeBody.Location = new System.Drawing.Point(0, 0);
+            this.financeBody.Name = "financeBody";
+            this.financeBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.financeBody.Size = new System.Drawing.Size(192, 62);
+            this.financeBody.TabIndex = 0;
+            // 
+            // financeContent
+            // 
+            this.financeContent.AutoSize = true;
+            this.financeContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.financeContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeContent.Controls.Add(this.financeCards);
+            this.financeContent.Controls.Add(this.financeHeader);
+            this.financeContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.financeContent.Location = new System.Drawing.Point(22, 0);
+            this.financeContent.Name = "financeContent";
+            this.financeContent.Size = new System.Drawing.Size(131, 392);
+            this.financeContent.TabIndex = 0;
+            // 
+            // financeCards
+            // 
+            this.financeCards.AutoSize = true;
+            this.financeCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.financeCards.Controls.Add(this.financeWorkspaceCard);
+            this.financeCards.Controls.Add(this.financeLedgersCard);
+            this.financeCards.Controls.Add(this.financeWorkspacesCard);
+            this.financeCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.financeCards.Location = new System.Drawing.Point(0, 150);
+            this.financeCards.Name = "financeCards";
+            this.financeCards.Size = new System.Drawing.Size(131, 726);
+            this.financeCards.TabIndex = 0;
+            // 
+            // financeWorkspaceCard
+            // 
+            this.financeWorkspaceCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.financeWorkspaceCard.AccessibleDescription = "Open the finance and accounting workspace.";
+            this.financeWorkspaceCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeWorkspaceCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.financeWorkspaceCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.financeWorkspaceCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.financeWorkspaceCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.financeWorkspaceCard.Location = new System.Drawing.Point(0, 0);
+            this.financeWorkspaceCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.financeWorkspaceCard.Name = "financeWorkspaceCard";
+            this.financeWorkspaceCard.Size = new System.Drawing.Size(246, 226);
+            this.financeWorkspaceCard.TabIndex = 0;
+            this.financeWorkspaceCard.Text = "Finance workspace";
+            this.financeWorkspaceCard.UseVisualStyleBackColor = false;
+            // 
+            // financeLedgersCard
+            // 
+            this.financeLedgersCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.financeLedgersCard.AccessibleDescription = "Open accounting ledgers.";
+            this.financeLedgersCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeLedgersCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.financeLedgersCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.financeLedgersCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.financeLedgersCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.financeLedgersCard.Location = new System.Drawing.Point(0, 242);
+            this.financeLedgersCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.financeLedgersCard.Name = "financeLedgersCard";
+            this.financeLedgersCard.Size = new System.Drawing.Size(246, 226);
+            this.financeLedgersCard.TabIndex = 1;
+            this.financeLedgersCard.Text = "Ledgers";
+            this.financeLedgersCard.UseVisualStyleBackColor = false;
+            // 
+            // financeWorkspacesCard
+            // 
+            this.financeWorkspacesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(161)))), ((int)(((byte)(30)))));
+            this.financeWorkspacesCard.AccessibleDescription = "Browse finance workspaces.";
+            this.financeWorkspacesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeWorkspacesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.financeWorkspacesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.financeWorkspacesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.financeWorkspacesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.financeWorkspacesCard.Location = new System.Drawing.Point(0, 484);
+            this.financeWorkspacesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.financeWorkspacesCard.Name = "financeWorkspacesCard";
+            this.financeWorkspacesCard.Size = new System.Drawing.Size(246, 226);
+            this.financeWorkspacesCard.TabIndex = 2;
+            this.financeWorkspacesCard.Text = "Workspaces";
+            this.financeWorkspacesCard.UseVisualStyleBackColor = false;
+            // 
+            // financeHeader
+            // 
+            this.financeHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.financeHeader.Controls.Add(this.financeHeaderIcon);
+            this.financeHeader.Controls.Add(this.financeTitleLabel);
+            this.financeHeader.Controls.Add(this.financeDescriptionLabel);
+            this.financeHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.financeHeader.Location = new System.Drawing.Point(0, 0);
+            this.financeHeader.Name = "financeHeader";
+            this.financeHeader.Size = new System.Drawing.Size(131, 150);
+            this.financeHeader.TabIndex = 1;
+            // 
+            // financeHeaderIcon
+            // 
+            this.financeHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.financeHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.financeHeaderIcon.Name = "financeHeaderIcon";
+            this.financeHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.financeHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.financeHeaderIcon.TabIndex = 0;
+            this.financeHeaderIcon.TabStop = false;
+            // 
+            // financeTitleLabel
+            // 
+            this.financeTitleLabel.AutoSize = true;
+            this.financeTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.financeTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.financeTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.financeTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.financeTitleLabel.Name = "financeTitleLabel";
+            this.financeTitleLabel.Size = new System.Drawing.Size(402, 54);
+            this.financeTitleLabel.TabIndex = 1;
+            this.financeTitleLabel.Text = "Finance & Accounting";
+            // 
+            // financeDescriptionLabel
+            // 
+            this.financeDescriptionLabel.AutoSize = true;
+            this.financeDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.financeDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.financeDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.financeDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.financeDescriptionLabel.Name = "financeDescriptionLabel";
+            this.financeDescriptionLabel.Size = new System.Drawing.Size(297, 20);
+            this.financeDescriptionLabel.TabIndex = 2;
+            this.financeDescriptionLabel.Text = "Accounts, ledgers and financial workspaces.";
+            // 
+            // hrmsPage
+            // 
+            this.hrmsPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.hrmsPage.Controls.Add(this.hrmsBody);
-
-            this.projectsPage.Name = "projectsPage";
-            this.projectsPage.Text = "KaryaFlow PMS";
-            this.projectsPage.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectsPage.UseVisualStyleBackColor = false;
-            this.projectsBody.Name = "projectsBody";
-            this.projectsBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectsBody.Dock = DockStyle.Fill;
-            this.projectsBody.AutoScroll = true;
-            this.projectsBody.Padding = new Padding(22, 0, 22, 24);
-            this.projectsContent.Name = "projectsContent";
-            this.projectsContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectsContent.Dock = DockStyle.Top;
-            this.projectsContent.AutoSize = true;
-            this.projectsContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.projectsHeader.Name = "projectsHeader";
-            this.projectsHeader.Dock = DockStyle.Top;
-            this.projectsHeader.Size = new Size(1300, 150);
-            this.projectsHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectsHeaderIcon.Name = "projectsHeaderIcon";
-            this.projectsHeaderIcon.Location = new Point(12, 28);
-            this.projectsHeaderIcon.Size = new Size(88, 88);
-            this.projectsHeaderIcon.BackColor = Color.Transparent;
-            this.projectsHeaderIcon.Image = (Image)resources.GetObject("projects");
-            this.projectsHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.projectsHeaderIcon.TabStop = false;
-            this.projectsTitleLabel.Name = "projectsTitleLabel";
-            this.projectsTitleLabel.Text = "KaryaFlow PMS";
-            this.projectsTitleLabel.Location = new Point(124, 33);
-            this.projectsTitleLabel.AutoSize = true;
-            this.projectsTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.projectsTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.projectsTitleLabel.BackColor = Color.Transparent;
-            this.projectsDescriptionLabel.Name = "projectsDescriptionLabel";
-            this.projectsDescriptionLabel.Text = "Projects, workspaces and tasks.";
-            this.projectsDescriptionLabel.Location = new Point(127, 91);
-            this.projectsDescriptionLabel.AutoSize = true;
-            this.projectsDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.projectsDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.projectsDescriptionLabel.BackColor = Color.Transparent;
-            this.projectsHeader.Controls.AddRange(new Control[] { this.projectsHeaderIcon, this.projectsTitleLabel, this.projectsDescriptionLabel });
-            this.projectsCards.Name = "projectsCards";
-            this.projectsCards.Dock = DockStyle.Top;
-            this.projectsCards.AutoSize = true;
-            this.projectsCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.projectsCards.FlowDirection = FlowDirection.LeftToRight;
-            this.projectsCards.WrapContents = true;
-            this.projectWorkspaceCard.Name = "projectWorkspaceCard";
-            this.projectWorkspaceCard.Text = "Project workspace";
-            this.projectWorkspaceCard.AccessibleDescription = "Open the project management workspace.";
-            this.projectWorkspaceCard.Image = (Image)resources.GetObject("projects");
-            this.projectWorkspaceCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectWorkspaceCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.projectWorkspaceCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.projectWorkspaceCard.Size = new Size(246, 226);
-            this.projectWorkspaceCard.Margin = new Padding(0, 0, 16, 16);
-            this.projectWorkspaceCard.Cursor = Cursors.Hand;
-            this.projectWorkspaceCard.FlatStyle = FlatStyle.Flat;
-            this.projectWorkspaceCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.projectWorkspaceCard.TabIndex = 0;
-            this.projectWorkspaceCard.UseVisualStyleBackColor = false;
-            this.projectWorkspaceCard.Click += this.projectWorkspaceButton_Click;
-
-            this.projectWorkspacesCard.Name = "projectWorkspacesCard";
-            this.projectWorkspacesCard.Text = "Workspaces";
-            this.projectWorkspacesCard.AccessibleDescription = "Browse project workspaces.";
-            this.projectWorkspacesCard.Image = (Image)resources.GetObject("documents");
-            this.projectWorkspacesCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectWorkspacesCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.projectWorkspacesCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.projectWorkspacesCard.Size = new Size(246, 226);
-            this.projectWorkspacesCard.Margin = new Padding(0, 0, 16, 16);
-            this.projectWorkspacesCard.Cursor = Cursors.Hand;
-            this.projectWorkspacesCard.FlatStyle = FlatStyle.Flat;
-            this.projectWorkspacesCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.projectWorkspacesCard.TabIndex = 1;
-            this.projectWorkspacesCard.UseVisualStyleBackColor = false;
-            this.projectWorkspacesCard.Click += this.projectWorkspacesButton_Click;
-
-            this.projectMyWorkCard.Name = "projectMyWorkCard";
-            this.projectMyWorkCard.Text = "My work";
-            this.projectMyWorkCard.AccessibleDescription = "Open your assigned work.";
-            this.projectMyWorkCard.Image = (Image)resources.GetObject("contacts");
-            this.projectMyWorkCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.projectMyWorkCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.projectMyWorkCard.AccentColor = Color.FromArgb(247, 161, 30);
-            this.projectMyWorkCard.Size = new Size(246, 226);
-            this.projectMyWorkCard.Margin = new Padding(0, 0, 16, 16);
-            this.projectMyWorkCard.Cursor = Cursors.Hand;
-            this.projectMyWorkCard.FlatStyle = FlatStyle.Flat;
-            this.projectMyWorkCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.projectMyWorkCard.TabIndex = 2;
-            this.projectMyWorkCard.UseVisualStyleBackColor = false;
-            this.projectMyWorkCard.Click += this.projectMyWorkButton_Click;
-
-            this.projectsCards.Controls.AddRange(new Control[] { this.projectWorkspaceCard, this.projectWorkspacesCard, this.projectMyWorkCard });
-            this.projectsContent.Controls.AddRange(new Control[] { this.projectsCards, this.projectsHeader });
-            this.projectsBody.Controls.Add(this.projectsContent);
+            this.hrmsPage.Location = new System.Drawing.Point(4, 34);
+            this.hrmsPage.Name = "hrmsPage";
+            this.hrmsPage.Size = new System.Drawing.Size(192, 62);
+            this.hrmsPage.TabIndex = 4;
+            this.hrmsPage.Text = "AI HRMS";
+            // 
+            // hrmsBody
+            // 
+            this.hrmsBody.AutoScroll = true;
+            this.hrmsBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrmsBody.Controls.Add(this.hrmsContent);
+            this.hrmsBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.hrmsBody.Location = new System.Drawing.Point(0, 0);
+            this.hrmsBody.Name = "hrmsBody";
+            this.hrmsBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.hrmsBody.Size = new System.Drawing.Size(192, 62);
+            this.hrmsBody.TabIndex = 0;
+            // 
+            // hrmsContent
+            // 
+            this.hrmsContent.AutoSize = true;
+            this.hrmsContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.hrmsContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrmsContent.Controls.Add(this.hrmsCards);
+            this.hrmsContent.Controls.Add(this.hrmsHeader);
+            this.hrmsContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.hrmsContent.Location = new System.Drawing.Point(22, 0);
+            this.hrmsContent.Name = "hrmsContent";
+            this.hrmsContent.Size = new System.Drawing.Size(131, 392);
+            this.hrmsContent.TabIndex = 0;
+            // 
+            // hrmsCards
+            // 
+            this.hrmsCards.AutoSize = true;
+            this.hrmsCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.hrmsCards.Controls.Add(this.hrWorkspaceCard);
+            this.hrmsCards.Controls.Add(this.hrWorkspacesCard);
+            this.hrmsCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.hrmsCards.Location = new System.Drawing.Point(0, 150);
+            this.hrmsCards.Name = "hrmsCards";
+            this.hrmsCards.Size = new System.Drawing.Size(131, 484);
+            this.hrmsCards.TabIndex = 0;
+            // 
+            // hrWorkspaceCard
+            // 
+            this.hrWorkspaceCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.hrWorkspaceCard.AccessibleDescription = "Open the human resources workspace.";
+            this.hrWorkspaceCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrWorkspaceCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.hrWorkspaceCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.hrWorkspaceCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.hrWorkspaceCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.hrWorkspaceCard.Location = new System.Drawing.Point(0, 0);
+            this.hrWorkspaceCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.hrWorkspaceCard.Name = "hrWorkspaceCard";
+            this.hrWorkspaceCard.Size = new System.Drawing.Size(246, 226);
+            this.hrWorkspaceCard.TabIndex = 0;
+            this.hrWorkspaceCard.Text = "HR workspace";
+            this.hrWorkspaceCard.UseVisualStyleBackColor = false;
+            // 
+            // hrWorkspacesCard
+            // 
+            this.hrWorkspacesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.hrWorkspacesCard.AccessibleDescription = "Browse HR workspaces.";
+            this.hrWorkspacesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrWorkspacesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.hrWorkspacesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.hrWorkspacesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.hrWorkspacesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.hrWorkspacesCard.Location = new System.Drawing.Point(0, 242);
+            this.hrWorkspacesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.hrWorkspacesCard.Name = "hrWorkspacesCard";
+            this.hrWorkspacesCard.Size = new System.Drawing.Size(246, 226);
+            this.hrWorkspacesCard.TabIndex = 1;
+            this.hrWorkspacesCard.Text = "Workspaces";
+            this.hrWorkspacesCard.UseVisualStyleBackColor = false;
+            // 
+            // hrmsHeader
+            // 
+            this.hrmsHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.hrmsHeader.Controls.Add(this.hrmsHeaderIcon);
+            this.hrmsHeader.Controls.Add(this.hrmsTitleLabel);
+            this.hrmsHeader.Controls.Add(this.hrmsDescriptionLabel);
+            this.hrmsHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.hrmsHeader.Location = new System.Drawing.Point(0, 0);
+            this.hrmsHeader.Name = "hrmsHeader";
+            this.hrmsHeader.Size = new System.Drawing.Size(131, 150);
+            this.hrmsHeader.TabIndex = 1;
+            // 
+            // hrmsHeaderIcon
+            // 
+            this.hrmsHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.hrmsHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.hrmsHeaderIcon.Name = "hrmsHeaderIcon";
+            this.hrmsHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.hrmsHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.hrmsHeaderIcon.TabIndex = 0;
+            this.hrmsHeaderIcon.TabStop = false;
+            // 
+            // hrmsTitleLabel
+            // 
+            this.hrmsTitleLabel.AutoSize = true;
+            this.hrmsTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.hrmsTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.hrmsTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.hrmsTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.hrmsTitleLabel.Name = "hrmsTitleLabel";
+            this.hrmsTitleLabel.Size = new System.Drawing.Size(192, 54);
+            this.hrmsTitleLabel.TabIndex = 1;
+            this.hrmsTitleLabel.Text = "AI HRMS";
+            // 
+            // hrmsDescriptionLabel
+            // 
+            this.hrmsDescriptionLabel.AutoSize = true;
+            this.hrmsDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.hrmsDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.hrmsDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.hrmsDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.hrmsDescriptionLabel.Name = "hrmsDescriptionLabel";
+            this.hrmsDescriptionLabel.Size = new System.Drawing.Size(286, 20);
+            this.hrmsDescriptionLabel.TabIndex = 2;
+            this.hrmsDescriptionLabel.Text = "Employees, attendance, leave and payroll.";
+            // 
+            // projectsPage
+            // 
+            this.projectsPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.projectsPage.Controls.Add(this.projectsBody);
-
-            this.salesPage.Name = "salesPage";
-            this.salesPage.Text = "Sales & POS";
-            this.salesPage.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesPage.UseVisualStyleBackColor = false;
-            this.salesBody.Name = "salesBody";
-            this.salesBody.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesBody.Dock = DockStyle.Fill;
-            this.salesBody.AutoScroll = true;
-            this.salesBody.Padding = new Padding(22, 0, 22, 24);
-            this.salesContent.Name = "salesContent";
-            this.salesContent.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesContent.Dock = DockStyle.Top;
-            this.salesContent.AutoSize = true;
-            this.salesContent.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.salesHeader.Name = "salesHeader";
-            this.salesHeader.Dock = DockStyle.Top;
-            this.salesHeader.Size = new Size(1300, 150);
-            this.salesHeader.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesHeaderIcon.Name = "salesHeaderIcon";
-            this.salesHeaderIcon.Location = new Point(12, 28);
-            this.salesHeaderIcon.Size = new Size(88, 88);
-            this.salesHeaderIcon.BackColor = Color.Transparent;
-            this.salesHeaderIcon.Image = (Image)resources.GetObject("sales");
-            this.salesHeaderIcon.SizeMode = PictureBoxSizeMode.Zoom;
-            this.salesHeaderIcon.TabStop = false;
-            this.salesTitleLabel.Name = "salesTitleLabel";
-            this.salesTitleLabel.Text = "Sales & POS";
-            this.salesTitleLabel.Location = new Point(124, 33);
-            this.salesTitleLabel.AutoSize = true;
-            this.salesTitleLabel.Font = new Font("Segoe UI", 30F, FontStyle.Bold);
-            this.salesTitleLabel.ForeColor = Color.FromArgb(24, 36, 57);
-            this.salesTitleLabel.BackColor = Color.Transparent;
-            this.salesDescriptionLabel.Name = "salesDescriptionLabel";
-            this.salesDescriptionLabel.Text = "Sales, checkout and inventory operations.";
-            this.salesDescriptionLabel.Location = new Point(127, 91);
-            this.salesDescriptionLabel.AutoSize = true;
-            this.salesDescriptionLabel.Font = new Font("Segoe UI", 11F);
-            this.salesDescriptionLabel.ForeColor = Color.FromArgb(61, 82, 113);
-            this.salesDescriptionLabel.BackColor = Color.Transparent;
-            this.salesHeader.Controls.AddRange(new Control[] { this.salesHeaderIcon, this.salesTitleLabel, this.salesDescriptionLabel });
-            this.salesCards.Name = "salesCards";
-            this.salesCards.Dock = DockStyle.Top;
-            this.salesCards.AutoSize = true;
-            this.salesCards.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.salesCards.FlowDirection = FlowDirection.LeftToRight;
-            this.salesCards.WrapContents = true;
-            this.salesWorkspaceCard.Name = "salesWorkspaceCard";
-            this.salesWorkspaceCard.Text = "Sales workspace";
-            this.salesWorkspaceCard.AccessibleDescription = "Open the sales and point of sale workspace.";
-            this.salesWorkspaceCard.Image = (Image)resources.GetObject("sales");
-            this.salesWorkspaceCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesWorkspaceCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.salesWorkspaceCard.AccentColor = Color.FromArgb(16, 132, 244);
-            this.salesWorkspaceCard.Size = new Size(246, 226);
-            this.salesWorkspaceCard.Margin = new Padding(0, 0, 16, 16);
-            this.salesWorkspaceCard.Cursor = Cursors.Hand;
-            this.salesWorkspaceCard.FlatStyle = FlatStyle.Flat;
-            this.salesWorkspaceCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.salesWorkspaceCard.TabIndex = 0;
-            this.salesWorkspaceCard.UseVisualStyleBackColor = false;
-            this.salesWorkspaceCard.Click += this.salesWorkspaceButton_Click;
-
-            this.salesAppointmentsCard.Name = "salesAppointmentsCard";
-            this.salesAppointmentsCard.Text = "Appointments";
-            this.salesAppointmentsCard.AccessibleDescription = "Open sales appointments.";
-            this.salesAppointmentsCard.Image = (Image)resources.GetObject("appointments");
-            this.salesAppointmentsCard.BackColor = Color.FromArgb(244, 247, 253);
-            this.salesAppointmentsCard.ForeColor = Color.FromArgb(24, 36, 57);
-            this.salesAppointmentsCard.AccentColor = Color.FromArgb(12, 183, 146);
-            this.salesAppointmentsCard.Size = new Size(246, 226);
-            this.salesAppointmentsCard.Margin = new Padding(0, 0, 16, 16);
-            this.salesAppointmentsCard.Cursor = Cursors.Hand;
-            this.salesAppointmentsCard.FlatStyle = FlatStyle.Flat;
-            this.salesAppointmentsCard.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            this.salesAppointmentsCard.TabIndex = 1;
-            this.salesAppointmentsCard.UseVisualStyleBackColor = false;
-            this.salesAppointmentsCard.Click += this.appointmentSchedulerButton_Click;
-
-            this.salesCards.Controls.AddRange(new Control[] { this.salesWorkspaceCard, this.salesAppointmentsCard });
-            this.salesContent.Controls.AddRange(new Control[] { this.salesCards, this.salesHeader });
-            this.salesBody.Controls.Add(this.salesContent);
+            this.projectsPage.Location = new System.Drawing.Point(4, 34);
+            this.projectsPage.Name = "projectsPage";
+            this.projectsPage.Size = new System.Drawing.Size(192, 62);
+            this.projectsPage.TabIndex = 5;
+            this.projectsPage.Text = "KaryaFlow PMS";
+            // 
+            // projectsBody
+            // 
+            this.projectsBody.AutoScroll = true;
+            this.projectsBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectsBody.Controls.Add(this.projectsContent);
+            this.projectsBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.projectsBody.Location = new System.Drawing.Point(0, 0);
+            this.projectsBody.Name = "projectsBody";
+            this.projectsBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.projectsBody.Size = new System.Drawing.Size(192, 62);
+            this.projectsBody.TabIndex = 0;
+            // 
+            // projectsContent
+            // 
+            this.projectsContent.AutoSize = true;
+            this.projectsContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.projectsContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectsContent.Controls.Add(this.projectsCards);
+            this.projectsContent.Controls.Add(this.projectsHeader);
+            this.projectsContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.projectsContent.Location = new System.Drawing.Point(22, 0);
+            this.projectsContent.Name = "projectsContent";
+            this.projectsContent.Size = new System.Drawing.Size(131, 392);
+            this.projectsContent.TabIndex = 0;
+            // 
+            // projectsCards
+            // 
+            this.projectsCards.AutoSize = true;
+            this.projectsCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.projectsCards.Controls.Add(this.projectWorkspaceCard);
+            this.projectsCards.Controls.Add(this.projectWorkspacesCard);
+            this.projectsCards.Controls.Add(this.projectMyWorkCard);
+            this.projectsCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.projectsCards.Location = new System.Drawing.Point(0, 150);
+            this.projectsCards.Name = "projectsCards";
+            this.projectsCards.Size = new System.Drawing.Size(131, 726);
+            this.projectsCards.TabIndex = 0;
+            // 
+            // projectWorkspaceCard
+            // 
+            this.projectWorkspaceCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.projectWorkspaceCard.AccessibleDescription = "Open the project management workspace.";
+            this.projectWorkspaceCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectWorkspaceCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.projectWorkspaceCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.projectWorkspaceCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.projectWorkspaceCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.projectWorkspaceCard.Location = new System.Drawing.Point(0, 0);
+            this.projectWorkspaceCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.projectWorkspaceCard.Name = "projectWorkspaceCard";
+            this.projectWorkspaceCard.Size = new System.Drawing.Size(246, 226);
+            this.projectWorkspaceCard.TabIndex = 0;
+            this.projectWorkspaceCard.Text = "Project workspace";
+            this.projectWorkspaceCard.UseVisualStyleBackColor = false;
+            // 
+            // projectWorkspacesCard
+            // 
+            this.projectWorkspacesCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.projectWorkspacesCard.AccessibleDescription = "Browse project workspaces.";
+            this.projectWorkspacesCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectWorkspacesCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.projectWorkspacesCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.projectWorkspacesCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.projectWorkspacesCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.projectWorkspacesCard.Location = new System.Drawing.Point(0, 242);
+            this.projectWorkspacesCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.projectWorkspacesCard.Name = "projectWorkspacesCard";
+            this.projectWorkspacesCard.Size = new System.Drawing.Size(246, 226);
+            this.projectWorkspacesCard.TabIndex = 1;
+            this.projectWorkspacesCard.Text = "Workspaces";
+            this.projectWorkspacesCard.UseVisualStyleBackColor = false;
+            // 
+            // projectMyWorkCard
+            // 
+            this.projectMyWorkCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(247)))), ((int)(((byte)(161)))), ((int)(((byte)(30)))));
+            this.projectMyWorkCard.AccessibleDescription = "Open your assigned work.";
+            this.projectMyWorkCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectMyWorkCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.projectMyWorkCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.projectMyWorkCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.projectMyWorkCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.projectMyWorkCard.Location = new System.Drawing.Point(0, 484);
+            this.projectMyWorkCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.projectMyWorkCard.Name = "projectMyWorkCard";
+            this.projectMyWorkCard.Size = new System.Drawing.Size(246, 226);
+            this.projectMyWorkCard.TabIndex = 2;
+            this.projectMyWorkCard.Text = "My work";
+            this.projectMyWorkCard.UseVisualStyleBackColor = false;
+            // 
+            // projectsHeader
+            // 
+            this.projectsHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.projectsHeader.Controls.Add(this.projectsHeaderIcon);
+            this.projectsHeader.Controls.Add(this.projectsTitleLabel);
+            this.projectsHeader.Controls.Add(this.projectsDescriptionLabel);
+            this.projectsHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.projectsHeader.Location = new System.Drawing.Point(0, 0);
+            this.projectsHeader.Name = "projectsHeader";
+            this.projectsHeader.Size = new System.Drawing.Size(131, 150);
+            this.projectsHeader.TabIndex = 1;
+            // 
+            // projectsHeaderIcon
+            // 
+            this.projectsHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.projectsHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.projectsHeaderIcon.Name = "projectsHeaderIcon";
+            this.projectsHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.projectsHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.projectsHeaderIcon.TabIndex = 0;
+            this.projectsHeaderIcon.TabStop = false;
+            // 
+            // projectsTitleLabel
+            // 
+            this.projectsTitleLabel.AutoSize = true;
+            this.projectsTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.projectsTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.projectsTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.projectsTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.projectsTitleLabel.Name = "projectsTitleLabel";
+            this.projectsTitleLabel.Size = new System.Drawing.Size(317, 54);
+            this.projectsTitleLabel.TabIndex = 1;
+            this.projectsTitleLabel.Text = "KaryaFlow PMS";
+            // 
+            // projectsDescriptionLabel
+            // 
+            this.projectsDescriptionLabel.AutoSize = true;
+            this.projectsDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.projectsDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.projectsDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.projectsDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.projectsDescriptionLabel.Name = "projectsDescriptionLabel";
+            this.projectsDescriptionLabel.Size = new System.Drawing.Size(212, 20);
+            this.projectsDescriptionLabel.TabIndex = 2;
+            this.projectsDescriptionLabel.Text = "Projects, workspaces and tasks.";
+            // 
+            // salesPage
+            // 
+            this.salesPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
             this.salesPage.Controls.Add(this.salesBody);
-
-            this.workspaces.TabPages.AddRange(new TabPage[] { this.homePage, this.appointmentsPage, this.crmPage, this.financePage, this.hrmsPage, this.projectsPage, this.salesPage });
-            this.workspaces.SelectedIndex = 0;
-            this.ribbonBar.CommandTabSelected += this.ribbonBar_CommandTabSelected;
-
-            this.AutoScaleDimensions = new SizeF(96F, 96F);
-            this.AutoScaleMode = AutoScaleMode.Dpi;
-            this.BackColor = Color.FromArgb(232, 239, 250);
-            this.ClientSize = new Size(1400, 820);
+            this.salesPage.Location = new System.Drawing.Point(4, 34);
+            this.salesPage.Name = "salesPage";
+            this.salesPage.Size = new System.Drawing.Size(192, 62);
+            this.salesPage.TabIndex = 6;
+            this.salesPage.Text = "Sales & POS";
+            // 
+            // salesBody
+            // 
+            this.salesBody.AutoScroll = true;
+            this.salesBody.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesBody.Controls.Add(this.salesContent);
+            this.salesBody.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.salesBody.Location = new System.Drawing.Point(0, 0);
+            this.salesBody.Name = "salesBody";
+            this.salesBody.Padding = new System.Windows.Forms.Padding(22, 0, 22, 24);
+            this.salesBody.Size = new System.Drawing.Size(192, 62);
+            this.salesBody.TabIndex = 0;
+            // 
+            // salesContent
+            // 
+            this.salesContent.AutoSize = true;
+            this.salesContent.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.salesContent.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesContent.Controls.Add(this.salesCards);
+            this.salesContent.Controls.Add(this.salesHeader);
+            this.salesContent.Dock = System.Windows.Forms.DockStyle.Top;
+            this.salesContent.Location = new System.Drawing.Point(22, 0);
+            this.salesContent.Name = "salesContent";
+            this.salesContent.Size = new System.Drawing.Size(131, 392);
+            this.salesContent.TabIndex = 0;
+            // 
+            // salesCards
+            // 
+            this.salesCards.AutoSize = true;
+            this.salesCards.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.salesCards.Controls.Add(this.salesWorkspaceCard);
+            this.salesCards.Controls.Add(this.salesAppointmentsCard);
+            this.salesCards.Dock = System.Windows.Forms.DockStyle.Top;
+            this.salesCards.Location = new System.Drawing.Point(0, 150);
+            this.salesCards.Name = "salesCards";
+            this.salesCards.Size = new System.Drawing.Size(131, 484);
+            this.salesCards.TabIndex = 0;
+            // 
+            // salesWorkspaceCard
+            // 
+            this.salesWorkspaceCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(132)))), ((int)(((byte)(244)))));
+            this.salesWorkspaceCard.AccessibleDescription = "Open the sales and point of sale workspace.";
+            this.salesWorkspaceCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesWorkspaceCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.salesWorkspaceCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.salesWorkspaceCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.salesWorkspaceCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.salesWorkspaceCard.Location = new System.Drawing.Point(0, 0);
+            this.salesWorkspaceCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.salesWorkspaceCard.Name = "salesWorkspaceCard";
+            this.salesWorkspaceCard.Size = new System.Drawing.Size(246, 226);
+            this.salesWorkspaceCard.TabIndex = 0;
+            this.salesWorkspaceCard.Text = "Sales workspace";
+            this.salesWorkspaceCard.UseVisualStyleBackColor = false;
+            // 
+            // salesAppointmentsCard
+            // 
+            this.salesAppointmentsCard.AccentColor = System.Drawing.Color.FromArgb(((int)(((byte)(12)))), ((int)(((byte)(183)))), ((int)(((byte)(146)))));
+            this.salesAppointmentsCard.AccessibleDescription = "Open sales appointments.";
+            this.salesAppointmentsCard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesAppointmentsCard.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.salesAppointmentsCard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.salesAppointmentsCard.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
+            this.salesAppointmentsCard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.salesAppointmentsCard.Location = new System.Drawing.Point(0, 242);
+            this.salesAppointmentsCard.Margin = new System.Windows.Forms.Padding(0, 0, 16, 16);
+            this.salesAppointmentsCard.Name = "salesAppointmentsCard";
+            this.salesAppointmentsCard.Size = new System.Drawing.Size(246, 226);
+            this.salesAppointmentsCard.TabIndex = 1;
+            this.salesAppointmentsCard.Text = "Appointments";
+            this.salesAppointmentsCard.UseVisualStyleBackColor = false;
+            // 
+            // salesHeader
+            // 
+            this.salesHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(247)))), ((int)(((byte)(253)))));
+            this.salesHeader.Controls.Add(this.salesHeaderIcon);
+            this.salesHeader.Controls.Add(this.salesTitleLabel);
+            this.salesHeader.Controls.Add(this.salesDescriptionLabel);
+            this.salesHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.salesHeader.Location = new System.Drawing.Point(0, 0);
+            this.salesHeader.Name = "salesHeader";
+            this.salesHeader.Size = new System.Drawing.Size(131, 150);
+            this.salesHeader.TabIndex = 1;
+            // 
+            // salesHeaderIcon
+            // 
+            this.salesHeaderIcon.BackColor = System.Drawing.Color.Transparent;
+            this.salesHeaderIcon.Location = new System.Drawing.Point(12, 28);
+            this.salesHeaderIcon.Name = "salesHeaderIcon";
+            this.salesHeaderIcon.Size = new System.Drawing.Size(88, 88);
+            this.salesHeaderIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.salesHeaderIcon.TabIndex = 0;
+            this.salesHeaderIcon.TabStop = false;
+            // 
+            // salesTitleLabel
+            // 
+            this.salesTitleLabel.AutoSize = true;
+            this.salesTitleLabel.BackColor = System.Drawing.Color.Transparent;
+            this.salesTitleLabel.Font = new System.Drawing.Font("Segoe UI", 30F, System.Drawing.FontStyle.Bold);
+            this.salesTitleLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(36)))), ((int)(((byte)(57)))));
+            this.salesTitleLabel.Location = new System.Drawing.Point(124, 33);
+            this.salesTitleLabel.Name = "salesTitleLabel";
+            this.salesTitleLabel.Size = new System.Drawing.Size(217, 54);
+            this.salesTitleLabel.TabIndex = 1;
+            this.salesTitleLabel.Text = "Sales & POS";
+            // 
+            // salesDescriptionLabel
+            // 
+            this.salesDescriptionLabel.AutoSize = true;
+            this.salesDescriptionLabel.BackColor = System.Drawing.Color.Transparent;
+            this.salesDescriptionLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.salesDescriptionLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(61)))), ((int)(((byte)(82)))), ((int)(((byte)(113)))));
+            this.salesDescriptionLabel.Location = new System.Drawing.Point(127, 91);
+            this.salesDescriptionLabel.Name = "salesDescriptionLabel";
+            this.salesDescriptionLabel.Size = new System.Drawing.Size(281, 20);
+            this.salesDescriptionLabel.TabIndex = 2;
+            this.salesDescriptionLabel.Text = "Sales, checkout and inventory operations.";
+            // 
+            // MainForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(232)))), ((int)(((byte)(239)))), ((int)(((byte)(250)))));
+            this.ClientSize = new System.Drawing.Size(1400, 820);
             this.Controls.Add(this.workspaces);
             this.Controls.Add(this.ribbonBar);
-            this.Font = new Font("Segoe UI", 10F);
-            this.MinimumSize = new Size(770, 530);
+            this.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.MinimumSize = new System.Drawing.Size(770, 530);
             this.Name = "MainForm";
-            this.StartPosition = FormStartPosition.CenterScreen;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Business Suite";
-
-            ((ISupportInitialize)this.ribbonBar).EndInit();
-            ((ISupportInitialize)this.crmHeaderIcon).EndInit();
-            ((ISupportInitialize)this.appointmentsHeaderIcon).EndInit();
-            ((ISupportInitialize)this.financeHeaderIcon).EndInit();
-            ((ISupportInitialize)this.hrmsHeaderIcon).EndInit();
-            ((ISupportInitialize)this.projectsHeaderIcon).EndInit();
-            ((ISupportInitialize)this.salesHeaderIcon).EndInit();
-            this.crmCards.ResumeLayout(false);
-            this.crmHeader.ResumeLayout(false);
-            this.crmContent.ResumeLayout(false);
-            this.crmBody.ResumeLayout(false);
-            this.crmPage.ResumeLayout(false);
-            this.salesCards.ResumeLayout(false);
-            this.salesHeader.ResumeLayout(false);
-            this.salesContent.ResumeLayout(false);
-            this.salesBody.ResumeLayout(false);
-            this.salesPage.ResumeLayout(false);
-            this.projectsCards.ResumeLayout(false);
-            this.projectsHeader.ResumeLayout(false);
-            this.projectsContent.ResumeLayout(false);
-            this.projectsBody.ResumeLayout(false);
-            this.projectsPage.ResumeLayout(false);
-            this.hrmsCards.ResumeLayout(false);
-            this.hrmsHeader.ResumeLayout(false);
-            this.hrmsContent.ResumeLayout(false);
-            this.hrmsBody.ResumeLayout(false);
-            this.hrmsPage.ResumeLayout(false);
-            this.financeCards.ResumeLayout(false);
-            this.financeHeader.ResumeLayout(false);
-            this.financeContent.ResumeLayout(false);
-            this.financeBody.ResumeLayout(false);
-            this.financePage.ResumeLayout(false);
-            this.appointmentsCards.ResumeLayout(false);
-            this.appointmentsHeader.ResumeLayout(false);
-            this.appointmentsContent.ResumeLayout(false);
-            this.appointmentsBody.ResumeLayout(false);
-            this.appointmentsPage.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.ribbonBar)).EndInit();
+            this.workspaces.ResumeLayout(false);
+            this.homePage.ResumeLayout(false);
+            this.homeBody.ResumeLayout(false);
+            this.homeBody.PerformLayout();
+            this.homeContent.ResumeLayout(false);
+            this.homeContent.PerformLayout();
             this.sharedCards.ResumeLayout(false);
             this.modulesCards.ResumeLayout(false);
             this.homeHeader.ResumeLayout(false);
-            this.homeContent.ResumeLayout(false);
-            this.homeBody.ResumeLayout(false);
-            this.homePage.ResumeLayout(false);
-            this.workspaces.ResumeLayout(false);
+            this.homeHeader.PerformLayout();
+            this.appointmentsPage.ResumeLayout(false);
+            this.appointmentsBody.ResumeLayout(false);
+            this.appointmentsBody.PerformLayout();
+            this.appointmentsContent.ResumeLayout(false);
+            this.appointmentsContent.PerformLayout();
+            this.appointmentsCards.ResumeLayout(false);
+            this.appointmentsHeader.ResumeLayout(false);
+            this.appointmentsHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.appointmentsHeaderIcon)).EndInit();
+            this.crmPage.ResumeLayout(false);
+            this.crmBody.ResumeLayout(false);
+            this.crmBody.PerformLayout();
+            this.crmContent.ResumeLayout(false);
+            this.crmContent.PerformLayout();
+            this.crmCards.ResumeLayout(false);
+            this.crmHeader.ResumeLayout(false);
+            this.crmHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.crmHeaderIcon)).EndInit();
+            this.financePage.ResumeLayout(false);
+            this.financeBody.ResumeLayout(false);
+            this.financeBody.PerformLayout();
+            this.financeContent.ResumeLayout(false);
+            this.financeContent.PerformLayout();
+            this.financeCards.ResumeLayout(false);
+            this.financeHeader.ResumeLayout(false);
+            this.financeHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.financeHeaderIcon)).EndInit();
+            this.hrmsPage.ResumeLayout(false);
+            this.hrmsBody.ResumeLayout(false);
+            this.hrmsBody.PerformLayout();
+            this.hrmsContent.ResumeLayout(false);
+            this.hrmsContent.PerformLayout();
+            this.hrmsCards.ResumeLayout(false);
+            this.hrmsHeader.ResumeLayout(false);
+            this.hrmsHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.hrmsHeaderIcon)).EndInit();
+            this.projectsPage.ResumeLayout(false);
+            this.projectsBody.ResumeLayout(false);
+            this.projectsBody.PerformLayout();
+            this.projectsContent.ResumeLayout(false);
+            this.projectsContent.PerformLayout();
+            this.projectsCards.ResumeLayout(false);
+            this.projectsHeader.ResumeLayout(false);
+            this.projectsHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.projectsHeaderIcon)).EndInit();
+            this.salesPage.ResumeLayout(false);
+            this.salesBody.ResumeLayout(false);
+            this.salesBody.PerformLayout();
+            this.salesContent.ResumeLayout(false);
+            this.salesContent.PerformLayout();
+            this.salesCards.ResumeLayout(false);
+            this.salesHeader.ResumeLayout(false);
+            this.salesHeader.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.salesHeaderIcon)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
         private RadRibbonBar ribbonBar;
