@@ -1085,6 +1085,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Inventory',
                   controller: widget.controller,
                   path: InventoryOfflineCreates.itemsEndpoint,
+                  query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly,
                 ),

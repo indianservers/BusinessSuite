@@ -1375,6 +1375,7 @@ def list_srm_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin")),
     pos_stock: bool = False,
+    summary_only: bool = False,
 ):
     org_id = _org(current_user)
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
@@ -1393,6 +1394,19 @@ def list_srm_products(
         )
     if (pos_stock and page is None) or (page is not None and page < 1) or per_page < 1 or per_page > 500:
         raise HTTPException(422, "Invalid catalogue page")
+    if summary_only:
+        if pos_stock:
+            raise HTTPException(422, "POS stock requires the full catalogue")
+        total = query.count() if page is not None else None
+        rows = query.with_entities(
+            SRMProduct.id, SRMProduct.item_name, SRMProduct.sku,
+            SRMProduct.current_quantity, SRMProduct.reorder_level, SRMProduct.unit_code,
+        ).order_by(SRMProduct.item_name, SRMProduct.id)
+        if page is not None:
+            rows = rows.offset((page - 1) * per_page).limit(per_page)
+        items = [dict(row._mapping) for row in rows.all()]
+        return {"items": items, "total": len(items) if total is None else total,
+                "page": page, "per_page": per_page}
     total = query.count()
     query = query.order_by(SRMProduct.item_name, SRMProduct.id)
     if page is not None:

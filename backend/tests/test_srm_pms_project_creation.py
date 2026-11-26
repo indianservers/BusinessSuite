@@ -1,5 +1,5 @@
 from app.apps.project_management.models import PMSMilestone, PMSProject, PMSTask
-from app.apps.srm.models import SRMInvoice, SRMInvoiceLine
+from app.apps.srm.models import SRMInvoice, SRMInvoiceLine, SRMProduct
 
 from tests.srm_test_utils import create_engagement_via_confirm, create_sales_order
 
@@ -16,6 +16,25 @@ def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_
     assert detailed["lines"]
     assert header == {key: detailed[key] for key in header}
     assert "lines" not in header
+
+
+def test_inventory_summary_preserves_search_and_pagination(client, db, superuser_headers):
+    db.add_all([
+        SRMProduct(organization_id=1, sku="SUMMARY-A", item_name="Summary product A", description="Full details"),
+        SRMProduct(organization_id=1, sku="SUMMARY-B", item_name="Summary product B"),
+    ])
+    db.commit()
+    path = "/api/v1/srm/inventory/items"
+    params = {"search": "SUMMARY-", "page": 2, "per_page": 1}
+    full = client.get(path, headers=superuser_headers, params=params)
+    slim = client.get(path, headers=superuser_headers, params={**params, "summary_only": True})
+    assert full.status_code == slim.status_code == 200
+    assert full.json()["total"] == slim.json()["total"] == 2
+    assert slim.json()["page"] == 2
+    item = slim.json()["items"][0]
+    assert item["sku"] == "SUMMARY-B"
+    assert item == {key: full.json()["items"][0][key] for key in item}
+    assert "description" not in item
 
 
 def test_srm_engagement_creates_pms_project(client, db, superuser_headers):
