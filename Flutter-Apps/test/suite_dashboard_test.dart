@@ -6,6 +6,7 @@ import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
+import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
@@ -20,6 +21,7 @@ import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
+import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
@@ -30,6 +32,70 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'Sales saves an offline order and retries with its original receipt',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      tester.view.physicalSize = const Size(430, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const base = 'https://example.test/api/v1';
+      const scope = '["$base",3,7]';
+      final drafts = SalesOrderDrafts(scope);
+      final requests = <RequestOptions>[];
+      final dio = Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          return requests.length == 1
+              ? response({'detail': 'Unavailable'}, 503)
+              : response({'id': 11}, 201);
+        });
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: dio,
+      );
+      await api.acceptTokens({
+        'access_token': 'access',
+        'refresh_token': 'refresh',
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NewSalesOrderPage(api: api, drafts: drafts, offline: true),
+        ),
+      );
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Field sale');
+      await tester.enterText(fields.at(3), 'Consulting');
+      await tester.enterText(fields.at(5), '100.00');
+      await tester.tap(find.text('Save order draft'));
+      await tester.pumpAndSettle();
+      expect(requests, isEmpty);
+      final reopened = SalesOrderDrafts(scope);
+      final saved = (await reopened.entries()).single;
+      await tester.runAsync(() => reopened.sync(api));
+      expect(await reopened.entries(), hasLength(1));
+      await tester.runAsync(() => reopened.sync(api));
+      expect(await reopened.entries(), isEmpty);
+      expect(requests, hasLength(2));
+      for (final request in requests) {
+        expect(request.path, '/srm/sales-orders');
+        expect(request.headers['X-Offline-Operation'], saved['operation']);
+        expect(request.data, {
+          'title': 'Field sale',
+          'currency': 'INR',
+          'lines': [
+            {
+              'quantity': '1',
+              'description': 'Consulting',
+              'unit_price': '100.00',
+            },
+          ],
+        });
+      }
+    },
+  );
   testWidgets('CRM corrects a lead draft rejected by validation', (
     tester,
   ) async {

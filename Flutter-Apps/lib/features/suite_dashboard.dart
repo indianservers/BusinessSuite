@@ -10,11 +10,13 @@ import '../core/api_client.dart';
 import '../core/crm_offline_edits.dart';
 import '../core/inventory_offline_creates.dart';
 import '../core/models.dart';
+import '../core/sales_order_drafts.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
+import 'sales_order_drafts_page.dart';
 import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
 import 'account_settings_panel.dart';
@@ -209,6 +211,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           scope,
           invalidate: SuiteReadCache.invalidate,
         ).sync(controller.api);
+        if (mounted &&
+            identical(_access, accessFuture) &&
+            revision == controller.api.sessionRevision &&
+            _canCreateOrder(access)) {
+          await SalesOrderDrafts(scope).sync(controller.api);
+        }
       }
       if (_allowed(access, 'project_management') &&
           mounted &&
@@ -246,6 +254,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'companyId': access['companyId'],
             'companyName': access['companyName'],
             'canCreateLead': _canCreateLead(access),
+            'canCreateOrder': _canCreateOrder(access),
             'grants': {
               for (final key in ['crm', 'srm', 'fam', 'project_management'])
                 key: {
@@ -283,6 +292,20 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         (access['managed'] == true
             ? (crm?['actions'] as List?)?.contains('create') == true &&
                   (crm?['permissions'] as List?)?.any(permissions.contains) ==
+                      true
+            : controller.user?.permissions.any(permissions.contains) == true);
+  }
+
+  bool _canCreateOrder(Json access) {
+    if (!_allowed(access, 'srm')) return false;
+    final controller = widget.controller;
+    if (controller.offline) return access['canCreateOrder'] == true;
+    final grant = (access['grants'] as Json?)?['srm'] as Json?;
+    const permissions = {'srm_manage', 'srm_admin'};
+    return controller.user?.isSuperuser == true ||
+        (access['managed'] == true
+            ? (grant?['actions'] as List?)?.contains('create') == true &&
+                  (grant?['permissions'] as List?)?.any(permissions.contains) ==
                       true
             : controller.user?.permissions.any(permissions.contains) == true);
   }
@@ -333,6 +356,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : const {},
         cachePrefix: cache,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
+        canCreateOrder: app.title == 'Sales & POS' && _canCreateOrder(access),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
         canCreateOrderInvoices:
@@ -846,6 +870,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canIssueInvoices = false,
     this.canEditOrders = false,
     this.canCreateLead = false,
+    this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
   });
@@ -860,6 +885,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canIssueInvoices;
   final bool canEditOrders;
   final bool canCreateLead;
+  final bool canCreateOrder;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
 
@@ -907,6 +933,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
   bool _usedSavedFallback = false;
+  late final SalesOrderDrafts? _saleDrafts =
+      widget.showInventory && widget.cachePrefix != null
+      ? SalesOrderDrafts(widget.cachePrefix!)
+      : null;
   late final InventoryOfflineCreates? _inventoryDrafts =
       _inventory && widget.cachePrefix != null
       ? InventoryOfflineCreates(
@@ -1174,6 +1204,49 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     appBar: AppBar(
       title: Text(widget.title),
       actions: [
+        if (widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null))
+          PopupMenuButton<String>(
+            tooltip: 'Sales order actions',
+            onSelected: (action) async {
+              if (action == 'drafts') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => SalesOrderDraftsPage(
+                      api: widget.controller.api,
+                      drafts: _saleDrafts!,
+                      onSynced: () {
+                        if (mounted) _refresh();
+                      },
+                    ),
+                  ),
+                );
+                return;
+              }
+              final saved = await Navigator.of(context).push<bool>(
+                MaterialPageRoute<bool>(
+                  builder: (_) => NewSalesOrderPage(
+                    api: widget.controller.api,
+                    drafts: _saleDrafts,
+                    offline: _offlineOnly,
+                  ),
+                ),
+              );
+              if (saved == true && context.mounted) {
+                if (!_offlineOnly) _refresh();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Sales order saved.')),
+                );
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'new', child: Text('New sales order')),
+              if (_saleDrafts != null)
+                const PopupMenuItem(
+                  value: 'drafts',
+                  child: Text('Order drafts'),
+                ),
+            ],
+          ),
         if (_isCrm &&
             widget.canCreateLead &&
             (!_offlineOnly || _crmEdits != null))
