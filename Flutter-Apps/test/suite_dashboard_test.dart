@@ -3724,7 +3724,17 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final calls = <RequestOptions>[];
       final guidedFlows = <Map<String, dynamic>>[
-        {'id': 15, 'name': 'Renewals', 'active': true},
+        {
+          'id': 15,
+          'name': 'Renewals',
+          'active': true,
+          'question_json': [
+            {'prompt': 'When does the contract end?', 'required': true},
+          ],
+          'recommendation_json': {
+            'nextStep': {'name': 'Book a renewal review'},
+          },
+        },
       ];
       final transport = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
@@ -4560,6 +4570,34 @@ void main() {
                 .lastWhere((r) => r.path == '/crm/guided-selling-flows/15')
                 .data,
             {'active': false},
+          );
+          await tester.tap(find.byTooltip('Edit Renewals'));
+          await tester.pumpAndSettle();
+          await open('Questions and recommendations');
+          final questions = find.widgetWithText(
+            TextFormField,
+            'Questions JSON',
+          );
+          expect(
+            tester.widget<TextFormField>(questions).initialValue,
+            contains('When does the contract end?'),
+          );
+          await tester.enterText(questions, '[');
+          await tester.pumpAndSettle();
+          await open('Save changes');
+          expect(find.text('Enter valid JSON.'), findsOneWidget);
+          await tester.enterText(questions, '[{"prompt":"Renew this month?"}]');
+          await tester.pumpAndSettle();
+          await open('Save changes');
+          expect(
+            calls
+                .lastWhere((r) => r.path == '/crm/guided-selling-flows/15')
+                .data,
+            {
+              'questions': [
+                {'prompt': 'Renew this month?'},
+              ],
+            },
           );
           await tester.tap(find.byTooltip('New guided selling flow'));
           await tester.pumpAndSettle();
