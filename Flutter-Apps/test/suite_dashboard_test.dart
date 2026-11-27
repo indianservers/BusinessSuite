@@ -4149,6 +4149,30 @@ void main() {
                 },
               ],
             }),
+            '/srm/inventory/batches' => response({
+              'items': [
+                {
+                  'id': 90,
+                  'batch_number': 'LOT-90',
+                  'available_quantity': 8,
+                  'serial_count': 1,
+                },
+              ],
+              'total': 1,
+              'per_page': 25,
+            }),
+            '/srm/inventory/batches/90' => response({
+              'batch_number': 'LOT-90',
+              'available_quantity': 8,
+              'serials': [
+                {'serial_number': 'SN-901', 'status': 'available'},
+              ],
+            }),
+            '/srm/inventory/serial-numbers' => response({
+              'items': [
+                {'id': 901, 'serial_number': 'SN-901', 'batch_id': 90},
+              ],
+            }),
             '/srm/inventory/reports/reorder' => response({
               'items': [
                 {
@@ -4412,6 +4436,18 @@ void main() {
           expect(calls.any((r) => r.path == '/srm/inventory/items'), isTrue);
           await open('Sample product');
           expect(find.text('STOCK-1'), findsOneWidget);
+          await back();
+          await tester.tap(find.byTooltip('Batches & Serials'));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('8 available'), findsOneWidget);
+          await open('LOT-90');
+          expect(find.text('SN-901'), findsOneWidget);
+          await back();
+          await tester.tap(find.byTooltip('Serial numbers'));
+          await tester.pumpAndSettle();
+          expect(find.text('SN-901'), findsOneWidget);
+          expect(find.textContaining('Batch #90'), findsOneWidget);
+          await back();
           await back();
           await tester.tap(find.byTooltip('Low stock alerts'));
           await tester.pumpAndSettle();

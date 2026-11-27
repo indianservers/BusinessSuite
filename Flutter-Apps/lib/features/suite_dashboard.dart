@@ -19,6 +19,7 @@ import 'crm_contact_page.dart';
 import 'crm_cpq_evaluator.dart';
 import 'crm_guided_selling_form.dart';
 import 'crm_pipeline_page.dart';
+import 'inventory_batch_page.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
@@ -1536,7 +1537,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     'submitted_at',
     'decided_at',
   ];
-  bool get _cacheCrmPages =>
+  bool get _batchTracking => widget.path == InventoryBatchPage.batches;
+  bool get _serialTracking => widget.path == InventoryBatchPage.serials;
+  bool get _cachePagedRecords =>
       _isCrm ||
       _crmContacts ||
       _crmDeals ||
@@ -1545,9 +1548,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmQuotations ||
       _crmQuoteApprovals ||
       _crmCpq ||
-      _crmGuidedSelling;
+      _crmGuidedSelling ||
+      _batchTracking;
   bool get _isEmployees => widget.path == '/employees/';
-  bool get _hasPages => _cacheCrmPages || _isEmployees;
+  bool get _hasPages => _cachePagedRecords || _isEmployees;
   bool get _searchOnServer =>
       _hasPages || _inventory || widget.path == '/srm/sales-orders';
   late bool _offlineOnly = widget.offlineOnly;
@@ -1606,8 +1610,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     _usedSavedFallback = false;
     final page = _page;
     final searchTerm = _serverSearch;
-    Future<void> loadSavedCrmPages() async {
-      if (!_cacheCrmPages || cacheKey == null) return;
+    Future<void> loadSavedPages() async {
+      if (!_cachePagedRecords || cacheKey == null) return;
       try {
         final saved = await SuiteReadCache.readPages(cacheKey);
         if (mounted &&
@@ -1654,7 +1658,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     if (_offlineOnly && !reconnect) {
-      await loadSavedCrmPages();
+      await loadSavedPages();
       if (api.sessionRevision != revision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
@@ -1697,6 +1701,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             })
           else ...{
             if (_hasPages) 'page': page,
+            if (_batchTracking) 'per_page': 25,
             if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
           },
         },
@@ -1711,7 +1716,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           });
         }
         try {
-          if (_cacheCrmPages) {
+          if (_cachePagedRecords) {
             await SuiteReadCache.clearPages(cacheKey);
           } else {
             await SuiteReadCache.clear(cacheKey);
@@ -1725,7 +1730,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       } else if (error.connectionFailure ||
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
-        await loadSavedCrmPages();
+        await loadSavedPages();
         if (mounted &&
             api.sessionRevision == revision &&
             loadRevision == _loadRevision &&
@@ -1812,6 +1817,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmQuoteApprovals) ..._approvalFields,
               if (_crmCpq) ...['rule_type', 'active'],
               if (_crmGuidedSelling) 'active',
+              if (_batchTracking) ...InventoryBatchPage.fields.keys,
+              if (_serialTracking) ...InventoryBatchPage.serialFields.keys,
               'order_number',
               'currency',
               'subtotal',
@@ -1957,6 +1964,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     );
     if (mounted && saved == true) await _refreshCrmRecords();
   }
+
+  void _openTracking(String path) => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => _SuiteRecords(
+        title: path == InventoryBatchPage.batches
+            ? 'Batches & Serials'
+            : 'Serial numbers',
+        controller: widget.controller,
+        path: path,
+        cachePrefix: widget.cachePrefix,
+        scopeHeaders: widget.scopeHeaders,
+        offlineOnly: _offlineOnly || _usedSavedFallback,
+      ),
+    ),
+  );
 
   void _refresh() {
     _searchDebounce?.cancel();
@@ -2409,6 +2431,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         ),
         if (_inventory)
           IconButton(
+            tooltip: 'Batches & Serials',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => _openTracking(InventoryBatchPage.batches),
+          ),
+        if (_batchTracking)
+          IconButton(
+            tooltip: 'Serial numbers',
+            icon: const Icon(Icons.tag_outlined),
+            onPressed: () => _openTracking(InventoryBatchPage.serials),
+          ),
+        if (_inventory)
+          IconButton(
             tooltip: 'Stock Summary',
             icon: const Icon(LucideIcons.list),
             onPressed: () => Navigator.of(context).push(
@@ -2694,6 +2728,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     if (_crmDeals) 'stage_name',
                                     if (_crmQuotations) 'quote_number',
                                     if (_crmCpq) 'rule_type',
+                                    if (_batchTracking) 'batch_number',
+                                    if (_serialTracking) ...[
+                                      'serial_number',
+                                      'reference_number',
+                                    ],
                                     if (_crmQuoteApprovals) ...[
                                       'quote_id',
                                       'reason',
@@ -2964,10 +3003,27 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['order_number'] ??
                             item['invoice_number'] ??
                             item['quote_number'] ??
+                            item['batch_number'] ??
+                            item['serial_number'] ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_batchTracking) ...[
+                            if (item['expiry_date'] != null)
+                              "Expires ${item['expiry_date']}",
+                            if (item['available_quantity'] != null)
+                              "${item['available_quantity']} available",
+                            if (item['serial_count'] != null)
+                              "${item['serial_count']} serials",
+                          ],
+                          if (_serialTracking) ...[
+                            item['reference_number'],
+                            if (item['batch_id'] != null)
+                              "Batch #${item['batch_id']}",
+                            if (item['received_date'] != null)
+                              "Received ${item['received_date']}",
+                          ],
                           if (_crmGuidedSelling)
                             if (item['active'] case final bool active)
                               active ? 'Active' : 'Inactive',
@@ -3013,6 +3069,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        if (_batchTracking && item['id'] is int) {
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => InventoryBatchPage(
+                                  api: widget.controller.api,
+                                  summary: item,
+                                  scopeHeaders: widget.scopeHeaders,
+                                  cacheScope: widget.cachePrefix,
+                                  offline: _offlineOnly || _usedSavedFallback,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         if (_crmGuidedSelling) {
                           return ListTile(
                             title: Text('$label'),
