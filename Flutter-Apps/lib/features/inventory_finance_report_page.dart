@@ -24,17 +24,87 @@ enum InventoryFinanceReport {
     'items': 'Items',
     'quantity': 'Quantity',
     'stock_value': 'Stock value',
-  });
+  }),
+  glReconciliation(
+    'GL Reconciliation',
+    'gl',
+    {},
+    reconciliation: true,
+    metrics: {
+      'status': 'Status',
+      'inventory_ledger_id': 'Inventory ledger',
+      'stock_valuation': 'Stock valuation',
+      'ledger_balance': 'Ledger balance',
+      'difference': 'Difference',
+    },
+  ),
+  grniReconciliation(
+    'GRNI Reconciliation',
+    'grni',
+    {
+      'reference_number': 'Reference',
+      'grni_value': 'Receipt value',
+      'purchase_bill_status': 'Purchase bill',
+      'status': 'Status',
+    },
+    reconciliation: true,
+    metrics: {
+      'status': 'Status',
+      'grni_outstanding': 'Goods received, not invoiced',
+      'total': 'Unbilled receipts',
+    },
+  ),
+  cogsReconciliation(
+    'COGS Reconciliation',
+    'cogs',
+    {
+      'stock_issue_value': 'Stock issue value',
+      'cogs_posted': 'Cost posted',
+      'difference': 'Difference',
+      'status': 'Status',
+    },
+    reconciliation: true,
+    metrics: {
+      'status': 'Status',
+      'stock_issue_value': 'Stock issue value',
+      'cogs_posted': 'Cost posted',
+      'difference': 'Difference',
+    },
+  ),
+  gstReconciliation(
+    'GST Reconciliation',
+    'gst',
+    {
+      'hsn_code': 'HSN code',
+      'gst_rate_id': 'GST rate',
+      'gst_rate_configured': 'GST rate configured',
+      'gst_register_lines': 'GST register lines',
+      'status': 'Status',
+    },
+    reconciliation: true,
+    metrics: {'total': 'Stock items', 'exceptions': 'Missing mappings'},
+  );
 
-  const InventoryFinanceReport(this.title, this.slug, this.fields);
+  const InventoryFinanceReport(
+    this.title,
+    this.slug,
+    this.fields, {
+    this.reconciliation = false,
+    this.metrics = const {},
+  });
   final String title, slug;
   final Map<String, String> fields;
+  final Map<String, String> metrics;
+  final bool reconciliation;
 
-  String get endpoint => '/fam/inventory/reports/$slug';
+  String get endpoint =>
+      '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug';
   String get labelField => switch (this) {
     grossMargin => 'item_name',
-    cogs => 'movement_number',
+    cogs || grniReconciliation || cogsReconciliation => 'movement_number',
     hsn => 'hsn_code',
+    glReconciliation => 'inventory_ledger_id',
+    gstReconciliation => 'sku',
   };
 }
 
@@ -80,6 +150,7 @@ class _InventoryFinanceReportPageState
         project: (data) => {
           'currency': _currency(data),
           'total_cogs': data['total_cogs'],
+          for (final key in widget.report.metrics.keys) key: data[key],
           'items': [
             for (final row in _rows(data))
               {
@@ -103,6 +174,25 @@ class _InventoryFinanceReportPageState
     final attribution = data?['attribution'];
     return data?['currency'] ??
         (attribution is Json ? attribution['currency'] : null);
+  }
+
+  String _metric(String key, Object? value, Json? data) {
+    if (value == null) return 'Not available';
+    if (const {
+      'stock_valuation',
+      'ledger_balance',
+      'difference',
+      'grni_outstanding',
+      'grni_value',
+      'stock_issue_value',
+      'cogs_posted',
+    }.contains(key)) {
+      final currency = _currency(data);
+      return currency is String && currency.isNotEmpty
+          ? '$currency ${_value(value)}'
+          : 'Currency unavailable';
+    }
+    return _value(value);
   }
 
   @override
@@ -135,11 +225,19 @@ class _InventoryFinanceReportPageState
                   if (!done) const LinearProgressIndicator(),
                   if (done && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
-                  if (data != null && rows.isEmpty) const Text('No records.'),
+                  if (data != null &&
+                      rows.isEmpty &&
+                      widget.report != InventoryFinanceReport.glReconciliation)
+                    const Text('No records.'),
                   if (_currency(data) case final String currency)
                     Text('Currency: $currency'),
                   if (data?['total_cogs'] case final num total)
                     Text('Total COGS: $total'),
+                  if (data != null)
+                    for (final metric in widget.report.metrics.entries)
+                      Text(
+                        '${metric.value}: ${_metric(metric.key, data[metric.key], data)}',
+                      ),
                 ],
               );
             }
@@ -151,7 +249,7 @@ class _InventoryFinanceReportPageState
                   [
                     for (final field in widget.report.fields.entries)
                       if (row[field.key] case final Object value)
-                        '${field.value}: ${_value(value)}'
+                        '${field.value}: ${_metric(field.key, value, data)}'
                       else if (field.key == 'gross_margin' ||
                           field.key == 'gross_margin_percent')
                         '${field.value}: Not available',

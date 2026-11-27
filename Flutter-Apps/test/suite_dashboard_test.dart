@@ -4004,6 +4004,38 @@ void main() {
                 {'hsn_code': '844399', 'items': 1, 'stock_value': 900},
               ],
             }),
+            '/fam/inventory/reconciliation/gl' => response({
+              'currency': 'INR',
+              'inventory_ledger_id': 12,
+              'stock_valuation': 900,
+              'ledger_balance': 880,
+              'difference': 20,
+              'status': 'variance',
+            }),
+            '/fam/inventory/reconciliation/grni' => response({
+              'currency': 'INR',
+              'grni_outstanding': 250,
+              'total': 1,
+              'items': [
+                {'movement_number': 'GRN-2', 'grni_value': 250},
+              ],
+            }),
+            '/fam/inventory/reconciliation/cogs' => response({
+              'currency': 'INR',
+              'stock_issue_value': 300,
+              'cogs_posted': 270,
+              'difference': 30,
+              'items': [
+                {'movement_number': 'ISSUE-2', 'difference': 30},
+              ],
+            }),
+            '/fam/inventory/reconciliation/gst' => response({
+              'total': 1,
+              'exceptions': 1,
+              'items': [
+                {'sku': 'SKU-12', 'gst_rate_configured': false},
+              ],
+            }),
             '/power-apps/environments' => response({
               'items': [
                 {'key': 'development', 'enabled': true},
@@ -4526,6 +4558,10 @@ void main() {
             ('Gross Margin', 'Sample product', 'Incomplete attribution'),
             ('COGS Report', 'OUT-1', 'Voucher posted: Yes'),
             ('HSN Summary', '844399', 'Stock value: 900'),
+            ('GL Reconciliation', 'Inventory ledger: 12', 'Difference: INR 20'),
+            ('GRNI Reconciliation', 'GRN-2', 'Unbilled receipts: 1'),
+            ('COGS Reconciliation', 'ISSUE-2', 'Cost posted: INR 270'),
+            ('GST Reconciliation', 'SKU-12', 'Missing mappings: 1'),
           ]) {
             await tester.tap(find.byTooltip('Inventory financial reports'));
             await tester.pumpAndSettle();
