@@ -92,7 +92,7 @@ class _NotesPageState extends State<NotesPage> {
               (edits?['favorite'] ?? note['favorite']) != true) {
             return false;
           }
-          return '${_titleFor(note)} ${_previewFor(note)} ${note['tags'] ?? ''}'
+          return '${_titleFor(note)} ${_previewFor(note)} ${edits?['tags'] ?? note['tags'] ?? ''}'
               .toLowerCase()
               .contains(term);
         }).toList();
@@ -390,6 +390,8 @@ class _NoteEditorState extends State<_NoteEditor> {
   late final String _createOperation = const Uuid().v4();
   final _title = TextEditingController();
   final _body = TextEditingController();
+  final _tags = TextEditingController();
+  bool _tagsChanged = false;
   Map<String, dynamic>? _note;
   String? _error;
   bool _loading = false;
@@ -483,6 +485,7 @@ class _NoteEditorState extends State<_NoteEditor> {
             _pending = pending;
             if (pending?['values'] case final Map<String, dynamic> values) {
               _title.text = values['title'] as String;
+              _tags.text = (values['tags'] as List?)?.join('\n') ?? '';
               if (!_rich) _body.text = values['content'] as String;
             }
             _loading = false;
@@ -497,6 +500,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       _note = note;
       _savedView = saved;
       _title.text = note['title'] as String? ?? '';
+      _tags.text = (note['tags'] as List?)?.join('\n') ?? '';
       _body.text = _rich
           ? (note['preview'] as String? ?? '')
           : (note['content'] as String? ?? '');
@@ -506,6 +510,20 @@ class _NoteEditorState extends State<_NoteEditor> {
   Future<void> _save() async {
     if (_saving || !_dirty || !_editable) return;
     final note = _note;
+    final tags = _tagsChanged
+        ? _tags.text
+              .split('\n')
+              .map((tag) => tag.trim().toLowerCase())
+              .where((tag) => tag.isNotEmpty)
+              .toSet()
+              .toList()
+        : note?['tags'];
+    if (_tagsChanged &&
+        tags is List<String> &&
+        (tags.length > 20 || tags.any((tag) => tag.runes.length > 40))) {
+      setState(() => _error = 'Use up to 20 tags of 40 characters each.');
+      return;
+    }
     final revision = widget.api.sessionRevision;
     setState(() {
       _saving = true;
@@ -515,13 +533,13 @@ class _NoteEditorState extends State<_NoteEditor> {
       final values = <String, dynamic>{
         'title': _title.text,
         'content': _rich ? note!['content'] : _body.text,
+        if (tags != null) 'tags': tags,
         if (note != null)
           for (final key in [
             'version',
             'project_id',
             'task_id',
             'folder_id',
-            'tags',
             'pinned',
             'favorite',
             'archived',
@@ -674,6 +692,7 @@ class _NoteEditorState extends State<_NoteEditor> {
   void dispose() {
     _title.dispose();
     _body.dispose();
+    _tags.dispose();
     super.dispose();
   }
 
@@ -798,6 +817,19 @@ class _NoteEditorState extends State<_NoteEditor> {
                   'Formatted note preview. Edit the full document on the web.',
                 ),
               ),
+            TextField(
+              controller: _tags,
+              readOnly: !_editable || _saving,
+              maxLines: 3,
+              onChanged: (value) {
+                _tagsChanged = true;
+                _changed(value);
+              },
+              decoration: const InputDecoration(
+                labelText: 'Tags',
+                helperText: 'One tag per line',
+              ),
+            ),
             TextField(
               controller: _body,
               readOnly: !_editable || _saving || _rich,

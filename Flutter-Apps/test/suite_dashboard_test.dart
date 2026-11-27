@@ -713,11 +713,16 @@ void main() {
       isTrue,
     );
     await tester.tap(find.text('Favorite'));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Tags'),
+      ' Warehouse\npriority\nWAREHOUSE ',
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     final pending = await cache.pending(52);
     expect(pending?['values']['favorite'], isTrue);
+    expect(pending?['values']['tags'], ['warehouse', 'priority']);
     expect(pending?['values']['content'], content);
   });
 
