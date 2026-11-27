@@ -895,6 +895,29 @@ def test_crm_calendar_integrations_and_meeting_sync(client, db, superuser_header
     assert disconnected.status_code == 200
 
 
+def test_quote_line_links_to_shared_catalog_service(client, superuser_headers):
+    service = client.post(
+        "/api/v1/catalog/items",
+        headers=superuser_headers,
+        params={"source": "crm"},
+        json={"kind": "service", "name": "Support plan", "code": "QUOTE-SUPPORT", "price": 100, "currency": "INR"},
+    )
+    assert service.status_code == 201, service.text
+    quote = client.post(
+        "/api/v1/crm/quotations",
+        headers=superuser_headers,
+        json={"quote_number": "QT-CATALOG", "issue_date": "2026-11-27", "expiry_date": "2026-12-27", "currency": "INR"},
+    )
+    assert quote.status_code == 201, quote.text
+    line = client.post(
+        f"/api/v1/crm/quotes/{quote.json()['id']}/lines",
+        headers=superuser_headers,
+        json={"item_type": "service", "service_id": service.json()["id"], "name": "Support plan", "quantity": 1, "unit_price": 100},
+    )
+    assert line.status_code == 201, line.text
+    assert line.json()["service_id"] == service.json()["id"]
+
+
 def test_removing_draft_quote_item_recalculates_total(client, superuser_headers):
     created = client.post(
         "/api/v1/crm/quotations",

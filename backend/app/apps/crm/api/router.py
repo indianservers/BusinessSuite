@@ -6456,6 +6456,14 @@ def add_quote_line(
     raw["quote_id"] = quote.id
     raw["quotation_id"] = quote.id
     data = _validate_and_build(_get_resource("quotation-items"), raw, partial=False)
+    catalog_links = [(kind, data.get(f"{kind}_id")) for kind in ("product", "service") if data.get(f"{kind}_id")]
+    if len(catalog_links) > 1:
+        raise HTTPException(422, "Select one product or service per quote line")
+    for kind, item_id in catalog_links:
+        from app.shared.catalog import get_item
+        item = get_item(kind, item_id, "crm", db, current_user)
+        if item["status"] != "Active" or item["currency"] != quote.currency:
+            raise HTTPException(422, "Select an active catalog item in the quotation currency")
     data["sort_order"] = len(_quote_lines(db, quote.id))
     line = CRMQuotationItem(**data)
     _apply_quote_line_calculation(line)

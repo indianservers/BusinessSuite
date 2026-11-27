@@ -94,7 +94,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _quote = _load();
   });
 
-  Future<void> _editLine([Json? line]) async {
+  Future<void> _editLine({required String? currency, Json? line}) async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => CrmQuotationLinePage(
@@ -102,6 +102,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
           quoteId: widget.summary['id'] as int,
           scopeHeaders: widget.scopeHeaders,
           line: line,
+          currency: currency,
         ),
       ),
     );
@@ -362,7 +363,11 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     ),
                   if (canEditLines)
                     OutlinedButton.icon(
-                      onPressed: _changingStatus ? null : () => _editLine(),
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _editLine(
+                              currency: record['currency'] as String?,
+                            ),
                       icon: const Icon(Icons.add),
                       label: const Text('Add item'),
                     ),
@@ -378,7 +383,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
               ),
               trailing: Text("${line['line_total'] ?? '—'} $currency".trim()),
               onTap: canEditLines && !_changingStatus && line['id'] is int
-                  ? () => _editLine(line)
+                  ? () => _editLine(
+                      currency: record['currency'] as String?,
+                      line: line,
+                    )
                   : null,
             );
           },

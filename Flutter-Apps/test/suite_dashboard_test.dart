@@ -12,6 +12,7 @@ import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
 import 'package:business_suite_mobile/features/crm_quotation_page.dart';
+import 'package:business_suite_mobile/features/crm_quotation_line_page.dart';
 import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
@@ -38,6 +39,64 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Quotation item can link to a shared catalog service', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/catalog/items') {
+            expect(request.queryParameters['source'], 'crm');
+            return response({
+              'items': [
+                {
+                  'id': 81,
+                  'kind': 'service',
+                  'name': 'Support plan',
+                  'price': 100,
+                  'tax': 18,
+                  'currency': 'INR',
+                },
+              ],
+            });
+          }
+          writes.add(request);
+          return response({'id': 44}, 201);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmQuotationLinePage(
+          api: api,
+          quoteId: 8,
+          scopeHeaders: const {},
+          currency: 'INR',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from catalog'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Support plan'));
+    await tester.pumpAndSettle();
+    final save = find.text('Save item');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(writes.single.path, '/crm/quotes/8/lines');
+    expect(writes.single.data, {
+      'name': 'Support plan',
+      'quantity': 1,
+      'unit_price': 100,
+      'tax_rate': 18,
+      'item_type': 'service',
+      'service_id': 81,
+    });
+  });
+
   testWidgets(
     'Draft quotation items use shared totals after add, edit, and remove',
     (tester) async {

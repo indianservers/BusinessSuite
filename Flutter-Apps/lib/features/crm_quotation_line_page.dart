@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import 'crm_quotation_catalog_page.dart';
 
 class CrmQuotationLinePage extends StatefulWidget {
   const CrmQuotationLinePage({
@@ -10,11 +11,13 @@ class CrmQuotationLinePage extends StatefulWidget {
     required this.quoteId,
     required this.scopeHeaders,
     this.line,
+    this.currency,
   });
   final ApiClient api;
   final int quoteId;
   final Map<String, String> scopeHeaders;
   final Json? line;
+  final String? currency;
 
   @override
   State<CrmQuotationLinePage> createState() => _CrmQuotationLinePageState();
@@ -25,12 +28,31 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
   final _values = <String, dynamic>{};
   bool _saving = false;
   String? _error;
+  Json? _catalogItem;
   static const _fields = {
     'name': 'Item name',
     'quantity': 'Quantity',
     'unit_price': 'Unit price',
     'tax_rate': 'Tax rate (%)',
   };
+  static const _catalogFields = {
+    'name': 'name',
+    'unit_price': 'price',
+    'tax_rate': 'tax',
+  };
+
+  Future<void> _chooseCatalogItem() async {
+    final item = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => CrmQuotationCatalogPage(
+          api: widget.api,
+          scopeHeaders: widget.scopeHeaders,
+          currency: widget.currency,
+        ),
+      ),
+    );
+    if (mounted && item != null) setState(() => _catalogItem = item);
+  }
 
   String? _validate(String field, String? value) {
     final text = value?.trim() ?? '';
@@ -49,6 +71,11 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
     if (_saving || _form.currentState?.validate() != true) return;
     _values.clear();
     _form.currentState!.save();
+    if (_catalogItem case final item?) {
+      final kind = item['kind'];
+      _values['item_type'] = kind;
+      _values['${kind}_id'] = item['id'];
+    }
     if (_values.isEmpty) {
       Navigator.pop(context, false);
       return;
@@ -136,11 +163,23 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.line == null)
+              OutlinedButton(
+                onPressed: _saving ? null : _chooseCatalogItem,
+                child: const Text('Choose from catalog'),
+              ),
+            if (_catalogItem case final item?)
+              Text('${item['name']} · ${item['code'] ?? ''}'),
             for (final field in _fields.entries)
               TextFormField(
+                key: ValueKey((
+                  field.key,
+                  _catalogFields.containsKey(field.key) ? _catalogItem : null,
+                )),
                 enabled: !_saving,
                 initialValue:
                     widget.line?[field.key]?.toString() ??
+                    _catalogItem?[_catalogFields[field.key]]?.toString() ??
                     (field.key == 'quantity' ? '1' : null),
                 maxLength: field.key == 'name' ? 180 : null,
                 keyboardType: field.key == 'name'
