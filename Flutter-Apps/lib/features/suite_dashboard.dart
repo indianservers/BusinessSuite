@@ -1501,13 +1501,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _crmCustomers => widget.path == CrmCustomerPage.endpoint;
   bool get _crmTasks => widget.path == CrmTaskPage.endpoint;
   bool get _crmQuotations => widget.path == CrmQuotationPage.endpoint;
+  static const _quoteApprovalsPath = '/crm/quote-approvals';
+  bool get _crmQuoteApprovals => widget.path == _quoteApprovalsPath;
+  static const _approvalFields = [
+    'quote_id',
+    'reason',
+    'comments',
+    'approver_user_id',
+    'approved_by',
+    'submitted_at',
+    'decided_at',
+  ];
   bool get _cacheCrmPages =>
       _isCrm ||
       _crmContacts ||
       _crmDeals ||
       _crmCustomers ||
       _crmTasks ||
-      _crmQuotations;
+      _crmQuotations ||
+      _crmQuoteApprovals;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1771,6 +1783,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmCustomers) ...CrmCustomerPage.fields.keys,
               if (_crmTasks) ...['due_date', 'updated_at'],
               if (_crmQuotations) ...CrmQuotationPage.fields,
+              if (_crmQuoteApprovals) ..._approvalFields,
               'order_number',
               'currency',
               'subtotal',
@@ -1887,6 +1900,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (mounted) _refresh();
   }
+
+  CrmQuotationPage _quotationDetails(Json summary) => CrmQuotationPage(
+    api: widget.controller.api,
+    summary: summary,
+    cacheScope: widget.cachePrefix,
+    offline: _offlineOnly || _usedSavedFallback,
+    scopeHeaders: widget.scopeHeaders,
+    canManage: widget.canManageQuotes,
+    canCancel: widget.canCancelQuotes,
+    canApprove: widget.canApproveQuotes,
+    canSend: widget.canSendQuotes,
+    canCreateRevision: widget.canCreateQuotes,
+    canViewSalesOrder: widget.canViewQuoteSalesOrders,
+    onChanged: _refreshCrmRecords,
+  );
 
   void _refresh() {
     _searchDebounce?.cancel();
@@ -2097,6 +2125,29 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
                   canSendQuotes: widget.canSendQuotes,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_crmQuotations)
+          IconButton(
+            tooltip: 'Quote Approvals',
+            icon: const Icon(Icons.fact_check_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Quote Approvals',
+                  controller: widget.controller,
+                  path: _quoteApprovalsPath,
+                  canManageQuotes: widget.canManageQuotes,
+                  canCancelQuotes: widget.canCancelQuotes,
+                  canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
+                  canApproveQuotes: widget.canApproveQuotes,
+                  canSendQuotes: widget.canSendQuotes,
+                  canCreateQuotes: widget.canCreateQuotes,
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2504,6 +2555,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     ],
                                     if (_crmDeals) 'stage_name',
                                     if (_crmQuotations) 'quote_number',
+                                    if (_crmQuoteApprovals) ...[
+                                      'quote_id',
+                                      'reason',
+                                      'comments',
+                                    ],
                                   ]
                                   .map((key) => item[key] ?? '')
                                   .followedBy([
@@ -2810,6 +2866,44 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        if (_crmQuoteApprovals) {
+                          final quote = item['quote_id'];
+                          final approver =
+                              item['approver_user_id'] ?? item['approved_by'];
+                          return ListTile(
+                            title: Text(
+                              quote == null ? '$label' : 'Quotation #$quote',
+                            ),
+                            subtitle: Text(
+                              [
+                                    item['status'],
+                                    item['reason'],
+                                    item['comments'],
+                                    if (approver != null) 'Approver #$approver',
+                                    if (item['submitted_at']
+                                        case final String submitted)
+                                      'Submitted $submitted',
+                                    if (item['decided_at']
+                                        case final String decided)
+                                      'Decided $decided',
+                                  ]
+                                  .whereType<String>()
+                                  .where((text) => text.isNotEmpty)
+                                  .join('\n'),
+                            ),
+                            trailing: quote is int
+                                ? const Icon(Icons.chevron_right)
+                                : null,
+                            onTap: quote is int
+                                ? () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          _quotationDetails({'id': quote}),
+                                    ),
+                                  )
+                                : null,
+                          );
+                        }
                         if (_warehouses) {
                           return ListTile(
                             title: Text('$label'),
@@ -2931,24 +3025,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             id: item['id'] as int,
                                           )
                                         : _crmQuotations
-                                        ? CrmQuotationPage(
-                                            api: widget.controller.api,
-                                            summary: item,
-                                            cacheScope: widget.cachePrefix,
-                                            offline:
-                                                _offlineOnly ||
-                                                _usedSavedFallback,
-                                            scopeHeaders: widget.scopeHeaders,
-                                            canManage: widget.canManageQuotes,
-                                            canCancel: widget.canCancelQuotes,
-                                            canApprove: widget.canApproveQuotes,
-                                            canSend: widget.canSendQuotes,
-                                            canCreateRevision:
-                                                widget.canCreateQuotes,
-                                            canViewSalesOrder:
-                                                widget.canViewQuoteSalesOrders,
-                                            onChanged: _refreshCrmRecords,
-                                          )
+                                        ? _quotationDetails(item)
                                         : _crmTasks
                                         ? CrmTaskPage(
                                             api: widget.controller.api,

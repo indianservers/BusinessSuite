@@ -3977,6 +3977,17 @@ void main() {
               ],
               'pages': 1,
             }),
+            '/crm/quote-approvals' => response({
+              'items': [
+                {
+                  'id': 79,
+                  'quote_id': 44,
+                  'status': 'pending',
+                  'reason': 'Discount needs review',
+                },
+              ],
+              'total': 1,
+            }),
             '/crm/quotations/44/pdf' => response({
               'message': 'Unexpected payload',
             }),
@@ -4470,6 +4481,13 @@ void main() {
             isTrue,
           );
           await tester.pump(const Duration(seconds: 5));
+          await back();
+          await tester.tap(find.byTooltip('Quote Approvals'));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('Discount needs review'), findsOneWidget);
+          await open('Quotation #44');
+          expect(find.text('Annual support'), findsOneWidget);
+          await back();
           await back();
           await back();
           await tester.tap(find.text('Next'));
