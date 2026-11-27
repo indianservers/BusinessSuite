@@ -239,7 +239,7 @@ class SalesOrderDrafts {
     await _write(drafts);
   });
 
-  Future<void> submit(
+  Future<Object?> submit(
     ApiClient api,
     String operation,
     Json payload, {
@@ -261,6 +261,7 @@ class SalesOrderDrafts {
             result['status'] != 'draft')) {
       throw ApiFailure('Draft confirmation is unavailable.', 503);
     }
+    return result;
   }
 
   Future<void> sync(ApiClient api, {void Function()? onUploaded}) {

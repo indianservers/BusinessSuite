@@ -43,6 +43,20 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
+void mockUnavailableSqlite(WidgetTester tester) {
+  const sqlite = MethodChannel('com.tekartik.sqflite');
+  final messenger = tester.binding.defaultBinaryMessenger;
+  databaseFactory = databaseFactorySqflitePlugin;
+  messenger.setMockMethodCallHandler(sqlite, (call) async {
+    expect(call.method, 'getDatabasesPath');
+    throw PlatformException(code: 'cache_unavailable');
+  });
+  addTearDown(() {
+    messenger.setMockMethodCallHandler(sqlite, null);
+    databaseFactory = null;
+  });
+}
+
 void main() {
   test(
     'Queued purchase drafts preserve retry identity and replace rejections',
@@ -116,17 +130,7 @@ void main() {
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
     addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
-    const sqlite = MethodChannel('com.tekartik.sqflite');
-    final messenger = tester.binding.defaultBinaryMessenger;
-    databaseFactory = databaseFactorySqflitePlugin;
-    messenger.setMockMethodCallHandler(sqlite, (call) async {
-      expect(call.method, 'getDatabasesPath');
-      throw PlatformException(code: 'cache_unavailable');
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(sqlite, null);
-      databaseFactory = null;
-    });
+    mockUnavailableSqlite(tester);
     const base = 'https://example.test/api/v1';
     const scope = '["$base",5,7]';
     final drafts = SalesOrderDrafts.purchaseOrders(scope);
@@ -286,117 +290,149 @@ void main() {
     expect(find.text('Cancel with reason'), findsNothing);
   });
 
-  testWidgets('Purchase order drafts preserve multiple item selections', (
-    tester,
-  ) async {
-    final writes = <RequestOptions>[];
-    final api = ApiClient(
-      baseUrl: 'https://example.test/api/v1',
-      store: MemoryStore(),
-      transport: Dio()
-        ..httpClientAdapter = FakeAdapter((request) async {
-          expect(request.headers['X-Suite-Branch'], '6');
-          switch (request.path) {
-            case '/master-data/companies':
-              expect(request.queryParameters['source'], 'srm');
-              return response({
-                'items': [
-                  {'id': 4, 'name': 'Paper supplier'},
-                ],
-              });
-            case '/srm/inventory/items':
-              return response({
-                'items': [
-                  {'id': 3, 'item_name': 'Office paper'},
-                  {'id': 5, 'item_name': 'Ink cartridge'},
-                ],
-              });
-            case '/srm/inventory/warehouses':
-              return response({
-                'items': [
-                  {'id': 6, 'warehouse_name': 'Main warehouse'},
-                  {'id': 7, 'warehouse_name': 'Annex warehouse'},
-                ],
-              });
-            case '/srm/procurement/purchase-orders/drafts':
-              expect(request.method, 'POST');
-              writes.add(request);
-              return response({'id': 9, 'status': 'draft'}, 201);
-            default:
-              throw StateError('Unexpected request: ${request.path}');
-          }
-        }),
-    );
-    final navigator = GlobalKey<NavigatorState>();
-    await tester.pumpWidget(
-      MaterialApp(navigatorKey: navigator, home: const Scaffold()),
-    );
-    final saved = navigator.currentState!.push<Json>(
-      MaterialPageRoute(
-        builder: (_) => InventoryPurchaseOrderForm(
-          api: api,
-          scopeHeaders: const {'X-Suite-Branch': '6'},
+  final purchaseConnections = ValueVariant({true, false});
+  testWidgets(
+    'Purchase order drafts preserve items and retry interrupted saves',
+    (tester) async {
+      final interrupted = purchaseConnections.currentValue!;
+      FlutterSecureStorage.setMockInitialValues({});
+      addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+      mockUnavailableSqlite(tester);
+      const scope = '["https://example.test/api/v1",5,7]';
+      final writes = <RequestOptions>[];
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            expect(request.headers['X-Suite-Branch'], '6');
+            switch (request.path) {
+              case '/master-data/companies':
+                expect(request.queryParameters['source'], 'srm');
+                return response({
+                  'items': [
+                    {'id': 4, 'name': 'Paper supplier'},
+                  ],
+                });
+              case '/srm/inventory/items':
+                return response({
+                  'items': [
+                    {'id': 3, 'item_name': 'Office paper'},
+                    {'id': 5, 'item_name': 'Ink cartridge'},
+                  ],
+                });
+              case '/srm/inventory/warehouses':
+                return response({
+                  'items': [
+                    {'id': 6, 'warehouse_name': 'Main warehouse'},
+                    {'id': 7, 'warehouse_name': 'Annex warehouse'},
+                  ],
+                });
+              case '/srm/procurement/purchase-orders/drafts/offline-create':
+                expect(request.method, 'POST');
+                expect(request.headers['X-Suite-Organization'], '7');
+                writes.add(request);
+                if (interrupted && writes.length == 1) {
+                  throw DioException(
+                    requestOptions: request,
+                    type: DioExceptionType.connectionError,
+                  );
+                }
+                return response({'id': 9, 'status': 'draft'}, 201);
+              default:
+                throw StateError('Unexpected request: ${request.path}');
+            }
+          }),
+      );
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+      );
+      final saved = navigator.currentState!.push<Json>(
+        MaterialPageRoute(
+          builder: (_) => InventoryPurchaseOrderForm(
+            api: api,
+            scopeHeaders: const {'X-Suite-Branch': '6'},
+            cacheScope: scope,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    Future<void> tap(String label) async {
-      final finder = find.text(label).last;
-      await tester.ensureVisible(finder);
-      await tester.tap(finder);
+      );
       await tester.pumpAndSettle();
-    }
+      Future<void> tap(String label) async {
+        final finder = find.text(label).last;
+        await tester.ensureVisible(finder);
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
 
-    await tap('Choose vendor');
-    await tap('Paper supplier');
-    await tap('Choose product');
-    await tap('Office paper');
-    await tap('Warehouse');
-    await tap('Main warehouse');
-    final quantity = find.widgetWithText(TextFormField, 'Order quantity');
-    await tester.enterText(quantity, '0');
-    await tap('Create purchase order draft');
-    expect(writes, isEmpty);
-    await tester.ensureVisible(quantity);
-    await tester.enterText(quantity, '4');
-    await tap('Add item');
-    await tap('Choose product');
-    await tap('Ink cartridge');
-    await tap('Warehouse');
-    await tap('Annex warehouse');
-    final secondPrice = find
-        .widgetWithText(TextFormField, 'Order unit price')
-        .last;
-    await tester.ensureVisible(secondPrice);
-    await tester.enterText(secondPrice, '12.50');
-    await tap('Add item');
-    final remove = find.byTooltip('Remove item 3');
-    await tester.ensureVisible(remove);
-    await tester.tap(remove);
-    await tester.pumpAndSettle();
-    await tap('Create purchase order draft');
-    expect(await saved, {'id': 9, 'status': 'draft'});
-    expect(writes.single.data, {
-      'vendor_id': 4,
-      'vendor_name': 'Paper supplier',
-      'lines': [
-        {
-          'product_id': 3,
-          'warehouse_id': 6,
-          'quantity': '4',
-          'unit_price': '0',
-          'tax_amount': '0',
-        },
-        {
-          'product_id': 5,
-          'warehouse_id': 7,
-          'quantity': '1',
-          'unit_price': '12.50',
-          'tax_amount': '0',
-        },
-      ],
-    });
-  });
+      await tap('Choose vendor');
+      await tap('Paper supplier');
+      await tap('Choose product');
+      await tap('Office paper');
+      await tap('Warehouse');
+      await tap('Main warehouse');
+      final quantity = find.widgetWithText(TextFormField, 'Order quantity');
+      await tester.enterText(quantity, '0');
+      await tap('Create purchase order draft');
+      expect(writes, isEmpty);
+      await tester.ensureVisible(quantity);
+      await tester.enterText(quantity, '4');
+      await tap('Add item');
+      await tap('Choose product');
+      await tap('Ink cartridge');
+      await tap('Warehouse');
+      await tap('Annex warehouse');
+      final secondPrice = find
+          .widgetWithText(TextFormField, 'Order unit price')
+          .last;
+      await tester.ensureVisible(secondPrice);
+      await tester.enterText(secondPrice, '12.50');
+      await tap('Add item');
+      final remove = find.byTooltip('Remove item 3');
+      await tester.ensureVisible(remove);
+      await tester.tap(remove);
+      await tester.pumpAndSettle();
+      await tap('Create purchase order draft');
+      final operation = writes.single.headers['X-Offline-Operation'];
+      expect(operation, matches(RegExp(r'^[0-9a-f-]{36}$')));
+      if (interrupted) {
+        expect(await saved, {'local': true});
+        final drafts = SalesOrderDrafts.purchaseOrders(scope);
+        expect((await drafts.entries()).single['operation'], operation);
+        await tester.runAsync(() async {
+          await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+          await drafts.sync(api);
+        });
+        expect(await drafts.entries(), isEmpty);
+        expect(writes, hasLength(2));
+        expect(writes.last.headers['X-Offline-Operation'], operation);
+        expect(writes.last.data, writes.first.data);
+      } else {
+        expect(await saved, {'id': 9, 'status': 'draft'});
+      }
+      expect(writes.first.data, {
+        'vendor_id': 4,
+        'vendor_name': 'Paper supplier',
+        'lines': [
+          {
+            'product_id': 3,
+            'warehouse_id': 6,
+            'quantity': '4',
+            'unit_price': '0',
+            'tax_amount': '0',
+          },
+          {
+            'product_id': 5,
+            'warehouse_id': 7,
+            'quantity': '1',
+            'unit_price': '12.50',
+            'tax_amount': '0',
+          },
+        ],
+      });
+    },
+    variant: purchaseConnections,
+  );
 
   testWidgets('A purchase order can be issued and receive linked goods', (
     tester,

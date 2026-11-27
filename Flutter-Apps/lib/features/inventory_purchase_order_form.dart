@@ -181,6 +181,12 @@ class _InventoryPurchaseOrderFormState
     }
     final api = widget.api;
     final revision = api.sessionRevision;
+    final scope = widget.cacheScope;
+    final drafts = scope == null
+        ? null
+        : SalesOrderDrafts.purchaseOrders(scope);
+    final branch = widget.scopeHeaders['X-Suite-Branch'];
+    final operation = const Uuid().v4();
     setState(() {
       _saving = true;
       _error = null;
@@ -199,27 +205,47 @@ class _InventoryPurchaseOrderFormState
           },
       ],
     };
+    Future<void> saveLocally() async {
+      if (drafts == null) throw ApiFailure('Sign in to save a local draft.');
+      if (api.sessionRevision != revision) return;
+      await drafts.save(
+        operation,
+        payload,
+        branch: branch,
+        replaceRejected: widget.rejectedDraft?['operation'] as String?,
+      );
+      if (mounted && api.sessionRevision == revision) {
+        Navigator.pop(context, {'local': true});
+      }
+    }
+
     try {
       if (widget.offline || widget.rejectedDraft != null) {
-        final scope = widget.cacheScope;
-        if (scope == null) throw ApiFailure('Sign in to save a local draft.');
-        await SalesOrderDrafts.purchaseOrders(scope).save(
-          const Uuid().v4(),
-          payload,
-          branch: widget.scopeHeaders['X-Suite-Branch'],
-          replaceRejected: widget.rejectedDraft?['operation'] as String?,
-        );
-        if (mounted && api.sessionRevision == revision) {
-          Navigator.pop(context, {'local': true});
+        await saveLocally();
+        return;
+      }
+      final Object? result;
+      try {
+        result = drafts == null
+            ? await api.request(
+                'POST',
+                '${SalesOrderDrafts.purchaseOrdersEndpoint}/drafts',
+                scopeHeaders: widget.scopeHeaders,
+                data: payload,
+              )
+            : await drafts.submit(api, operation, payload, branch: branch);
+      } on ApiFailure catch (error) {
+        if (drafts == null ||
+            (!error.connectionFailure && (error.status ?? 0) < 500)) {
+          rethrow;
+        }
+        try {
+          await saveLocally();
+        } catch (_) {
+          if (mounted && api.sessionRevision == revision) _unconfirmed();
         }
         return;
       }
-      final result = await api.request(
-        'POST',
-        '/srm/procurement/purchase-orders/drafts',
-        scopeHeaders: widget.scopeHeaders,
-        data: payload,
-      );
       if (!mounted || api.sessionRevision != revision) return;
       if (result is! Json ||
           result['id'] is! int ||
