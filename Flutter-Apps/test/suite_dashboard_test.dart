@@ -2456,6 +2456,26 @@ void main() {
             .queryParameters,
         datedRequest.queryParameters,
       );
+      await open('Week');
+      final weekRequest = calls.lastWhere(
+        (r) => r.path == '/srm/industry/records',
+      );
+      expect(
+        weekRequest.queryParameters['until_at'],
+        DateTime(
+          today.year,
+          today.month,
+          today.day + 7,
+        ).toUtc().toIso8601String(),
+      );
+      await tester.tap(find.byTooltip('Next week'));
+      await tester.pumpAndSettle();
+      expect(
+        calls
+            .lastWhere((r) => r.path == '/srm/industry/records')
+            .queryParameters['from_at'],
+        weekRequest.queryParameters['until_at'],
+      );
       await tester.tap(find.byTooltip('Clear schedule date'));
       await tester.pumpAndSettle();
       expect(

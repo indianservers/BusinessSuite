@@ -1131,10 +1131,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _appointments => widget.query['kind'] == 'appointment';
   String _appointmentStatus = '';
   DateTime? _appointmentDay;
+  bool _appointmentWeek = false;
 
   void _moveAppointmentDay(int days) {
     final day = _appointmentDay ?? DateTime.now();
-    _setAppointmentDay(DateTime(day.year, day.month, day.day + days));
+    final step = _appointmentWeek ? days * 7 : days;
+    _setAppointmentDay(DateTime(day.year, day.month, day.day + step));
   }
 
   Future<void> _pickAppointmentDay() async {
@@ -1149,9 +1151,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     _setAppointmentDay(day);
   }
 
-  void _setAppointmentDay(DateTime? day) {
+  void _setAppointmentDay(DateTime? day, {bool? week}) {
     setState(() {
       _appointmentDay = day;
+      _appointmentWeek = day != null && (week ?? _appointmentWeek);
       _records = _startLoad();
     });
   }
@@ -1318,7 +1321,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             'until_at': DateTime(
               day.year,
               day.month,
-              day.day + 1,
+              day.day + (_appointmentWeek ? 7 : 1),
             ).toUtc().toIso8601String(),
           },
           if (_hasPages) 'page': page,
@@ -1795,7 +1798,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          tooltip: 'Previous day',
+                          tooltip: _appointmentWeek
+                              ? 'Previous week'
+                              : 'Previous day',
                           onPressed: () => _moveAppointmentDay(-1),
                           icon: const Icon(Icons.chevron_left),
                         ),
@@ -1809,11 +1814,29 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           child: const Text('Today'),
                         ),
                         IconButton(
-                          tooltip: 'Next day',
+                          tooltip: _appointmentWeek ? 'Next week' : 'Next day',
                           onPressed: () => _moveAppointmentDay(1),
                           icon: const Icon(Icons.chevron_right),
                         ),
                       ],
+                    ),
+                  if (_appointments)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(value: false, label: Text('Day')),
+                          ButtonSegment(value: true, label: Text('Week')),
+                        ],
+                        selected: {_appointmentWeek},
+                        onSelectionChanged: (selection) {
+                          final day = _appointmentDay ?? DateTime.now();
+                          _setAppointmentDay(
+                            DateTime(day.year, day.month, day.day),
+                            week: selection.single,
+                          );
+                        },
+                      ),
                     ),
                   if (_stockAlerts)
                     ListTile(
