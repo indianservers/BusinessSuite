@@ -758,6 +758,14 @@ void main() {
           flag: true,
         },
     ]);
+    await cache.saveDetail({
+      'id': 2,
+      'title': 'Starred note',
+      'content': 'A searchable section beyond the saved preview',
+      'can_edit': true,
+      'visibility_scope': 'private',
+      'visibility': 'private',
+    });
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -792,6 +800,10 @@ void main() {
       tester.getTopLeft(find.text('Alpha note')).dy,
       lessThan(tester.getTopLeft(find.text('Starred note')).dy),
     );
+    await tester.enterText(find.byType(TextField), 'beyond the saved preview');
+    await tester.pumpAndSettle();
+    expect(find.text('Starred note'), findsOneWidget);
+    expect(find.text('Alpha note'), findsNothing);
   });
 
   testWidgets('offline metadata edits preserve formatted Notes content', (

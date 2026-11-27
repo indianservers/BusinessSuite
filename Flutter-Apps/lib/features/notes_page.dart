@@ -165,8 +165,12 @@ class _NotesPageState extends State<NotesPage> {
       _error = null;
     });
     List<Map<String, dynamic>>? saved;
+    Map<int, String>? savedBodies;
     try {
       if (canReadSaved) saved = await widget.cache?.summaries();
+      if (query.isNotEmpty && (saved?.isNotEmpty ?? false)) {
+        savedBodies = await widget.cache?.savedBodies();
+      }
       final pending = await widget.cache?.pendingEdits();
       if (current()) setState(() => _pendingEdits = pending ?? {});
     } catch (_) {
@@ -192,7 +196,8 @@ class _NotesPageState extends State<NotesPage> {
               (edits?['favorite'] ?? note['favorite']) != true) {
             return false;
           }
-          return '${_titleFor(note)} ${_previewFor(note)} ${edits?['tags'] ?? note['tags'] ?? ''}'
+          final body = edits?['content'] ?? savedBodies?[note['id']] ?? '';
+          return '${_titleFor(note)} ${_previewFor(note)} $body ${edits?['tags'] ?? note['tags'] ?? ''}'
               .toLowerCase()
               .contains(term);
         }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
@@ -707,7 +712,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       final values = <String, dynamic>{
         'title': _title.text,
         'content': _rich ? _restoredContent ?? note!['content'] : _body.text,
-        if (tags != null) 'tags': tags,
+        'tags': ?tags,
         if (note != null)
           for (final key in [
             'version',
