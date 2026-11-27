@@ -4,6 +4,7 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/features/finance_chart_page.dart';
 import 'package:business_suite_mobile/features/finance_vouchers_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
+import 'package:business_suite_mobile/features/inventory_finance_report_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,59 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Stock Ledger pages and searches the shared inventory report', (
+    tester,
+  ) async {
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/srm/inventory/reports');
+          expect(request.headers['X-Suite-Branch'], '6');
+          expect(request.queryParameters['report'], 'ledger');
+          expect(request.queryParameters['per_page'], 25);
+          final page = request.queryParameters['page'];
+          final search = request.queryParameters['search'];
+          return response({
+            'total': search == null ? 26 : 1,
+            'items': [
+              {
+                'movement_number': search == 'cable'
+                    ? 'Cable delivery'
+                    : 'Movement $page',
+                'opening_quantity': 8,
+                'quantity_in': 3,
+                'closing_quantity': 11,
+              },
+            ],
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryFinanceReportPage(
+          api: api,
+          report: InventoryFinanceReport.stockLedger,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+          cacheScope: null,
+          offline: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Movement 1'), findsOneWidget);
+    expect(find.textContaining('Closing: 11'), findsOneWidget);
+    await tester.tap(find.text('Next page'));
+    await tester.pumpAndSettle();
+    expect(find.text('Movement 2'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'cable');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(find.text('Page 1'), findsOneWidget);
+    expect(find.text('Cable delivery'), findsOneWidget);
+  });
+
   testWidgets('Finance creates and edits a voucher draft with active ledgers', (
     tester,
   ) async {

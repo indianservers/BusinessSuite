@@ -5,6 +5,20 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 
 enum InventoryFinanceReport {
+  stockLedger('Stock Ledger', 'ledger', {
+    'movement_date': 'Movement date',
+    'movement_type': 'Movement type',
+    'reference_number': 'Reference',
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'opening_quantity': 'Opening',
+    'quantity_in': 'Quantity in',
+    'quantity_out': 'Quantity out',
+    'closing_quantity': 'Closing',
+    'rate': 'Rate',
+    'value': 'Value',
+    'notes': 'Notes',
+  }),
   grossMargin('Gross Margin', 'gross-margin', {
     'sku': 'SKU',
     'revenue_status': 'Revenue attribution',
@@ -119,12 +133,18 @@ enum InventoryFinanceReport {
   final Map<String, String> metrics;
   final bool reconciliation;
 
-  String get endpoint => this == stockAudit
-      ? '/fam/inventory/audit'
-      : '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug';
+  String get endpoint => switch (this) {
+    stockLedger => '/srm/inventory/reports',
+    stockAudit => '/fam/inventory/audit',
+    _ =>
+      '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug',
+  };
   String get labelField => switch (this) {
     grossMargin => 'item_name',
-    cogs || grniReconciliation || cogsReconciliation => 'movement_number',
+    stockLedger ||
+    cogs ||
+    grniReconciliation ||
+    cogsReconciliation => 'movement_number',
     hsn => 'hsn_code',
     glReconciliation => 'inventory_ledger_id',
     gstReconciliation => 'sku',
@@ -159,6 +179,11 @@ class _InventoryFinanceReportPageState
     extends State<InventoryFinanceReportPage> {
   Json? _cached;
   int _request = 0;
+  static const _pageSize = 25;
+  int _page = 1;
+  String _search = '';
+  late bool _offline = widget.offline;
+  bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
   late var _report = _load(offline: widget.offline);
 
   Iterable<Json> _rows(Json? data) =>
@@ -167,18 +192,31 @@ class _InventoryFinanceReportPageState
   Future<({Json? record, bool live})> _load({bool offline = false}) {
     final request = ++_request;
     _cached = null;
+    final query = _ledger
+        ? <String, dynamic>{
+            'report': 'ledger',
+            'page': _page,
+            'per_page': _pageSize,
+            if (_search.isNotEmpty) 'search': _search,
+          }
+        : const <String, dynamic>{};
+    final scope = widget.cacheScope;
     return loadCrmDetail(
       api: widget.api,
       path: widget.report.endpoint,
-      scope: widget.cacheScope,
+      scope: scope == null || !_ledger
+          ? scope
+          : '$scope:ledger:$_page:${Uri.encodeComponent(_search)}',
       headers: widget.scopeHeaders,
       offline: offline,
+      query: query,
       onCached: (saved) {
         if (mounted && request == _request) {
           setState(() => _cached = saved);
         }
       },
       project: (data) => {
+        if (_ledger) 'total': data['total'],
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -195,6 +233,14 @@ class _InventoryFinanceReportPageState
         ],
       },
     );
+  }
+
+  void _changePage(int page, {String? search}) {
+    setState(() {
+      _page = page;
+      if (search != null) _search = search.trim();
+      _report = _load(offline: _offline);
+    });
   }
 
   String _value(Object value) => switch (value) {
@@ -236,6 +282,7 @@ class _InventoryFinanceReportPageState
         IconButton(
           tooltip: 'Refresh report',
           onPressed: () => setState(() {
+            _offline = false;
             _report = _load();
           }),
           icon: const Icon(Icons.refresh),
@@ -245,7 +292,6 @@ class _InventoryFinanceReportPageState
     body: FutureBuilder<({Json? record, bool live})>(
       future: _report,
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
         final done = snapshot.connectionState == ConnectionState.done;
         final data = done ? snapshot.data?.record : _cached;
         final rows = _rows(data).toList();
@@ -257,9 +303,42 @@ class _InventoryFinanceReportPageState
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_ledger)
+                    TextField(
+                      maxLength: 160,
+                      decoration: const InputDecoration(
+                        labelText: 'Search stock ledger',
+                        counterText: '',
+                      ),
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (value) => _changePage(1, search: value),
+                    ),
+                  if (snapshot.hasError) Text('${snapshot.error}'),
                   if (!done) const LinearProgressIndicator(),
-                  if (done && snapshot.data?.live != true)
+                  if (done && !snapshot.hasError && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
+                  if (_ledger)
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: done && _page > 1
+                              ? () => _changePage(_page - 1)
+                              : null,
+                          child: const Text('Previous page'),
+                        ),
+                        Text('Page $_page'),
+                        TextButton(
+                          onPressed:
+                              done &&
+                                  data?['total'] is num &&
+                                  _page * _pageSize < (data!['total'] as num)
+                              ? () => _changePage(_page + 1)
+                              : null,
+                          child: const Text('Next page'),
+                        ),
+                      ],
+                    ),
                   if (data != null && rows.isEmpty && widget.report.hasRows)
                     const Text('No records.'),
                   if (_currency(data) case final String currency)

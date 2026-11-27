@@ -2971,6 +2971,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ),
           ),
         if (_stockSummary)
+          IconButton(
+            tooltip: 'Stock Ledger',
+            icon: const Icon(LucideIcons.bookOpen),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InventoryFinanceReportPage(
+                  api: widget.controller.api,
+                  report: InventoryFinanceReport.stockLedger,
+                  scopeHeaders: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_stockSummary)
           PopupMenuButton<String>(
             tooltip: 'Stock activity reports',
             icon: const Icon(LucideIcons.chartNoAxesColumn),
@@ -3045,7 +3061,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ),
             itemBuilder: (_) => [
               for (final report in InventoryFinanceReport.values)
-                PopupMenuItem(value: report, child: Text(report.title)),
+                if (report != InventoryFinanceReport.stockLedger)
+                  PopupMenuItem(value: report, child: Text(report.title)),
             ],
           ),
         if (_warehouseStock)
