@@ -8,6 +8,7 @@ import '../core/models.dart';
 import '../core/suite_pdf.dart';
 import 'crm_quotation_line_page.dart';
 import 'crm_quotation_draft_page.dart';
+import 'crm_quotation_history_page.dart';
 import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
@@ -125,11 +126,49 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _quote = _load();
   });
 
+  String get _documentPath =>
+      '/srm/documents/quotations/${widget.summary['id']}';
+
+  Future<void> _openQuotation(Json record, {required bool offline}) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CrmQuotationPage(
+            api: widget.api,
+            summary: record,
+            offline: offline,
+            scopeHeaders: widget.scopeHeaders,
+            cacheScope: widget.cacheScope,
+            canManage: widget.canManage,
+            canApprove: widget.canApprove,
+            canSend: widget.canSend,
+            canCreateRevision: widget.canCreateRevision,
+            canCancel: widget.canCancel,
+            canViewSalesOrder: widget.canViewSalesOrder,
+            onChanged: widget.onChanged,
+          ),
+        ),
+      );
+
+  void _openDocumentHistory({required bool offline}) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CrmQuotationHistoryPage(
+            api: widget.api,
+            path: _documentPath,
+            offline: offline,
+            scopeHeaders: widget.scopeHeaders,
+            cacheScope: widget.cacheScope,
+            onOpenQuotation: (id, offline) =>
+                _openQuotation({'id': id}, offline: offline),
+          ),
+        ),
+      );
+
   Future<void> _actOnDocument({required bool cancel}) async {
     if (_changingStatus) return;
     final api = widget.api;
     final revision = api.sessionRevision;
-    final path = '/srm/documents/quotations/${widget.summary['id']}';
+    final path = _documentPath;
     final headers = widget.scopeHeaders;
     final action = cancel ? 'cancel' : 'revise';
     setState(() => _changingStatus = true);
@@ -183,24 +222,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
         _refresh();
         return;
       }
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => CrmQuotationPage(
-            api: api,
-            summary: record,
-            offline: false,
-            scopeHeaders: headers,
-            cacheScope: widget.cacheScope,
-            canManage: widget.canManage,
-            canApprove: widget.canApprove,
-            canSend: widget.canSend,
-            canCreateRevision: widget.canCreateRevision,
-            canCancel: widget.canCancel,
-            canViewSalesOrder: widget.canViewSalesOrder,
-            onChanged: widget.onChanged,
-          ),
-        ),
-      );
+      await _openQuotation(record, offline: false);
     } on ApiFailure catch (error) {
       if (mounted && api.sessionRevision == revision) {
         ScaffoldMessenger.of(
@@ -387,6 +409,19 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     appBar: AppBar(
       title: const Text('Quotation details'),
       actions: [
+        FutureBuilder<({Json? record, bool live})>(
+          future: _quote,
+          builder: (context, snapshot) => IconButton(
+            tooltip: 'Document history',
+            icon: const Icon(Icons.history),
+            onPressed:
+                snapshot.connectionState == ConnectionState.done &&
+                    !snapshot.hasError
+                ? () =>
+                      _openDocumentHistory(offline: snapshot.data?.live != true)
+                : null,
+          ),
+        ),
         IconButton(
           tooltip: 'Refresh quotation',
           icon: const Icon(Icons.refresh),

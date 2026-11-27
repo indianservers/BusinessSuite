@@ -481,7 +481,26 @@ void main() {
                 'status': originalStatus,
               });
             case document:
-              return response({'version': version, 'removed': false});
+              return response({
+                'version': version,
+                'removed': false,
+                'history': [
+                  if (originalStatus == 'Cancelled')
+                    {
+                      'action': 'document_cancelled',
+                      'actor_id': 7,
+                      'reason': 'Offer withdrawn',
+                    },
+                  if (refreshed > 0)
+                    {
+                      'action': 'revision_created',
+                      'reason': 'Updated offer',
+                      'after': {
+                        'record': {'id': 45},
+                      },
+                    },
+                ],
+              });
             case '$document/revise':
               expect(request.method, 'POST');
               writes.add(request);
@@ -558,6 +577,14 @@ void main() {
     expect(find.text('Cancelled'), findsOneWidget);
     expect(find.text('Cancel with reason'), findsNothing);
     expect(refreshed, 2);
+    await tester.tap(find.byTooltip('Document history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Document cancelled'), findsOneWidget);
+    expect(find.textContaining('Offer withdrawn'), findsOneWidget);
+    expect(find.textContaining('Updated offer'), findsOneWidget);
+    await tester.tap(find.byTooltip('Open related quotation'));
+    await tester.pumpAndSettle();
+    expect(find.text('QT-44-R2'), findsOneWidget);
   });
 
   test(
