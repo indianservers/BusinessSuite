@@ -34,6 +34,8 @@ import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,7 +45,7 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   test(
-    'Queued purchase drafts preserve their branch and retry identity',
+    'Queued purchase drafts preserve retry identity and replace rejections',
     () async {
       FlutterSecureStorage.setMockInitialValues({});
       const base = 'https://example.test/api/v1';
@@ -64,16 +66,18 @@ void main() {
         transport: Dio()
           ..httpClientAdapter = FakeAdapter((request) async {
             requests.add(request);
-            return requests.length == 1
-                ? response({}, 503)
-                : response({'id': 9, 'status': 'draft'}, 201);
+            return switch (requests.length) {
+              1 => response({}, 503),
+              2 => response({'detail': 'Invalid quantity'}, 422),
+              _ => response({'id': 9, 'status': 'draft'}, 201),
+            };
           }),
       );
       await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
       await drafts.sync(api);
       expect(await drafts.entries(), hasLength(1));
       await drafts.sync(api);
-      expect(await drafts.entries(), isEmpty);
+      expect((await drafts.entries()).single['status'], 422);
       expect(requests, hasLength(2));
       for (final request in requests) {
         expect(
@@ -85,8 +89,125 @@ void main() {
         expect(request.headers['X-Offline-Operation'], operation);
         expect(request.data, payload);
       }
+      const replacement = '6a52216b-a4e1-4e4a-980d-ea178e9512cd';
+      final corrected = {
+        ...payload,
+        'lines': [
+          {'product_id': 3, 'warehouse_id': 6, 'quantity': '1'},
+        ],
+      };
+      await drafts.save(
+        replacement,
+        corrected,
+        branch: '6',
+        replaceRejected: operation,
+      );
+      expect((await drafts.entries()).single['operation'], replacement);
+      await drafts.sync(api);
+      expect(await drafts.entries(), isEmpty);
+      expect(requests.last.headers['X-Offline-Operation'], replacement);
+      expect(requests.last.headers['X-Suite-Branch'], '6');
+      expect(requests.last.data, corrected);
     },
   );
+
+  testWidgets('A rejected purchase draft reopens with its saved selections', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    const sqlite = MethodChannel('com.tekartik.sqflite');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    databaseFactory = databaseFactorySqflitePlugin;
+    messenger.setMockMethodCallHandler(sqlite, (call) async {
+      expect(call.method, 'getDatabasesPath');
+      throw PlatformException(code: 'cache_unavailable');
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(sqlite, null);
+      databaseFactory = null;
+    });
+    const base = 'https://example.test/api/v1';
+    const scope = '["$base",5,7]';
+    final drafts = SalesOrderDrafts.purchaseOrders(scope);
+    await drafts.save('rejected-operation', {
+      'vendor_id': 22,
+      'vendor_name': 'Saved supplier',
+      'lines': [
+        {
+          'product_id': 3,
+          'warehouse_id': 6,
+          'quantity': '2',
+          'unit_price': '12.50',
+        },
+      ],
+    }, branch: '6');
+    final api = ApiClient(
+      baseUrl: base,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/inventory/warehouses') {
+            expect(request.headers['X-Suite-Branch'], '6');
+            return response({
+              'items': [
+                {'id': 6, 'warehouse_name': 'Saved warehouse'},
+              ],
+            });
+          }
+          expect(
+            request.path,
+            '/srm/procurement/purchase-orders/drafts/offline-create',
+          );
+          return response({'detail': 'Quantity needs correction'}, 422);
+        }),
+    );
+    await tester.runAsync(() async {
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await drafts.sync(api);
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderDraftsPage(
+          api: api,
+          drafts: drafts,
+          correctPurchaseDraft: (draft) => InventoryPurchaseOrderForm(
+            api: api,
+            scopeHeaders: {'X-Suite-Branch': draft['branch'] as String},
+            cacheScope: scope,
+            rejectedDraft: draft,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Saved supplier'));
+    await tester.pumpAndSettle();
+    expect(find.text('Correct purchase order draft'), findsOneWidget);
+    expect(find.text('Product #3'), findsOneWidget);
+    expect(find.text('Saved warehouse'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Order quantity'),
+      '1',
+    );
+    final save = find.text('Save corrected draft');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Awaiting sync'), findsOneWidget);
+    final entry = (await drafts.entries()).single;
+    expect(entry['operation'], isNot('rejected-operation'));
+    expect(entry['branch'], '6');
+    expect(entry['payload']['lines'], [
+      {
+        'product_id': 3,
+        'warehouse_id': 6,
+        'quantity': '1',
+        'unit_price': '12.50',
+        'tax_amount': '0',
+      },
+    ]);
+  });
 
   testWidgets('Purchase order cancellation records a reason and refreshes', (
     tester,

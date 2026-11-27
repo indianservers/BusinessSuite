@@ -2074,6 +2074,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             scope,
             invalidate: SuiteReadCache.invalidate,
           ),
+          correctPurchaseDraft: (draft) => InventoryPurchaseOrderForm(
+            api: widget.controller.api,
+            scopeHeaders: {
+              for (final header in widget.scopeHeaders.entries)
+                if (header.key != 'X-Suite-Branch') header.key: header.value,
+              if (draft['branch'] case final String branch)
+                'X-Suite-Branch': branch,
+            },
+            cacheScope: scope,
+            offline: widget.controller.offline,
+            rejectedDraft: draft,
+          ),
           onSynced: _refreshCrmRecords,
         ),
       ),

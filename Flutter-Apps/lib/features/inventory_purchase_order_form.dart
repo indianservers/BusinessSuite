@@ -15,12 +15,14 @@ class InventoryPurchaseOrderForm extends StatefulWidget {
     required this.scopeHeaders,
     this.cacheScope,
     this.offline = false,
+    this.rejectedDraft,
   });
 
   final ApiClient api;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
   final bool offline;
+  final Json? rejectedDraft;
 
   @override
   State<InventoryPurchaseOrderForm> createState() =>
@@ -28,6 +30,16 @@ class InventoryPurchaseOrderForm extends StatefulWidget {
 }
 
 class _PurchaseLine {
+  _PurchaseLine([Json? saved]) {
+    if (saved?['product_id'] case final int id) {
+      product = {'id': id, 'item_name': 'Product #$id'};
+    }
+    warehouse = saved?['warehouse_id'] as int?;
+    for (final key in values.keys) {
+      if (saved?[key] case final Object value) values[key] = '$value';
+    }
+  }
+
   Json? product;
   int? warehouse;
   final values = {'quantity': '1', 'unit_price': '0', 'tax_amount': '0'};
@@ -36,9 +48,20 @@ class _PurchaseLine {
 class _InventoryPurchaseOrderFormState
     extends State<InventoryPurchaseOrderForm> {
   final _form = GlobalKey<FormState>();
-  final _lines = [_PurchaseLine()];
+  Json? get _savedPayload => widget.rejectedDraft?['payload'] as Json?;
+  late final _lines = [
+    for (final line
+        in (_savedPayload?['lines'] as List? ?? const []).whereType<Json>())
+      _PurchaseLine(line),
+    if (_savedPayload == null) _PurchaseLine(),
+  ];
   late var _warehouses = _loadWarehouses();
-  Json? _vendor;
+  late Json? _vendor = _savedPayload == null
+      ? null
+      : {
+          'id': _savedPayload!['vendor_id'],
+          'name': _savedPayload!['vendor_name'],
+        };
   bool _saving = false;
   bool _uncertain = false;
   String? _error;
@@ -107,6 +130,10 @@ class _InventoryPurchaseOrderFormState
       setState(() => _error = 'Choose a vendor.');
       return;
     }
+    if (_lines.isEmpty) {
+      setState(() => _error = 'Add at least one item.');
+      return;
+    }
     final incomplete = _lines.indexWhere(
       (line) => line.product == null || line.warehouse == null,
     );
@@ -136,13 +163,14 @@ class _InventoryPurchaseOrderFormState
       ],
     };
     try {
-      if (widget.offline) {
+      if (widget.offline || widget.rejectedDraft != null) {
         final scope = widget.cacheScope;
         if (scope == null) throw ApiFailure('Sign in to save a local draft.');
         await SalesOrderDrafts.purchaseOrders(scope).save(
           const Uuid().v4(),
           payload,
           branch: widget.scopeHeaders['X-Suite-Branch'],
+          replaceRejected: widget.rejectedDraft?['operation'] as String?,
         );
         if (mounted && api.sessionRevision == revision) {
           Navigator.pop(context, {'local': true});
@@ -202,61 +230,71 @@ class _InventoryPurchaseOrderFormState
     },
   );
 
-  Widget _lineEditor(int index, _PurchaseLine line, List<Json> warehouses) =>
-      Card(
-        key: ObjectKey(line),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _lineEditor(
+    int index,
+    _PurchaseLine line,
+    List<Json> warehouses,
+  ) => Card(
+    key: ObjectKey(line),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(child: Text('Item ${index + 1}')),
-                  if (_lines.length > 1)
-                    IconButton(
-                      tooltip: 'Remove item ${index + 1}',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: _saving
-                          ? null
-                          : () => setState(() {
-                              _lines.remove(line);
-                            }),
-                    ),
-                ],
-              ),
-              OutlinedButton(
-                onPressed: _saving ? null : () => _pick(line: line),
-                child: Text(
-                  "${line.product?['item_name'] ?? 'Choose product'}",
+              Expanded(child: Text('Item ${index + 1}')),
+              if (_lines.length > 1)
+                IconButton(
+                  tooltip: 'Remove item ${index + 1}',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _saving
+                      ? null
+                      : () => setState(() {
+                          _lines.remove(line);
+                        }),
                 ),
-              ),
-              DropdownButtonFormField<int>(
-                isExpanded: true,
-                initialValue: line.warehouse,
-                decoration: const InputDecoration(labelText: 'Warehouse'),
-                items: [
-                  for (final row in warehouses)
-                    DropdownMenuItem(
-                      value: row['id'] as int,
-                      child: Text('${row['warehouse_name'] ?? row['name']}'),
-                    ),
-                ],
-                onChanged: _saving
-                    ? null
-                    : (id) => setState(() => line.warehouse = id),
-              ),
-              _number(line, 'quantity', 'Order quantity', positive: true),
-              _number(line, 'unit_price', 'Order unit price'),
-              _number(line, 'tax_amount', 'Order tax amount'),
             ],
           ),
-        ),
-      );
+          OutlinedButton(
+            onPressed: _saving ? null : () => _pick(line: line),
+            child: Text("${line.product?['item_name'] ?? 'Choose product'}"),
+          ),
+          DropdownButtonFormField<int>(
+            isExpanded: true,
+            initialValue: warehouses.any((row) => row['id'] == line.warehouse)
+                ? line.warehouse
+                : null,
+            decoration: const InputDecoration(labelText: 'Warehouse'),
+            validator: (id) => id == null ? 'Choose a warehouse.' : null,
+            items: [
+              for (final row in warehouses)
+                DropdownMenuItem(
+                  value: row['id'] as int,
+                  child: Text('${row['warehouse_name'] ?? row['name']}'),
+                ),
+            ],
+            onChanged: _saving
+                ? null
+                : (id) => setState(() => line.warehouse = id),
+          ),
+          _number(line, 'quantity', 'Order quantity', positive: true),
+          _number(line, 'unit_price', 'Order unit price'),
+          _number(line, 'tax_amount', 'Order tax amount'),
+        ],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New purchase order')),
+    appBar: AppBar(
+      title: Text(
+        widget.rejectedDraft == null
+            ? 'New purchase order'
+            : 'Correct purchase order draft',
+      ),
+    ),
     body: Form(
       key: _form,
       child: FutureBuilder<List<Json>>(
@@ -301,6 +339,8 @@ class _InventoryPurchaseOrderFormState
                 child: Text(
                   _saving
                       ? 'Saving…'
+                      : widget.rejectedDraft != null
+                      ? 'Save corrected draft'
                       : widget.offline
                       ? 'Save draft offline'
                       : 'Create purchase order draft',
