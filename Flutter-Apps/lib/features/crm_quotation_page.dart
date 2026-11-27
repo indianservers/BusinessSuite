@@ -1,8 +1,10 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_pdf.dart';
 
 class CrmQuotationPage extends StatefulWidget {
   const CrmQuotationPage({
@@ -37,6 +39,7 @@ class CrmQuotationPage extends StatefulWidget {
 
 class _CrmQuotationPageState extends State<CrmQuotationPage> {
   Json? _cached;
+  bool _savingPdf = false;
   late Future<({Json? record, bool live})> _quote = _load(
     offline: widget.offline,
   );
@@ -78,6 +81,44 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _cached = null;
     _quote = _load();
   });
+
+  Future<void> _savePdf(Json quote) async {
+    if (_savingPdf) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final id = widget.summary['id'];
+    setState(() => _savingPdf = true);
+    try {
+      final bytes = await fetchSuitePdf(
+        api,
+        '${CrmQuotationPage.endpoint}/$id/pdf',
+        query: const {'download': true},
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (!mounted || api.sessionRevision != revision) return;
+      final number = '${quote['quote_number'] ?? id}'.replaceAll(
+        RegExp(r'[^A-Za-z0-9._-]'),
+        '_',
+      );
+      final saved = await FilePicker.saveFile(
+        fileName: 'Quotation-$number.pdf',
+        bytes: bytes,
+      );
+      if (mounted && saved != null && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Quotation PDF saved.')));
+      }
+    } catch (error) {
+      if (mounted && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _savingPdf = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -135,6 +176,15 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     '${record['quote_number'] ?? 'Quotation'}',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  if (snapshot.connectionState == ConnectionState.done &&
+                      snapshot.data?.live == true)
+                    OutlinedButton.icon(
+                      onPressed: _savingPdf ? null : () => _savePdf(record),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(
+                        _savingPdf ? 'Preparing PDF…' : 'Save quotation PDF',
+                      ),
+                    ),
                   for (final field in fields.entries)
                     if (field.value != null &&
                         field.value.toString().isNotEmpty)

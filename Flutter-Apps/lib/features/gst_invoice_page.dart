@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:typed_data';
-
-import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
 
 class GstInvoicePage extends StatefulWidget {
@@ -212,29 +210,15 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     final revision = api.sessionRevision;
     setState(() => _exporting = true);
     try {
-      final result =
-          await api.request(
-                'GET',
-                '$_path/pdf',
-                responseType: ResponseType.bytes,
-                returnResponse: true,
-              )
-              as Response;
+      final bytes = await fetchSuitePdf(api, '$_path/pdf');
       if (!mounted || api.sessionRevision != revision) return;
-      final data = result.data;
-      if (result.statusCode != 200 ||
-          data is! List<int> ||
-          data.length < 5 ||
-          String.fromCharCodes(data.take(5)) != '%PDF-') {
-        throw ApiFailure('The server did not return a PDF.');
-      }
       final number = '${invoice['invoice_number'] ?? widget.id}'.replaceAll(
         RegExp(r'[^A-Za-z0-9._-]'),
         '_',
       );
       final saved = await FilePicker.saveFile(
         fileName: 'Invoice-$number.pdf',
-        bytes: Uint8List.fromList(data),
+        bytes: bytes,
       );
       if (mounted && saved != null) {
         ScaffoldMessenger.of(

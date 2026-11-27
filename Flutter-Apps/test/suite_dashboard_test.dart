@@ -3405,6 +3405,9 @@ void main() {
               ],
               'pages': 1,
             }),
+            '/crm/quotations/44/pdf' => response({
+              'message': 'Unexpected payload',
+            }),
             '/crm/quotations/44' => response({
               'quote_number': 'QT-44',
               'currency': 'INR',
@@ -3884,6 +3887,17 @@ void main() {
           await open('QT-44');
           expect(find.text('Annual support'), findsOneWidget);
           expect(find.text('1500 INR'), findsNWidgets(2));
+          await open('Save quotation PDF');
+          expect(find.text('The server did not return a PDF.'), findsOneWidget);
+          expect(
+            calls
+                .lastWhere(
+                  (request) => request.path == '/crm/quotations/44/pdf',
+                )
+                .queryParameters['download'],
+            isTrue,
+          );
+          await tester.pump(const Duration(seconds: 5));
           await back();
           await back();
           await tester.tap(find.text('Next'));

@@ -6692,8 +6692,12 @@ def generate_quote_pdf_alias(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "crm_quotes_view")),
 ):
-    quotation = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
-    file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, _organization_id(db, current_user), current_user.id)
+    organization_id = _organization_id(db, current_user)
+    resource = _get_resource("quotations")
+    _assert_entity_permission("quotations", current_user, "view")
+    _assert_record_visible(db, resource, quote_id, organization_id, current_user)
+    quotation = _get_record(db, resource, quote_id, organization_id)
+    file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, organization_id, current_user.id)
     # This alias has the same read-side behavior as /quotations/{id}/pdf.
     db.commit()
     return FileResponse(file_path, media_type="application/pdf", filename=file_name if download else None, headers={"Content-Disposition": f"{'attachment' if download else 'inline'}; filename={file_name}"})
@@ -6737,10 +6741,13 @@ def generate_quotation_pdf(
     quotation_id: int,
     download: bool = False,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "crm_quotes_view")),
 ):
     organization_id = _organization_id(db, current_user)
-    quotation = _get_record(db, _get_resource("quotations"), quotation_id, organization_id)
+    resource = _get_resource("quotations")
+    _assert_entity_permission("quotations", current_user, "view")
+    _assert_record_visible(db, resource, quotation_id, organization_id, current_user)
+    quotation = _get_record(db, resource, quotation_id, organization_id)
     file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, organization_id, current_user.id)
     # Reading a PDF must not create a branch-owned business activity. The
     # generated document metadata and native request/storage audit remain;
