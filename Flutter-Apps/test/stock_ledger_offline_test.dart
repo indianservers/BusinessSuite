@@ -78,6 +78,7 @@ void main() {
       databaseFactory = null;
     });
     var requests = 0;
+    var connected = true;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -101,6 +102,12 @@ void main() {
           }
           expect(request.path, '/srm/inventory/reports');
           requests++;
+          if (!connected) {
+            throw DioException(
+              requestOptions: request,
+              type: DioExceptionType.connectionError,
+            );
+          }
           final warehouse = request.queryParameters['warehouse_id'] ?? 'all';
           return response({
             'total': 1,
@@ -210,8 +217,24 @@ void main() {
     await open(false, filters: {'warehouse_id': '6', 'product_id': '12'});
     expect(find.text('Movements for 6'), findsOneWidget);
     expect(requests, 6);
+    await open(false, filters: {'product_id': '12', 'warehouse_id': '6'});
+    connected = false;
+    await tester.tap(find.byTooltip('Refresh report'));
+    await tester.pumpAndSettle();
+    expect(find.text('Offline · Refresh to reconnect'), findsOneWidget);
+    expect(find.text('Movements for 6'), findsOneWidget);
+    expect(requests, 7);
+    await tester.tap(find.byTooltip('Remove Product ID filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Movements for 6'), findsOneWidget);
+    expect(requests, 7);
+    connected = true;
+    await tester.tap(find.byTooltip('Refresh report'));
+    await tester.pumpAndSettle();
+    expect(find.text('Offline · Refresh to reconnect'), findsNothing);
+    expect(requests, 8);
     await open(true, filters: {'product_id': '12', 'warehouse_id': '6'});
     expect(find.text('Movements for 6'), findsOneWidget);
-    expect(requests, 6);
+    expect(requests, 8);
   });
 }

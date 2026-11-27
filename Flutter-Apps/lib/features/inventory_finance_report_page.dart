@@ -387,6 +387,9 @@ class _InventoryFinanceReportPageState
       headers: widget.scopeHeaders,
       offline: offline,
       reuseFresh: _analysis && !refresh,
+      onUnavailable: () {
+        if (mounted && request == _request) setState(() => _offline = true);
+      },
       query: _analysis ? _analysisQuery : const {},
       onCached: (saved) {
         if (mounted && request == _request) {
@@ -669,6 +672,8 @@ class _InventoryFinanceReportPageState
                   if (!done) const LinearProgressIndicator(),
                   if (done && !snapshot.hasError && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
+                  if (done && _offline)
+                    const Text('Offline · Refresh to reconnect'),
                   if (!done && data != null)
                     const Text('Refreshing saved report…'),
                   if (!done || snapshot.data?.live != true)

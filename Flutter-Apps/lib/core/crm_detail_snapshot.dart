@@ -38,6 +38,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   Json query = const {},
   void Function(Json)? onCached,
   bool reuseFresh = false,
+  void Function()? onUnavailable,
 }) async {
   final revision = api.sessionRevision;
   final branch = headers['X-Suite-Branch'] ?? '';
@@ -114,6 +115,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
           (error.status ?? 0) < 500) {
         rethrow;
       }
+      if (error.connectionFailure) onUnavailable?.call();
     } finally {
       awaitingLive = false;
     }
