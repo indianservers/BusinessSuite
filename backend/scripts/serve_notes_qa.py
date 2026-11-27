@@ -18,6 +18,7 @@ from app.models.company import Branch, Company
 from app.access.models import AccessMembership
 from app.apps.project_management.models import PMSWorkspace,PMSWorkspaceMember,PMSProject,PMSTask,PMSNote,PMSNoteRevision,PMSNoteFolder
 from app.api.v1.auth import router as auth_router
+from app.access.api import router as access_router
 from app.apps.project_management.api.router import router as pms_router
 engine=create_engine(os.environ["DATABASE_URL"],connect_args={"check_same_thread":False,"timeout":30})
 Base.metadata.create_all(engine)
@@ -47,6 +48,7 @@ with Session() as db:
     db.commit()
 app=FastAPI()
 app.include_router(auth_router,prefix="/api/v1")
+app.include_router(access_router,prefix="/api/v1")
 app.include_router(pms_router,prefix="/api/v1")
 @app.get("/api/v1/business-os/modules")
 def enabled_modules(): return {"enabled_modules":["project_management","hrms"],"modules":[]}
