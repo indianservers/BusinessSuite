@@ -20,6 +20,7 @@ import 'crm_cpq_evaluator.dart';
 import 'crm_guided_selling_form.dart';
 import 'crm_pipeline_page.dart';
 import 'inventory_batch_page.dart';
+import 'inventory_finance_report_page.dart';
 import 'inventory_tracking_form.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
@@ -495,6 +496,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         title: app.title,
         controller: controller,
         path: app.endpoint,
+        canViewFinanceInventory: _allowed(access, 'fam'),
         query:
             app.title == 'Sales & POS' ||
                 app.grant == 'crm' ||
@@ -1389,6 +1391,7 @@ class _SuiteRecords extends StatefulWidget {
     this.scopeHeaders = const {},
     this.cachePrefix,
     this.showInventory = false,
+    this.canViewFinanceInventory = false,
     this.canExportInvoices = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
@@ -1417,6 +1420,7 @@ class _SuiteRecords extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cachePrefix;
   final bool showInventory;
+  final bool canViewFinanceInventory;
   final bool canExportInvoices;
   final bool canIssueInvoices;
   final bool canEditOrders;
@@ -2490,6 +2494,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Stock Summary',
                   controller: widget.controller,
                   path: _stockSummaryPath,
+                  canViewFinanceInventory: widget.canViewFinanceInventory,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2580,6 +2585,27 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 PopupMenuItem(value: report.key, child: Text(report.value)),
             ],
           ),
+        if (widget.canViewFinanceInventory &&
+            (_stockSummary || widget.path == FinancePartyPage.endpoint))
+          PopupMenuButton<InventoryFinanceReport>(
+            tooltip: 'Inventory financial reports',
+            icon: const Icon(Icons.analytics_outlined),
+            onSelected: (report) => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InventoryFinanceReportPage(
+                  api: widget.controller.api,
+                  report: report,
+                  scopeHeaders: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+            itemBuilder: (_) => [
+              for (final report in InventoryFinanceReport.values)
+                PopupMenuItem(value: report, child: Text(report.title)),
+            ],
+          ),
         if (_warehouseStock)
           IconButton(
             tooltip: 'Inventory Valuation',
@@ -2647,6 +2673,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Inventory',
                   controller: widget.controller,
                   path: InventoryOfflineCreates.itemsEndpoint,
+                  canViewFinanceInventory: widget.canViewFinanceInventory,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   canCreateOrder: widget.canCreateOrder,

@@ -3975,6 +3975,35 @@ void main() {
             '/crm/lead-management/leads' ||
             '/fam/parties' ||
             '/project-management/notes' => response([]),
+            '/fam/inventory/reports/gross-margin' => response({
+              'attribution': {'currency': 'INR'},
+              'items': [
+                {
+                  'item_name': 'Sample product',
+                  'revenue_status': 'Incomplete attribution',
+                  'revenue': 500,
+                  'cogs': 300,
+                  'gross_margin': null,
+                },
+              ],
+            }),
+            '/fam/inventory/reports/cogs' => response({
+              'currency': 'INR',
+              'total_cogs': 300,
+              'items': [
+                {
+                  'movement_number': 'OUT-1',
+                  'cogs_value': 300,
+                  'voucher_posted': true,
+                },
+              ],
+            }),
+            '/fam/inventory/reports/hsn-summary' => response({
+              'currency': 'INR',
+              'items': [
+                {'hsn_code': '844399', 'items': 1, 'stock_value': 900},
+              ],
+            }),
             '/power-apps/environments' => response({
               'items': [
                 {'key': 'development', 'enabled': true},
@@ -4492,6 +4521,27 @@ void main() {
       }.entries) {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
+        if (entry.key == 'Finance & Accounting') {
+          for (final (report, row, detail) in [
+            ('Gross Margin', 'Sample product', 'Incomplete attribution'),
+            ('COGS Report', 'OUT-1', 'Voucher posted: Yes'),
+            ('HSN Summary', '844399', 'Stock value: 900'),
+          ]) {
+            await tester.tap(find.byTooltip('Inventory financial reports'));
+            await tester.pumpAndSettle();
+            await open(report);
+            expect(find.text(row), findsOneWidget);
+            expect(find.textContaining(detail), findsOneWidget);
+            if (report == 'Gross Margin') {
+              expect(find.text('Currency: INR'), findsOneWidget);
+              expect(
+                find.textContaining('Gross margin: Not available'),
+                findsOneWidget,
+              );
+            }
+            await back();
+          }
+        }
         if (entry.key == 'Power Apps') {
           await open('production');
           expect(calls.any((r) => r.path == '/power-apps/overview'), isFalse);
