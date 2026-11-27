@@ -1,12 +1,95 @@
+import 'dart:convert';
+
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/features/crm_follow_ups_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM opens saved follow-up activity without contacting the API', (
+    tester,
+  ) async {
+    const sqlite = MethodChannel('com.tekartik.sqflite');
+    const scope = '["https://example.test/api/v1",5,7]';
+    const row = {'id': 9, 'title': 'Check delivery', 'status': 'Due'};
+    final messenger = tester.binding.defaultBinaryMessenger;
+    databaseFactory = databaseFactorySqflitePlugin;
+    messenger.setMockMethodCallHandler(sqlite, (call) async {
+      switch (call.method) {
+        case 'getDatabasesPath':
+          return '/test';
+        case 'openDatabase':
+          return {'id': 1};
+        case 'execute':
+          return null;
+        case 'query':
+          final query = call.arguments as Map;
+          if ((query['sql'] as String).toUpperCase().contains('USER_VERSION')) {
+            return [
+              {'user_version': 3},
+            ];
+          }
+          final key = (query['arguments'] as List).first;
+          final record = switch (key) {
+            '$scope:follow-ups:::1:/follow-ups:6' => {
+              'items': [row],
+              'total': 1,
+            },
+            '$scope:/follow-ups/9:6' => {
+              ...row,
+              'activities': [
+                {'action': 'contact', 'actor_name': 'Sales coordinator'},
+              ],
+            },
+            _ => throw StateError('Unexpected SQLite key $key'),
+          };
+          return [
+            {
+              'saved_at': DateTime.now().millisecondsSinceEpoch,
+              'rows': jsonEncode([record]),
+            },
+          ];
+        default:
+          fail('Unexpected SQLite method ${call.method}');
+      }
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(sqlite, null);
+      databaseFactory = null;
+    });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((_) async {
+          fail('Saved follow-up activity must open without a network request');
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmFollowUpsPage(
+          api: api,
+          headers: const {'X-Suite-Branch': '6'},
+          cacheScope: scope,
+          offline: true,
+          canEdit: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check delivery'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved activity history'), findsOneWidget);
+    expect(find.text('contact'), findsOneWidget);
+    expect(find.text('Sales coordinator'), findsOneWidget);
+    expect(find.text('Save action'), findsNothing);
+  });
+
   testWidgets('CRM schedules a customer follow-up with a date and time', (
     tester,
   ) async {

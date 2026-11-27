@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class CrmFollowUpsPage extends StatefulWidget {
   const CrmFollowUpsPage({
@@ -131,22 +132,6 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
 
   Future<void> _open(Json row, {required bool live}) async {
     final id = row['id'] as int;
-    if (!live) {
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text('${row['title']}'),
-          content: Text(_description(row)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
     final revision = widget.api.sessionRevision;
     final changed = await showDialog<bool>(
       context: context,
@@ -155,6 +140,9 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
         api: widget.api,
         path: '$_path/$id',
         headers: widget.headers,
+        summary: _summary(row),
+        cacheScope: widget.cacheScope,
+        offline: !live,
         revision: revision,
         canEdit: widget.canEdit,
         canAssign: widget.canAssign,
@@ -307,6 +295,9 @@ class _FollowUpDetail extends StatefulWidget {
     required this.api,
     required this.path,
     required this.headers,
+    required this.summary,
+    required this.cacheScope,
+    required this.offline,
     required this.revision,
     required this.canEdit,
     required this.canAssign,
@@ -315,6 +306,9 @@ class _FollowUpDetail extends StatefulWidget {
   final ApiClient api;
   final String path;
   final Map<String, String> headers;
+  final Json summary;
+  final String? cacheScope;
+  final bool offline;
   final int revision;
   final bool canEdit, canAssign;
 
@@ -392,17 +386,26 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
     if (mounted && due != null) setState(() => _newDue = due);
   }
 
-  Future<Json> _load() async {
-    final result = await widget.api.request(
-      'GET',
-      widget.path,
-      scopeHeaders: widget.headers,
-    );
-    if (widget.revision != widget.api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
-    return result as Json;
-  }
+  Future<({Json? record, bool live})> _load() => loadCrmDetail(
+    api: widget.api,
+    path: widget.path,
+    scope: widget.cacheScope,
+    headers: widget.headers,
+    offline: widget.offline,
+    project: (record) => {
+      for (final field in widget.summary.keys) field: record[field],
+      'activities': [
+        for (final action
+            in (record['activities'] as List? ?? const []).cast<Json>().take(
+              100,
+            ))
+          {
+            for (final field in ['action', 'actor_name', 'created_at'])
+              field: action[field],
+          },
+      ],
+    },
+  );
 
   @override
   void dispose() {
@@ -432,6 +435,14 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
             'due_at': _newDue!.toUtc().toIso8601String(),
         },
       );
+      if (widget.cacheScope case final String scope) {
+        final branch = widget.headers['X-Suite-Branch'] ?? '';
+        final key = '$scope:${widget.path}:$branch';
+        try {
+          await flushCrmDetailWrite(key);
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
       if (mounted && widget.revision == widget.api.sessionRevision) {
         Navigator.pop(context, true);
       }
@@ -448,13 +459,15 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
   Widget build(BuildContext context) => FutureBuilder(
     future: _record,
     builder: (context, snapshot) {
-      final row = snapshot.data;
-      final closed = const {'Completed', 'Cancelled'}.contains(row?['status']);
+      final detail = snapshot.data;
+      final row = detail?.record ?? widget.summary;
+      final closed = const {'Completed', 'Cancelled'}.contains(row['status']);
       final editable =
-          row != null && (widget.canEdit || (!closed && widget.canAssign));
+          detail?.live == true &&
+          (widget.canEdit || (!closed && widget.canAssign));
       return AlertDialog(
         scrollable: true,
-        title: Text('${row?['title'] ?? 'Follow-up'}'),
+        title: Text('${row['title'] ?? 'Follow-up'}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -462,14 +475,27 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
             if (snapshot.hasError) Text('${snapshot.error}'),
             if (snapshot.connectionState != ConnectionState.done)
               const LinearProgressIndicator(),
-            if (row != null) ...[
-              Text('${row['customer_name'] ?? ''} · ${row['status']}'),
+            Text('${row['customer_name'] ?? ''} · ${row['status']}'),
+            if (detail?.live == false)
+              Text(
+                detail?.record == null
+                    ? 'Saved summary'
+                    : 'Saved activity history',
+              ),
+            if (detail?.record != null) ...[
               for (final activity
                   in (row['activities'] as List? ?? const []).cast<Json>())
                 ListTile(
                   title: Text('${activity['action']}'),
                   subtitle: Text(
-                    '${activity['actor_name'] ?? ''} · ${(activity['details'] as Json?)?['notes'] ?? ''}',
+                    [
+                          activity['actor_name'],
+                          activity['created_at'],
+                          (activity['details'] as Json?)?['notes'],
+                        ]
+                        .whereType<String>()
+                        .where((value) => value.isNotEmpty)
+                        .join(' · '),
                   ),
                 ),
             ],
