@@ -529,6 +529,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               }),
             ),
         canViewQuoteSalesOrders: app.grant == 'crm' && _allowed(access, 'srm'),
+        canCancelQuotes:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'edit', const {
+              'crm_quotes_manage',
+              'crm_manage',
+              'crm_admin',
+            }),
         canCreateQuotes:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'create', const {
@@ -1373,6 +1380,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canMoveDeals = false,
     this.canCreateDeals = false,
     this.canManageQuotes = false,
+    this.canCancelQuotes = false,
     this.canCreateQuotes = false,
     this.canViewQuoteSalesOrders = false,
     this.canApproveQuotes = false,
@@ -1398,6 +1406,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canMoveDeals;
   final bool canCreateDeals;
   final bool canManageQuotes;
+  final bool canCancelQuotes;
   final bool canCreateQuotes;
   final bool canViewQuoteSalesOrders;
   final bool canApproveQuotes;
@@ -2020,6 +2029,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canMoveDeals: widget.canMoveDeals,
                   canCreateDeals: widget.canCreateDeals,
                   canManageQuotes: widget.canManageQuotes,
+                  canCancelQuotes: widget.canCancelQuotes,
                   canCreateQuotes: widget.canCreateQuotes,
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
@@ -2083,6 +2093,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: CrmQuotationPage.endpoint,
                   canManageQuotes: widget.canManageQuotes,
+                  canCancelQuotes: widget.canCancelQuotes,
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
                   canSendQuotes: widget.canSendQuotes,
@@ -2929,6 +2940,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
                                             canManage: widget.canManageQuotes,
+                                            canCancel: widget.canCancelQuotes,
                                             canApprove: widget.canApproveQuotes,
                                             canSend: widget.canSendQuotes,
                                             canCreateRevision:
@@ -2992,6 +3004,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                         widget.scopeHeaders,
                                                     canManage:
                                                         widget.canManageQuotes,
+                                                    canCancel:
+                                                        widget.canCancelQuotes,
                                                     canApprove:
                                                         widget.canApproveQuotes,
                                                     canSend:

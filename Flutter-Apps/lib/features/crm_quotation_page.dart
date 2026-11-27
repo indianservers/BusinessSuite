@@ -22,6 +22,7 @@ class CrmQuotationPage extends StatefulWidget {
     this.canApprove = false,
     this.canSend = false,
     this.canCreateRevision = false,
+    this.canCancel = false,
     this.canViewSalesOrder = false,
     this.onChanged,
   });
@@ -47,6 +48,7 @@ class CrmQuotationPage extends StatefulWidget {
   final bool canApprove;
   final bool canSend;
   final bool canCreateRevision;
+  final bool canCancel;
   final bool canViewSalesOrder;
   final VoidCallback? onChanged;
 
@@ -58,7 +60,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
   Json? _cached;
   bool _savingPdf = false;
   bool _changingStatus = false;
-  ({String reason, String version, String id})? _revisionRequest;
+  ({String action, String reason, String version, String id})? _documentRequest;
   late Future<({Json? record, bool live})> _quote = _load(
     offline: widget.offline,
   );
@@ -123,32 +125,44 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _quote = _load();
   });
 
-  Future<void> _revise() async {
+  Future<void> _actOnDocument({required bool cancel}) async {
     if (_changingStatus) return;
     final api = widget.api;
     final revision = api.sessionRevision;
     final path = '/srm/documents/quotations/${widget.summary['id']}';
     final headers = widget.scopeHeaders;
+    final action = cancel ? 'cancel' : 'revise';
     setState(() => _changingStatus = true);
     try {
       final document = await api.request('GET', path, scopeHeaders: headers);
       if (!mounted || api.sessionRevision != revision) return;
       if (document is! Json ||
           document['removed'] == true ||
-          document['version'] is! String) {
-        throw ApiFailure('This quotation is unavailable for revision.');
+          document['version'] is! String ||
+          (cancel && document['editable'] == true)) {
+        throw ApiFailure(
+          'This action is unavailable for the current quotation.',
+        );
       }
       final version = document['version'] as String;
-      final reason = await _requestRevisionReason();
+      final reason = await _requestDocumentReason(cancel: cancel);
       if (!mounted || reason == null || api.sessionRevision != revision) return;
-      final previous = _revisionRequest;
-      final request = previous?.reason == reason && previous?.version == version
+      final previous = _documentRequest;
+      final request =
+          previous?.action == action &&
+              previous?.reason == reason &&
+              previous?.version == version
           ? previous!
-          : (reason: reason, version: version, id: const Uuid().v4());
-      _revisionRequest = request;
+          : (
+              action: action,
+              reason: reason,
+              version: version,
+              id: const Uuid().v4(),
+            );
+      _documentRequest = request;
       final result = await api.request(
         'POST',
-        '$path/revise',
+        '$path/$action',
         scopeHeaders: headers,
         data: {
           'reason': request.reason,
@@ -159,10 +173,16 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
       if (!mounted || api.sessionRevision != revision) return;
       final record = result is Json ? result['record'] : null;
       if (record is! Json || record['id'] is! int) {
-        throw ApiFailure('The revision could not be confirmed. Try again.');
+        throw ApiFailure(
+          'The quotation change could not be confirmed. Try again.',
+        );
       }
-      _revisionRequest = null;
+      _documentRequest = null;
       widget.onChanged?.call();
+      if (cancel) {
+        _refresh();
+        return;
+      }
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => CrmQuotationPage(
@@ -175,6 +195,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             canApprove: widget.canApprove,
             canSend: widget.canSend,
             canCreateRevision: widget.canCreateRevision,
+            canCancel: widget.canCancel,
             canViewSalesOrder: widget.canViewSalesOrder,
             onChanged: widget.onChanged,
           ),
@@ -191,19 +212,21 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     }
   }
 
-  Future<String?> _requestRevisionReason() {
+  Future<String?> _requestDocumentReason({required bool cancel}) {
     final form = GlobalKey<FormState>();
     var reason = '';
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Create revision draft'),
+        title: Text(cancel ? 'Cancel quotation' : 'Create revision draft'),
         content: Form(
           key: form,
           child: TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Reason',
-              helperText: 'The original stays in the register.',
+              helperText: cancel
+                  ? 'The quotation stays in the register as cancelled.'
+                  : 'The original stays in the register.',
             ),
             maxLength: 500,
             maxLines: 3,
@@ -221,7 +244,9 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             onPressed: () {
               if (form.currentState!.validate()) Navigator.pop(context, reason);
             },
-            child: const Text('Create revised draft'),
+            child: Text(
+              cancel ? 'Confirm cancellation' : 'Create revised draft',
+            ),
           ),
         ],
       ),
@@ -559,8 +584,25 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                       widget.canCreateRevision &&
                       !const {'deleted', 'archived'}.contains(status))
                     OutlinedButton(
-                      onPressed: _changingStatus ? null : _revise,
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _actOnDocument(cancel: false),
                       child: const Text('Create revision draft'),
+                    ),
+                  if (live &&
+                      widget.canCancel &&
+                      record['converted_srm_sales_order_id'] == null &&
+                      const {
+                        'pending approval',
+                        'approved',
+                        'sent',
+                        'accepted',
+                      }.contains(status))
+                    OutlinedButton(
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _actOnDocument(cancel: true),
+                      child: const Text('Cancel with reason'),
                     ),
                   if (widget.canViewSalesOrder &&
                       record['converted_srm_sales_order_id'] is int)

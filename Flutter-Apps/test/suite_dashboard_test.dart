@@ -465,6 +465,8 @@ void main() {
     const document = '/srm/documents/quotations/44';
     const draft = {'id': 45, 'quote_number': 'QT-44-R2', 'status': 'Draft'};
     var refreshed = 0;
+    var originalStatus = 'Sent';
+    RequestOptions? cancellation;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -476,7 +478,7 @@ void main() {
               return response({
                 'id': 44,
                 'quote_number': 'QT-44',
-                'status': 'Sent',
+                'status': originalStatus,
               });
             case document:
               return response({'version': version, 'removed': false});
@@ -489,6 +491,13 @@ void main() {
               return response({'record': draft}, 201);
             case '/crm/quotations/45':
               return response(draft);
+            case '$document/cancel':
+              expect(request.method, 'POST');
+              cancellation = request;
+              originalStatus = 'Cancelled';
+              return response({
+                'record': {'id': 44, 'status': originalStatus},
+              });
             default:
               throw StateError('Unexpected request: ${request.path}');
           }
@@ -503,6 +512,7 @@ void main() {
           scopeHeaders: const {'X-Suite-Organization': '7'},
           canManage: true,
           canCreateRevision: true,
+          canCancel: true,
           onChanged: () => refreshed++,
         ),
       ),
@@ -533,6 +543,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('QT-44'), findsOneWidget);
     expect(find.text('Sent'), findsOneWidget);
+    await tester.tap(find.text('Cancel with reason'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'Offer withdrawn');
+    expect(cancellation, isNull);
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+    expect(cancellation?.data, {
+      'reason': 'Offer withdrawn',
+      'version': version,
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(find.text('QT-44'), findsOneWidget);
+    expect(find.text('Cancelled'), findsOneWidget);
+    expect(find.text('Cancel with reason'), findsNothing);
+    expect(refreshed, 2);
   });
 
   test(
