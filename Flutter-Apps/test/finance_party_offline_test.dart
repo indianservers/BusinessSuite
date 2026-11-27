@@ -13,7 +13,7 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Finance posts a balanced voucher only after confirmation', (
+  testWidgets('Finance confirms posting, reversal, and cancellation', (
     tester,
   ) async {
     final paths = <String>[];
@@ -26,6 +26,12 @@ void main() {
       'total_credit': '250.00',
       'source_module': 'fam',
     };
+    final reversal = {
+      ...voucher,
+      'id': 11,
+      'voucher_number': 'REV-V-007',
+      'reversed_voucher_id': 7,
+    };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -37,6 +43,19 @@ void main() {
             expect(request.method, 'POST');
             voucher['status'] = 'posted';
             return response(voucher);
+          }
+          if (request.path == '/fam/vouchers/7/reverse') {
+            expect(request.method, 'POST');
+            voucher['status'] = 'reversed';
+            voucher['reversed_voucher_id'] = 11;
+            return response(reversal, 201);
+          }
+          if (request.path == '/fam/vouchers/11/cancel') {
+            expect(request.method, 'POST');
+            expect(request.data, {'reason': 'Incorrect reversal'});
+            reversal['status'] = 'cancelled';
+            reversal['cancellation_reason'] = 'Incorrect reversal';
+            return response(reversal);
           }
           return switch (request.path) {
             '/fam/vouchers' => response({
@@ -57,6 +76,7 @@ void main() {
                 },
               ],
             }),
+            '/fam/vouchers/11' => response(reversal),
             _ => throw StateError(request.path),
           };
         }),
@@ -66,6 +86,8 @@ void main() {
         home: FinanceVouchersPage(
           api: api,
           canPost: true,
+          canCancel: true,
+          canReverse: true,
           scopeHeaders: const {'X-Suite-Branch': '6'},
         ),
       ),
@@ -94,6 +116,24 @@ void main() {
     expect(paths.where((path) => path.endsWith('/post')), hasLength(1));
     expect(find.text('2026-11-27 · posted'), findsOneWidget);
     expect(find.text('Post voucher'), findsNothing);
+    await tester.tap(find.text('Reverse voucher'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm reversal'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-27 · reversed'), findsOneWidget);
+    await tester.tap(find.text('Linked voucher'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-27 · draft'), findsOneWidget);
+    await tester.tap(find.text('Cancel voucher'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+    expect(paths, isNot(contains('/fam/vouchers/11/cancel')));
+    await tester.enterText(find.byType(TextField), 'Incorrect reversal');
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+    expect(find.text('2026-11-27 · cancelled'), findsOneWidget);
+    expect(find.text('Incorrect reversal'), findsOneWidget);
   });
 
   testWidgets(

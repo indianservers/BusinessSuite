@@ -14,13 +14,15 @@ class FinanceVouchersPage extends StatefulWidget {
     this.scopeHeaders = const {},
     this.offline = false,
     this.canPost = false,
+    this.canCancel = false,
+    this.canReverse = false,
   });
 
   final ApiClient api;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool offline;
-  final bool canPost;
+  final bool canPost, canCancel, canReverse;
 
   @override
   State<FinanceVouchersPage> createState() => _FinanceVouchersPageState();
@@ -74,6 +76,8 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
       project: (data) => {
         ..._summary(data),
         'reference_number': data['reference_number'],
+        'reversed_voucher_id': data['reversed_voucher_id'],
+        'cancellation_reason': data['cancellation_reason'],
         'lines': [
           for (final line in (data['lines'] as List? ?? const []).cast<Json>())
             {
@@ -84,26 +88,51 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
       },
     );
     var detail = loadDetail(offline: offline);
-    var posting = false;
+    var busy = false;
     String? error;
-    Future<void> post(
+    Future<void> change(
       BuildContext context,
       StateSetter update,
       Json voucher,
+      String action,
     ) async {
-      if (posting || widget.api.sessionRevision != revision) return;
+      if (busy || widget.api.sessionRevision != revision) return;
       update(() {
-        posting = true;
+        busy = true;
         error = null;
       });
       try {
+        var reason = '';
+        final cancelling = action == 'cancel';
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialog) => AlertDialog(
-            title: const Text('Post this voucher?'),
-            content: Text(
-              '${voucher['voucher_number']} · Debit ${voucher['total_debit']} · Credit ${voucher['total_credit']}\n\n'
-              'Posting records the entries in the ledger.',
+            title: Text(switch (action) {
+              'cancel' => 'Cancel this voucher?',
+              'reverse' => 'Reverse this posted voucher?',
+              _ => 'Post this voucher?',
+            }),
+            scrollable: true,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${voucher['voucher_number']} · Debit ${voucher['total_debit']} · Credit ${voucher['total_credit']}',
+                ),
+                Text(switch (action) {
+                  'cancel' => 'The voucher will be marked as cancelled.',
+                  'reverse' => 'This creates a linked reversal draft.',
+                  _ => 'Posting records the entries in the ledger.',
+                }),
+                if (cancelling)
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Reason',
+                      helperText: 'Required to cancel the voucher',
+                    ),
+                    onChanged: (value) => reason = value.trim(),
+                  ),
+              ],
             ),
             actions: [
               TextButton(
@@ -111,8 +140,15 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(dialog, true),
-                child: const Text('Confirm posting'),
+                onPressed: () {
+                  if (cancelling && reason.isEmpty) return;
+                  Navigator.pop(dialog, true);
+                },
+                child: Text(switch (action) {
+                  'cancel' => 'Confirm cancellation',
+                  'reverse' => 'Confirm reversal',
+                  _ => 'Confirm posting',
+                }),
               ),
             ],
           ),
@@ -124,7 +160,8 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
         }
         await widget.api.request(
           'POST',
-          '$_path/$id/post',
+          '$_path/$id/$action',
+          data: cancelling ? {'reason': reason} : null,
           scopeHeaders: widget.scopeHeaders,
         );
         if (widget.api.sessionRevision != revision) return;
@@ -159,7 +196,7 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
           }
         });
       } finally {
-        if (context.mounted) update(() => posting = false);
+        if (context.mounted) update(() => busy = false);
       }
     }
 
@@ -212,20 +249,58 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
                       trailing: Text('${data['total_credit'] ?? '—'}'),
                     ),
                     if (error != null) ListTile(title: Text(error!)),
+                    if (data['cancellation_reason'] case final String reason)
+                      ListTile(
+                        title: const Text('Cancellation reason'),
+                        subtitle: Text(reason),
+                      ),
+                    if (data['reversed_voucher_id'] case final int linked)
+                      ListTile(
+                        title: const Text('Linked voucher'),
+                        onTap: busy
+                            ? null
+                            : () => _open({
+                                'id': linked,
+                                'voucher_number': 'Voucher #$linked',
+                              }, !result.live),
+                        trailing: const Icon(LucideIcons.chevronRight),
+                      ),
                     if (widget.canPost &&
                         result.live &&
                         data['status'] == 'draft')
                       ListTile(
                         title: FilledButton(
                           onPressed:
-                              posting ||
+                              busy ||
                                   debit == null ||
                                   debit <= 0 ||
                                   debit != credit ||
                                   lines.isEmpty
                               ? null
-                              : () => post(context, update, data),
-                          child: Text(posting ? 'Posting…' : 'Post voucher'),
+                              : () => change(context, update, data, 'post'),
+                          child: const Text('Post voucher'),
+                        ),
+                      ),
+                    if (widget.canCancel &&
+                        result.live &&
+                        const {'draft', 'posted'}.contains(data['status']))
+                      ListTile(
+                        title: OutlinedButton(
+                          onPressed: busy
+                              ? null
+                              : () => change(context, update, data, 'cancel'),
+                          child: const Text('Cancel voucher'),
+                        ),
+                      ),
+                    if (widget.canReverse &&
+                        result.live &&
+                        data['status'] == 'posted')
+                      ListTile(
+                        title: OutlinedButton(
+                          onPressed: busy
+                              ? null
+                              : () => change(context, update, data, 'reverse'),
+                          child: const Text('Reverse voucher'),
                         ),
                       ),
                     ListTile(
