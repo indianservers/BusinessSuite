@@ -65,8 +65,18 @@ void main() {
     tester,
   ) async {
     String? saved;
+    String? tested;
+    var reachable = false;
     await tester.pumpWidget(
-      MaterialApp(home: LoginPage(onServerChanged: (url) async => saved = url)),
+      MaterialApp(
+        home: LoginPage(
+          onServerChanged: (url) async => saved = url,
+          onServerTest: (url) async {
+            tested = url;
+            if (!reachable) throw ApiFailure('Could not reach the server.');
+          },
+        ),
+      ),
     );
     await tester.tap(find.text('Set server address'));
     await tester.pumpAndSettle();
@@ -75,6 +85,16 @@ void main() {
       find.widgetWithText(TextFormField, 'Business Suite server URL'),
       'http://10.0.2.2:1534/api/v1',
     );
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+    expect(tested, 'http://10.0.2.2:1534/api/v1');
+    expect(find.text('Could not reach the server.'), findsOneWidget);
+    expect(saved, isNull);
+    reachable = true;
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+    expect(find.text('Business Suite server reached.'), findsOneWidget);
+    expect(saved, isNull);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(saved, 'http://10.0.2.2:1534/api/v1');

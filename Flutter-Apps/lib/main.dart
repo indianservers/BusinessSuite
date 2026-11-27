@@ -54,7 +54,7 @@ class _ServerAppState extends State<_ServerApp> {
     }
   }
 
-  Future<void> _save(String value) async {
+  String _serverUrl(String value) {
     final uri = Uri.tryParse(value.trim());
     final raw = value.trim().replaceFirst(RegExp(r'/+$'), '');
     final url =
@@ -67,6 +67,31 @@ class _ServerAppState extends State<_ServerApp> {
     if (uri == null || uri.host.isEmpty) {
       throw ArgumentError('Enter a full server URL, including https://.');
     }
+    return url;
+  }
+
+  Future<void> _testServer(String value) async {
+    final url = _serverUrl(value);
+    final api = ApiClient(
+      baseUrl: url,
+      store: SecureSessionStore(server: url),
+    );
+    api.dio.options.connectTimeout = const Duration(seconds: 5);
+    api.dio.options.receiveTimeout = const Duration(seconds: 5);
+    try {
+      final result = await api.request('GET', '/auth/branding', auth: false);
+      if (result is! Map || !result.containsKey('company_name')) {
+        throw ApiFailure(
+          'The address did not return a Business Suite response.',
+        );
+      }
+    } finally {
+      api.dio.close(force: true);
+    }
+  }
+
+  Future<void> _save(String value) async {
+    final url = _serverUrl(value);
     if (url == _url && _controller != null) return;
     final next = _connect(url);
     try {
@@ -96,7 +121,11 @@ class _ServerAppState extends State<_ServerApp> {
     final controller = _controller;
     if (controller == null) {
       return MaterialApp(
-        home: LoginPage(serverUrl: _url, onServerChanged: _save),
+        home: LoginPage(
+          serverUrl: _url,
+          onServerChanged: _save,
+          onServerTest: _testServer,
+        ),
       );
     }
     return BusinessSuiteApp(
@@ -104,6 +133,7 @@ class _ServerAppState extends State<_ServerApp> {
       controller: controller,
       serverUrl: _url,
       onServerChanged: _save,
+      onServerTest: _testServer,
     );
   }
 }
@@ -114,10 +144,12 @@ class BusinessSuiteApp extends StatefulWidget {
     required this.controller,
     this.serverUrl = '',
     this.onServerChanged,
+    this.onServerTest,
   });
   final AppController controller;
   final String serverUrl;
   final Future<void> Function(String)? onServerChanged;
+  final Future<void> Function(String)? onServerTest;
   @override
   State<BusinessSuiteApp> createState() => _BusinessSuiteAppState();
 }
@@ -176,6 +208,7 @@ class _BusinessSuiteAppState extends State<BusinessSuiteApp> {
                 controller: controller,
                 serverUrl: widget.serverUrl,
                 onServerChanged: widget.onServerChanged,
+                onServerTest: widget.onServerTest,
               )
             : SuiteDashboard(controller: controller);
       },

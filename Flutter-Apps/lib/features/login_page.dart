@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_controller.dart';
+import '../core/api_client.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({
@@ -8,10 +9,12 @@ class LoginPage extends StatefulWidget {
     this.controller,
     this.serverUrl = '',
     this.onServerChanged,
+    this.onServerTest,
   });
   final AppController? controller;
   final String serverUrl;
   final Future<void> Function(String)? onServerChanged;
+  final Future<void> Function(String)? onServerTest;
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -44,7 +47,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _settings() async {
     var url = widget.serverUrl;
     String? error;
+    String? connectionStatus;
     var saving = false;
+    var testing = false;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -53,23 +58,68 @@ class _LoginPageState extends State<LoginPage> {
           title: const Text('Server settings'),
           content: TextFormField(
             initialValue: url,
-            enabled: !saving,
+            enabled: !saving && !testing,
             keyboardType: TextInputType.url,
             decoration: InputDecoration(
               labelText: 'Business Suite server URL',
               hintText: 'https://suite.example.com',
               errorText: error,
               errorMaxLines: 4,
+              helperText: connectionStatus,
             ),
-            onChanged: (value) => url = value,
+            onChanged: (value) {
+              url = value;
+              if (error != null || connectionStatus != null) {
+                update(() {
+                  error = null;
+                  connectionStatus = null;
+                });
+              }
+            },
           ),
           actions: [
             TextButton(
-              onPressed: saving ? null : () => Navigator.pop(context),
+              onPressed: saving || testing
+                  ? null
+                  : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
+            if (widget.onServerTest case final test?)
+              TextButton(
+                onPressed: saving || testing
+                    ? null
+                    : () async {
+                        update(() {
+                          testing = true;
+                          error = null;
+                          connectionStatus = null;
+                        });
+                        try {
+                          await test(url);
+                          if (context.mounted) {
+                            update(
+                              () => connectionStatus =
+                                  'Business Suite server reached.',
+                            );
+                          }
+                        } catch (failure) {
+                          if (context.mounted) {
+                            update(
+                              () => error = switch (failure) {
+                                ArgumentError() => '${failure.message}',
+                                ApiFailure() => failure.message,
+                                _ => 'Could not reach the server.',
+                              },
+                            );
+                          }
+                        } finally {
+                          if (context.mounted) update(() => testing = false);
+                        }
+                      },
+                child: Text(testing ? 'Testing…' : 'Test connection'),
+              ),
             FilledButton(
-              onPressed: saving
+              onPressed: saving || testing
                   ? null
                   : () async {
                       update(() => saving = true);
