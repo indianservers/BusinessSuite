@@ -2421,6 +2421,33 @@ void main() {
         (r) => r.path == '/srm/industry/records',
       );
       expect(branchRequest.headers['X-Suite-Branch'], '6');
+      final today = DateTime.now();
+      await open('Choose schedule date');
+      await open('OK');
+      final datedRequest = calls.lastWhere(
+        (r) => r.path == '/srm/industry/records',
+      );
+      expect(datedRequest.headers['X-Suite-Branch'], '6');
+      expect(
+        datedRequest.queryParameters['from_at'],
+        DateTime(today.year, today.month, today.day).toUtc().toIso8601String(),
+      );
+      expect(
+        datedRequest.queryParameters['until_at'],
+        DateTime(
+          today.year,
+          today.month,
+          today.day + 1,
+        ).toUtc().toIso8601String(),
+      );
+      await tester.tap(find.byTooltip('Clear schedule date'));
+      await tester.pumpAndSettle();
+      expect(
+        calls
+            .lastWhere((r) => r.path == '/srm/industry/records')
+            .queryParameters,
+        isNot(contains('from_at')),
+      );
       await open('All statuses');
       await open('Confirmed');
       expect(find.text('Previous visit'), findsNothing);

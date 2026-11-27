@@ -1130,6 +1130,27 @@ class _SuiteRecords extends StatefulWidget {
 class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _appointments => widget.query['kind'] == 'appointment';
   String _appointmentStatus = '';
+  DateTime? _appointmentDay;
+
+  Future<void> _pickAppointmentDay() async {
+    final day = await showDatePicker(
+      context: context,
+      initialDate: _appointmentDay ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2200),
+      helpText: 'Schedule date · device time zone',
+    );
+    if (!mounted || day == null) return;
+    _setAppointmentDay(day);
+  }
+
+  void _setAppointmentDay(DateTime? day) {
+    setState(() {
+      _appointmentDay = day;
+      _records = _startLoad();
+    });
+  }
+
   static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
   static const _listReuseWindow = Duration(seconds: 15);
   bool get _stockAlerts => widget.path == _stockSummaryPath;
@@ -1287,6 +1308,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         path,
         query: {
           ...widget.query,
+          if (_appointmentDay case final DateTime day) ...{
+            'from_at': day.toUtc().toIso8601String(),
+            'until_at': DateTime(
+              day.year,
+              day.month,
+              day.day + 1,
+            ).toUtc().toIso8601String(),
+          },
           if (_hasPages) 'page': page,
           if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
         },
@@ -1737,6 +1766,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         .toList();
               return Column(
                 children: [
+                  if (_appointments)
+                    ListTile(
+                      leading: const Icon(LucideIcons.calendar),
+                      title: Text(switch (_appointmentDay) {
+                        final DateTime day => MaterialLocalizations.of(
+                          context,
+                        ).formatMediumDate(day),
+                        null => 'Choose schedule date',
+                      }),
+                      subtitle: const Text('Device time zone'),
+                      onTap: _pickAppointmentDay,
+                      trailing: _appointmentDay == null
+                          ? null
+                          : IconButton(
+                              tooltip: 'Clear schedule date',
+                              onPressed: () => _setAppointmentDay(null),
+                              icon: const Icon(Icons.clear),
+                            ),
+                    ),
                   if (_stockAlerts)
                     ListTile(
                       leading: const Icon(LucideIcons.bell),
