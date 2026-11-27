@@ -1610,6 +1610,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     return records;
   }
 
+  Future<void> _refreshStockLists() async {
+    final scope = widget.cachePrefix;
+    final api = widget.controller.api;
+    final session = api.sessionRevision;
+    if (scope != null) {
+      try {
+        await Future.wait([
+          SuiteReadCache.invalidate(
+            '$scope:${InventoryOfflineCreates.itemsEndpoint}',
+          ),
+          SuiteReadCache.invalidate('$scope:$_stockSummaryCachePath'),
+        ]);
+      } catch (_) {
+        // Refresh the online list even if the device cache is unavailable.
+      }
+    }
+    if (mounted && session == api.sessionRevision) _refresh();
+  }
+
   void _refresh() {
     _searchDebounce?.cancel();
     if (_searchOnServer && _serverSearch != _term) {
@@ -2301,7 +2320,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             canRecordStock:
                                                 _inventory &&
                                                 widget.canCreateOrder,
-                                            onStockChanged: _refresh,
+                                            onStockChanged: _refreshStockLists,
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
