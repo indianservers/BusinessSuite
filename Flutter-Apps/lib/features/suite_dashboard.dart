@@ -3956,6 +3956,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             api: widget.controller.api,
                                             id: item['id'] as int,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            scopeHeaders: widget.scopeHeaders,
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,

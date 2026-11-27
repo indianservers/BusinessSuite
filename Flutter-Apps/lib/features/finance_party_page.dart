@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 
 class FinancePartyPage extends StatefulWidget {
@@ -10,6 +11,8 @@ class FinancePartyPage extends StatefulWidget {
     required this.id,
     this.summary,
     this.offline = false,
+    this.cacheScope,
+    this.scopeHeaders = const {},
   });
   static const endpoint = '/fam/parties';
   static const summaryFields = [
@@ -22,6 +25,8 @@ class FinancePartyPage extends StatefulWidget {
   final int id;
   final Json? summary;
   final bool offline;
+  final String? cacheScope;
+  final Map<String, String> scopeHeaders;
 
   @override
   State<FinancePartyPage> createState() => _FinancePartyPageState();
@@ -29,12 +34,13 @@ class FinancePartyPage extends StatefulWidget {
 
 class _FinancePartyPageState extends State<FinancePartyPage> {
   late Future<Json?> _party = _load();
-  Future<Json>? _outstanding;
+  Future<({Json? record, bool live})>? _outstanding;
 
   Future<Json> _read([String suffix = '']) async =>
       await widget.api.request(
             'GET',
             '${FinancePartyPage.endpoint}/${widget.id}$suffix',
+            scopeHeaders: widget.scopeHeaders,
           )
           as Json;
 
@@ -55,11 +61,34 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
 
   void _refresh() => setState(() {
     _party = _load(reconnect: true);
+    _outstanding = null;
   });
 
-  void _loadOutstanding() {
+  void _loadOutstanding({required bool offline}) {
     setState(() {
-      _outstanding = _read('/outstanding');
+      _outstanding = loadCrmDetail(
+        api: widget.api,
+        path: '${FinancePartyPage.endpoint}/${widget.id}/outstanding',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: offline,
+        project: (record) => {
+          'openBills': record['openBills'],
+          'outstanding': record['outstanding'],
+          'items': [
+            for (final bill
+                in (record['items'] as List? ?? const []).whereType<Json>())
+              {
+                for (final field in [
+                  'bill_number',
+                  'due_date',
+                  'outstanding_amount',
+                ])
+                  field: bill[field],
+              },
+          ],
+        },
+      );
     });
   }
 
@@ -133,24 +162,25 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
                       : null,
                 ),
             ],
-            if (live) ...[
+            if (live || (!loading && widget.cacheScope != null)) ...[
               const Divider(),
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        _PartyStatement(load: () => _read('/statement')),
+              if (live)
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          _PartyStatement(load: () => _read('/statement')),
+                    ),
                   ),
+                  child: const Text('View statement'),
                 ),
-                child: const Text('View statement'),
-              ),
               if (_outstanding == null)
                 OutlinedButton(
-                  onPressed: _loadOutstanding,
+                  onPressed: () => _loadOutstanding(offline: !live),
                   child: const Text('View outstanding bills'),
                 )
               else
-                FutureBuilder<Json>(
+                FutureBuilder(
                   future: _outstanding,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState != ConnectionState.done) {
@@ -160,18 +190,30 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
                       return ListTile(
                         title: Text('${snapshot.error}'),
                         trailing: TextButton(
-                          onPressed: _loadOutstanding,
+                          onPressed: () => _loadOutstanding(offline: false),
                           child: const Text('Retry bills'),
                         ),
                       );
                     }
-                    final data = snapshot.requireData;
+                    final result = snapshot.requireData;
+                    final data = result.record;
+                    if (data == null) {
+                      return const ListTile(
+                        title: Text(
+                          'Open outstanding bills online to save them on this device.',
+                        ),
+                      );
+                    }
                     final bills = (data['items'] as List? ?? [])
                         .whereType<Json>();
                     return Column(
                       children: [
                         ListTile(
-                          title: const Text('Outstanding'),
+                          title: Text(
+                            result.live
+                                ? 'Outstanding'
+                                : 'Saved outstanding bills',
+                          ),
                           subtitle: Text('${data['openBills']} open bills'),
                           trailing: Text('${data['outstanding']}'),
                         ),
