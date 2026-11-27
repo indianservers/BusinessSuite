@@ -36,10 +36,10 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
   late Future<Json?> _party = _load();
   Future<({Json? record, bool live})>? _outstanding;
 
-  Future<Json> _read([String suffix = '']) async =>
+  Future<Json> _read() async =>
       await widget.api.request(
             'GET',
-            '${FinancePartyPage.endpoint}/${widget.id}$suffix',
+            '${FinancePartyPage.endpoint}/${widget.id}',
             scopeHeaders: widget.scopeHeaders,
           )
           as Json;
@@ -91,6 +91,52 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
       );
     });
   }
+
+  Future<({Json? record, bool live})> _loadStatement({required bool offline}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '${FinancePartyPage.endpoint}/${widget.id}/statement',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: offline,
+        project: (record) => {
+          'party': {'legal_name': (record['party'] as Json?)?['legal_name']},
+          'outstanding': record['outstanding'],
+          'billReferences': [
+            for (final row
+                in (record['billReferences'] as List? ?? const [])
+                    .whereType<Json>())
+              {
+                for (final key in [
+                  'id',
+                  'bill_number',
+                  'status',
+                  'bill_type',
+                  'bill_date',
+                  'due_date',
+                  'original_amount',
+                  'outstanding_amount',
+                ])
+                  key: row[key],
+              },
+          ],
+          'allocations': [
+            for (final row
+                in (record['allocations'] as List? ?? const [])
+                    .whereType<Json>())
+              {
+                for (final key in [
+                  'from_bill_reference_id',
+                  'to_bill_reference_id',
+                  'allocation_date',
+                  'allocation_type',
+                  'allocated_amount',
+                ])
+                  key: row[key],
+              },
+          ],
+        },
+      );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -164,16 +210,15 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
             ],
             if (live || (!loading && widget.cacheScope != null)) ...[
               const Divider(),
-              if (live)
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          _PartyStatement(load: () => _read('/statement')),
-                    ),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        _PartyStatement(load: _loadStatement, offline: !live),
                   ),
-                  child: const Text('View statement'),
                 ),
+                child: const Text('View statement'),
+              ),
               if (_outstanding == null)
                 OutlinedButton(
                   onPressed: () => _loadOutstanding(offline: !live),
@@ -236,19 +281,21 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
 }
 
 class _PartyStatement extends StatefulWidget {
-  const _PartyStatement({required this.load});
-  final Future<Json> Function() load;
+  const _PartyStatement({required this.load, required this.offline});
+  final Future<({Json? record, bool live})> Function({required bool offline})
+  load;
+  final bool offline;
 
   @override
   State<_PartyStatement> createState() => _PartyStatementState();
 }
 
 class _PartyStatementState extends State<_PartyStatement> {
-  late Future<Json> _statement = widget.load();
+  late var _statement = widget.load(offline: widget.offline);
 
   void _refresh() {
     setState(() {
-      _statement = widget.load();
+      _statement = widget.load(offline: false);
     });
   }
 
@@ -264,7 +311,7 @@ class _PartyStatementState extends State<_PartyStatement> {
         ),
       ],
     ),
-    body: FutureBuilder<Json>(
+    body: FutureBuilder(
       future: _statement,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -279,7 +326,15 @@ class _PartyStatementState extends State<_PartyStatement> {
             ),
           );
         }
-        final statement = snapshot.requireData;
+        final data = snapshot.requireData;
+        final statement = data.record;
+        if (statement == null) {
+          return const Center(
+            child: Text(
+              'Open this statement online to save it on this device.',
+            ),
+          );
+        }
         final bills = (statement['billReferences'] as List? ?? [])
             .whereType<Json>()
             .toList();
@@ -292,6 +347,7 @@ class _PartyStatementState extends State<_PartyStatement> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (!data.live) const ListTile(title: Text('Saved statement')),
             ListTile(
               title: Text(
                 '${(statement['party'] as Json?)?['legal_name'] ?? 'Party'}',

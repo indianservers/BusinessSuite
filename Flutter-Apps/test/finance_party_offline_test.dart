@@ -12,7 +12,7 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore;
 
 void main() {
   testWidgets(
-    'Finance loads saved outstanding bills without contacting the API',
+    'Finance loads saved bills and statements without contacting the API',
     (tester) async {
       const scope = '["https://example.test/api/v1",5,7]';
       const channel = MethodChannel('com.tekartik.sqflite');
@@ -39,7 +39,9 @@ void main() {
             reads++;
             expect(
               (args['arguments'] as List).first,
-              '$scope:/fam/parties/4/outstanding:6',
+              reads == 1
+                  ? '$scope:/fam/parties/4/outstanding:6'
+                  : '$scope:/fam/parties/4/statement:6',
             );
             return [
               {
@@ -48,6 +50,18 @@ void main() {
                   {
                     'openBills': 1,
                     'outstanding': '75.00',
+                    'party': {'legal_name': 'Saved party'},
+                    'billReferences': [
+                      {'id': 1, 'bill_number': 'B-22', 'status': 'Open'},
+                      {'id': 2, 'bill_number': 'R-7', 'status': 'Closed'},
+                    ],
+                    'allocations': [
+                      {
+                        'from_bill_reference_id': 2,
+                        'to_bill_reference_id': 1,
+                        'allocated_amount': '25.00',
+                      },
+                    ],
                     'items': [
                       {
                         'bill_number': 'B-22',
@@ -94,6 +108,12 @@ void main() {
       expect(find.text('B-22'), findsOneWidget);
       expect(find.text('Due 2026-12-15'), findsOneWidget);
       expect(reads, 1);
+      await tester.tap(find.text('View statement'));
+      await tester.pumpAndSettle();
+      expect(find.text('Saved statement'), findsOneWidget);
+      expect(find.text('B-22 · Open'), findsOneWidget);
+      expect(find.text('R-7 → B-22'), findsOneWidget);
+      expect(reads, 2);
     },
   );
 }
