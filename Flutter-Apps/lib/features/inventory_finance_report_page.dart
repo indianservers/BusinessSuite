@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
@@ -179,9 +182,10 @@ class _InventoryFinanceReportPageState
     extends State<InventoryFinanceReportPage> {
   Json? _cached;
   int _request = 0;
-  static const _pageSize = 25;
+  int _pageSize = 25;
   int _page = 1;
   String _search = '';
+  Map<String, String> _filters = const {};
   late bool _offline = widget.offline;
   bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
   late var _report = _load(offline: widget.offline);
@@ -198,15 +202,19 @@ class _InventoryFinanceReportPageState
             'page': _page,
             'per_page': _pageSize,
             if (_search.isNotEmpty) 'search': _search,
+            ..._filters,
           }
         : const <String, dynamic>{};
     final scope = widget.cacheScope;
+    final ledgerScope = '$scope:ledger:$_page:${Uri.encodeComponent(_search)}';
     return loadCrmDetail(
       api: widget.api,
       path: widget.report.endpoint,
       scope: scope == null || !_ledger
           ? scope
-          : '$scope:ledger:$_page:${Uri.encodeComponent(_search)}',
+          : _filters.isEmpty && _pageSize == 25
+          ? ledgerScope
+          : '$ledgerScope:$_pageSize:${Uri.encodeComponent(jsonEncode(_filters))}',
       headers: widget.scopeHeaders,
       offline: offline,
       query: query,
@@ -235,12 +243,29 @@ class _InventoryFinanceReportPageState
     );
   }
 
-  void _changePage(int page, {String? search}) {
+  void _changePage(
+    int page, {
+    String? search,
+    int? pageSize,
+    Map<String, String>? filters,
+  }) {
     setState(() {
       _page = page;
       if (search != null) _search = search.trim();
+      if (pageSize != null) _pageSize = pageSize;
+      if (filters != null) _filters = filters;
       _report = _load(offline: _offline);
     });
+  }
+
+  Future<void> _editFilters() async {
+    final filters = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _LedgerFilters(values: _filters),
+    );
+    if (mounted && filters != null) _changePage(1, filters: filters);
   }
 
   String _value(Object value) => switch (value) {
@@ -287,6 +312,16 @@ class _InventoryFinanceReportPageState
           }),
           icon: const Icon(Icons.refresh),
         ),
+        if (_ledger)
+          IconButton(
+            tooltip: 'Stock ledger filters',
+            onPressed: _editFilters,
+            icon: Badge(
+              isLabelVisible: _filters.isNotEmpty,
+              label: Text('${_filters.length}'),
+              child: const Icon(Icons.filter_list),
+            ),
+          ),
       ],
     ),
     body: FutureBuilder<({Json? record, bool live})>(
@@ -337,6 +372,23 @@ class _InventoryFinanceReportPageState
                               : null,
                           child: const Text('Next page'),
                         ),
+                        DropdownButton<int>(
+                          value: _pageSize,
+                          onChanged: !done
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    _changePage(1, pageSize: value);
+                                  }
+                                },
+                          items: [
+                            for (final size in [25, 50, 100])
+                              DropdownMenuItem(
+                                value: size,
+                                child: Text('$size per page'),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   if (data != null && rows.isEmpty && widget.report.hasRows)
@@ -375,6 +427,114 @@ class _InventoryFinanceReportPageState
           },
         );
       },
+    ),
+  );
+}
+
+class _LedgerFilters extends StatefulWidget {
+  const _LedgerFilters({required this.values});
+
+  final Map<String, String> values;
+
+  @override
+  State<_LedgerFilters> createState() => _LedgerFiltersState();
+}
+
+class _LedgerFiltersState extends State<_LedgerFilters> {
+  final _form = GlobalKey<FormState>();
+  late final _values = Map<String, String>.of(widget.values);
+
+  static const _fields = {
+    'start_date': 'From',
+    'end_date': 'To',
+    'product_id': 'Product ID',
+    'warehouse_id': 'Warehouse ID',
+    'category': 'Category ID',
+    'transaction_type': 'Transaction type',
+  };
+
+  String? _validate(String key, String input) {
+    final value = input.trim();
+    if (value.isEmpty) return null;
+    if (key.endsWith('_date')) {
+      final date = DateTime.tryParse(value);
+      if (date == null ||
+          date.year < 1 ||
+          date.toIso8601String().split('T').first != value) {
+        return 'Enter a date as YYYY-MM-DD.';
+      }
+      final from = _values['start_date'] ?? '';
+      if (key == 'end_date' && from.isNotEmpty && value.compareTo(from) < 0) {
+        return 'Choose a date on or after From.';
+      }
+    }
+    if (key.endsWith('_id') && (int.tryParse(value) ?? 0) < 1) {
+      return 'Enter a positive ID.';
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      16,
+      16,
+      16,
+      MediaQuery.viewInsetsOf(context).bottom + 16,
+    ),
+    child: Form(
+      key: _form,
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Text(
+            'Stock ledger filters',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          for (final field in _fields.entries)
+            TextFormField(
+              initialValue: _values[field.key],
+              decoration: InputDecoration(
+                labelText: field.value,
+                hintText: field.key.endsWith('_date') ? 'YYYY-MM-DD' : null,
+              ),
+              keyboardType: field.key.endsWith('_id')
+                  ? TextInputType.number
+                  : null,
+              inputFormatters: [
+                if (field.key.endsWith('_id'))
+                  FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(switch (field.key) {
+                  'category' => 180,
+                  'transaction_type' => 80,
+                  _ => 10,
+                }),
+              ],
+              onChanged: (value) => _values[field.key] = value.trim(),
+              validator: (value) => _validate(field.key, value ?? ''),
+            ),
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: () =>
+                    Navigator.pop(context, const <String, String>{}),
+                child: const Text('Clear filters'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  if (!_form.currentState!.validate()) return;
+                  Navigator.pop(context, {
+                    for (final key in _fields.keys)
+                      if ((_values[key] ?? '').isNotEmpty) key: _values[key]!,
+                  });
+                },
+                child: const Text('Apply filters'),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }

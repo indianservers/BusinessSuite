@@ -25,15 +25,20 @@ void main() {
           expect(request.path, '/srm/inventory/reports');
           expect(request.headers['X-Suite-Branch'], '6');
           expect(request.queryParameters['report'], 'ledger');
-          expect(request.queryParameters['per_page'], 25);
           final page = request.queryParameters['page'];
           final search = request.queryParameters['search'];
+          final warehouse = request.queryParameters['warehouse_id'];
+          if (warehouse != null) {
+            expect(warehouse, '6');
+            expect(request.queryParameters['start_date'], '2026-11-01');
+            expect(page, 1);
+          }
           return response({
             'total': search == null ? 26 : 1,
             'items': [
               {
                 'movement_number': search == 'cable'
-                    ? 'Cable delivery'
+                    ? 'Cable delivery ${warehouse ?? 'all'}'
                     : 'Movement $page',
                 'opening_quantity': 8,
                 'quantity_in': 3,
@@ -64,7 +69,21 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     expect(find.text('Page 1'), findsOneWidget);
-    expect(find.text('Cable delivery'), findsOneWidget);
+    expect(find.text('Cable delivery all'), findsOneWidget);
+    await tester.tap(find.byTooltip('Stock ledger filters'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'From'),
+      '2026-11-01',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Warehouse ID'),
+      '6',
+    );
+    await tester.ensureVisible(find.text('Apply filters'));
+    await tester.tap(find.text('Apply filters'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cable delivery 6'), findsOneWidget);
   });
 
   testWidgets('Finance creates and edits a voucher draft with active ledgers', (
