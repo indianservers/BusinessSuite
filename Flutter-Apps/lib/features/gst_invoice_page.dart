@@ -9,6 +9,37 @@ import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
 import 'sales_order_drafts_page.dart';
 
+const _invoiceDates = {'issue_date': 'Issue date', 'due_date': 'Due date'};
+
+Widget _invoiceDateField(
+  String key,
+  Map<String, String?> dates, {
+  required bool enabled,
+}) => TextFormField(
+  initialValue: dates[key],
+  enabled: enabled,
+  decoration: InputDecoration(
+    labelText: _invoiceDates[key],
+    hintText: 'YYYY-MM-DD',
+  ),
+  onChanged: (value) {
+    final text = value.trim();
+    dates[key] = text.isEmpty ? null : text;
+  },
+  validator: (_) {
+    final text = dates[key];
+    if (text == null) return null;
+    final date = DateTime.tryParse(text);
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(text) ||
+        date == null ||
+        date.year < 1 ||
+        !date.toIso8601String().startsWith('${text}T')) {
+      return 'Enter a valid date as YYYY-MM-DD.';
+    }
+    return null;
+  },
+);
+
 Future<Json?> showGstInvoiceDraftForm(
   BuildContext context, {
   required ApiClient api,
@@ -33,6 +64,8 @@ class _GstDraftFormState extends State<_GstDraftForm> {
   late final _revision = widget.api.sessionRevision;
   final _operation = const Uuid().v4();
   final _lines = <Json>[];
+  final _form = GlobalKey<FormState>();
+  final _dates = <String, String?>{};
   Json? _customer;
   Json? _pending;
   bool _saving = false;
@@ -61,6 +94,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
 
   Future<void> _save() async {
     if (_saving || widget.api.sessionRevision != _revision) return;
+    if (_pending == null && !_form.currentState!.validate()) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -70,6 +104,8 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       'request_id': _operation,
       'customer_id': _customer!['id'],
       'currency': 'INR',
+      for (final date in _dates.entries)
+        if (date.value != null) date.key: date.value,
       'lines': _lines,
     };
     try {
@@ -108,33 +144,40 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     child: AlertDialog(
       title: const Text('New GST invoice draft'),
       scrollable: true,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OutlinedButton(
-            onPressed: _pending == null ? _chooseCustomer : null,
-            child: Text('${_customer?['name'] ?? 'Choose customer'}'),
-          ),
-          for (final line in _lines)
-            ListTile(
-              title: Text('${line['description']}'),
-              subtitle: Text('${line['quantity']} × INR ${line['unit_price']}'),
-              trailing: _pending != null
-                  ? null
-                  : IconButton(
-                      tooltip: 'Remove line',
-                      onPressed: () => setState(() => _lines.remove(line)),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
+      content: Form(
+        key: _form,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton(
+              onPressed: _pending == null ? _chooseCustomer : null,
+              child: Text('${_customer?['name'] ?? 'Choose customer'}'),
             ),
-          OutlinedButton.icon(
-            onPressed: _pending == null ? _addLine : null,
-            icon: const Icon(Icons.add),
-            label: const Text('Add line item'),
-          ),
-          if (_error != null) Text(_error!),
-        ],
+            for (final key in _invoiceDates.keys)
+              _invoiceDateField(key, _dates, enabled: _pending == null),
+            for (final line in _lines)
+              ListTile(
+                title: Text('${line['description']}'),
+                subtitle: Text(
+                  '${line['quantity']} × INR ${line['unit_price']}',
+                ),
+                trailing: _pending != null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Remove line',
+                        onPressed: () => setState(() => _lines.remove(line)),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+              ),
+            OutlinedButton.icon(
+              onPressed: _pending == null ? _addLine : null,
+              icon: const Icon(Icons.add),
+              label: const Text('Add line item'),
+            ),
+            if (_error != null) Text(_error!),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -488,33 +531,8 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final (key, label) in const [
-                      ('issue_date', 'Issue date'),
-                      ('due_date', 'Due date'),
-                    ])
-                      TextFormField(
-                        initialValue: initial[key],
-                        enabled: !saving,
-                        decoration: InputDecoration(
-                          labelText: label,
-                          hintText: 'YYYY-MM-DD',
-                        ),
-                        onChanged: (value) => dates[key] = value.trim().isEmpty
-                            ? null
-                            : value.trim(),
-                        validator: (_) {
-                          final text = dates[key];
-                          if (text == null) return null;
-                          final date = DateTime.tryParse(text);
-                          if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(text) ||
-                              date == null ||
-                              date.year < 1 ||
-                              !date.toIso8601String().startsWith('${text}T')) {
-                            return 'Enter a valid date as YYYY-MM-DD.';
-                          }
-                          return null;
-                        },
-                      ),
+                    for (final key in _invoiceDates.keys)
+                      _invoiceDateField(key, dates, enabled: !saving),
                     if (error != null) SelectableText(error!),
                   ],
                 ),

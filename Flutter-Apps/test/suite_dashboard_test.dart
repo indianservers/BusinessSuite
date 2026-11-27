@@ -3817,6 +3817,16 @@ void main() {
       'Packing materials',
     );
     await tap('Save line');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Issue date'),
+      '2026-11-27',
+    );
+    final due = find.widgetWithText(TextFormField, 'Due date');
+    await tester.enterText(due, '2026-02-31');
+    await tap('Create draft');
+    expect(payloads, isEmpty);
+    expect(find.text('Enter a valid date as YYYY-MM-DD.'), findsOneWidget);
+    await tester.enterText(due, '2026-12-15');
     await tap('Create draft');
     expect(find.textContaining('Save could not be confirmed'), findsOneWidget);
     await tap('Retry draft save');
@@ -3827,6 +3837,8 @@ void main() {
       'request_id': matches(RegExp(r'^[a-f0-9-]{36}$')),
       'customer_id': 5,
       'currency': 'INR',
+      'issue_date': '2026-11-27',
+      'due_date': '2026-12-15',
       'lines': [
         {
           'description': 'Packing materials',
