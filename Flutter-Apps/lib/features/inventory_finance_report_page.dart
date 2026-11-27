@@ -10,24 +10,50 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
 
+const _movementFields = {
+  'movement_date': 'Movement date',
+  'movement_type': 'Movement type',
+  'reference_number': 'Reference',
+  'sku': 'SKU',
+  'warehouse_name': 'Warehouse',
+  'opening_quantity': 'Opening',
+  'quantity_in': 'Quantity in',
+  'quantity_out': 'Quantity out',
+  'closing_quantity': 'Closing',
+  'rate': 'Rate',
+  'value': 'Value',
+  'created_by': 'Created by',
+  'posted_by': 'Posted by',
+  'notes': 'Notes',
+  'status': 'Status',
+};
+
 enum InventoryFinanceReport {
-  stockLedger('Stock Ledger', 'ledger', {
-    'movement_date': 'Movement date',
-    'movement_type': 'Movement type',
-    'reference_number': 'Reference',
-    'sku': 'SKU',
-    'warehouse_name': 'Warehouse',
-    'opening_quantity': 'Opening',
-    'quantity_in': 'Quantity in',
-    'quantity_out': 'Quantity out',
-    'closing_quantity': 'Closing',
-    'rate': 'Rate',
-    'value': 'Value',
-    'created_by': 'Created by',
-    'posted_by': 'Posted by',
-    'notes': 'Notes',
-    'status': 'Status',
-  }),
+  stockLedger('Stock Ledger', 'ledger', _movementFields, movementReport: true),
+  salesMovements(
+    'Sales Movement',
+    'sales',
+    _movementFields,
+    movementReport: true,
+  ),
+  purchaseMovements(
+    'Purchase Movements',
+    'purchases',
+    _movementFields,
+    movementReport: true,
+  ),
+  stockAdjustments(
+    'Stock Adjustments',
+    'adjustments',
+    _movementFields,
+    movementReport: true,
+  ),
+  stockTransfers(
+    'Stock Transfers',
+    'transfers',
+    _movementFields,
+    movementReport: true,
+  ),
   grossMargin('Gross Margin', 'gross-margin', {
     'sku': 'SKU',
     'revenue_status': 'Revenue attribution',
@@ -135,15 +161,17 @@ enum InventoryFinanceReport {
     this.slug,
     this.fields, {
     this.reconciliation = false,
+    this.movementReport = false,
     this.metrics = const {},
   });
   final String title, slug;
   final Map<String, String> fields;
   final Map<String, String> metrics;
   final bool reconciliation;
+  final bool movementReport;
 
   String get endpoint => switch (this) {
-    stockLedger => '/srm/inventory/reports',
+    _ when movementReport => '/srm/inventory/reports',
     stockAudit => '/fam/inventory/audit',
     _ =>
       '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug',
@@ -151,9 +179,11 @@ enum InventoryFinanceReport {
   String get labelField => switch (this) {
     grossMargin => 'item_name',
     stockLedger ||
-    cogs ||
-    grniReconciliation ||
-    cogsReconciliation => 'movement_number',
+    salesMovements ||
+    purchaseMovements ||
+    stockAdjustments ||
+    stockTransfers => 'movement_number',
+    cogs || grniReconciliation || cogsReconciliation => 'movement_number',
     hsn => 'hsn_code',
     glReconciliation => 'inventory_ledger_id',
     gstReconciliation => 'sku',
@@ -200,14 +230,14 @@ class _InventoryFinanceReportPageState
   late Map<String, String> _filters = widget.initialFilters;
   late bool _offline = widget.offline;
   bool _exporting = false;
-  bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
+  bool get _ledger => widget.report.movementReport;
   late var _report = _load(offline: widget.offline);
 
   Iterable<Json> _rows(Json? data) =>
       (data?['items'] as List? ?? const []).whereType<Json>();
 
   Json get _ledgerQuery => {
-    'report': 'ledger',
+    'report': widget.report.slug,
     'page': _page,
     'per_page': _pageSize,
     if (_search.isNotEmpty) 'search': _search,
@@ -223,7 +253,7 @@ class _InventoryFinanceReportPageState
         ? ''
         : ':movement:${widget.movementId}';
     final ledgerScope =
-        '$scope:ledger$movement:$_page:${Uri.encodeComponent(_search)}';
+        '$scope:${widget.report.slug}$movement:$_page:${Uri.encodeComponent(_search)}';
     return loadCrmDetail(
       api: widget.api,
       path: widget.report.endpoint,
@@ -243,6 +273,7 @@ class _InventoryFinanceReportPageState
       project: (data) => {
         if (_ledger) 'total': data['total'],
         if (_ledger) 'as_of': data['as_of'],
+        if (_ledger) 'warnings': data['warnings'],
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -276,7 +307,7 @@ class _InventoryFinanceReportPageState
           : await _fetchLedgerSpreadsheet(api, path, query, headers);
       if (!mounted || revision != api.sessionRevision) return;
       final saved = await FilePicker.saveFile(
-        fileName: 'inventory-srm-ledger.$format',
+        fileName: 'inventory-srm-${widget.report.slug}.$format',
         bytes: bytes,
         mimeType: format == 'pdf'
             ? 'application/pdf'
@@ -284,7 +315,7 @@ class _InventoryFinanceReportPageState
       );
       if (mounted && saved != null && revision == api.sessionRevision) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Stock ledger export saved.')),
+          const SnackBar(content: Text('Inventory report export saved.')),
         );
       }
     } catch (error) {
@@ -332,7 +363,7 @@ class _InventoryFinanceReportPageState
       MaterialPageRoute<void>(
         builder: (_) => InventoryFinanceReportPage(
           api: widget.api,
-          report: widget.report,
+          report: InventoryFinanceReport.stockLedger,
           scopeHeaders: widget.scopeHeaders,
           cacheScope: widget.cacheScope,
           offline: _offline,
@@ -511,6 +542,15 @@ class _InventoryFinanceReportPageState
                     const Text('No records.'),
                   if (_ledger && data?['as_of'] is String)
                     Text('Posted movements · As of ${data!['as_of']}'),
+                  if (data?['warnings'] case final List warnings)
+                    if (_ledger && warnings.whereType<String>().isNotEmpty)
+                      ExpansionTile(
+                        title: const Text('Calculation basis and limitations'),
+                        children: [
+                          for (final warning in warnings.whereType<String>())
+                            ListTile(title: Text(warning)),
+                        ],
+                      ),
                   if (_currency(data) case final String currency)
                     Text('Currency: $currency'),
                   if (data?['total_cogs'] case final num total)

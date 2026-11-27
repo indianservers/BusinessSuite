@@ -2390,12 +2390,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     });
   }
 
-  void _openStockLedger([Map<String, String> filters = const {}]) {
+  void _openStockLedger([Map<String, String> filters = const {}]) =>
+      _openMovementReport(InventoryFinanceReport.stockLedger, filters);
+
+  void _openMovementReport(
+    InventoryFinanceReport report, [
+    Map<String, String> filters = const {},
+  ]) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => InventoryFinanceReportPage(
           api: widget.controller.api,
-          report: InventoryFinanceReport.stockLedger,
+          report: report,
           scopeHeaders: widget.scopeHeaders,
           cacheScope: widget.cachePrefix,
           offline: _offlineOnly || _usedSavedFallback,
@@ -2994,22 +3000,33 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             onPressed: _openStockLedger,
           ),
         if (_stockSummary)
-          PopupMenuButton<String>(
+          PopupMenuButton<Object>(
             tooltip: 'Stock activity reports',
             icon: const Icon(LucideIcons.chartNoAxesColumn),
-            onSelected: (path) => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => _SuiteRecords(
-                  title: InventoryStockReceipts.activityReports[path]!,
-                  controller: widget.controller,
-                  path: path,
-                  scopeHeaders: widget.scopeHeaders,
-                  cachePrefix: widget.cachePrefix,
-                  offlineOnly: _offlineOnly || _usedSavedFallback,
+            onSelected: (report) {
+              if (report is InventoryFinanceReport) {
+                _openMovementReport(report);
+                return;
+              }
+              final path = report as String;
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => _SuiteRecords(
+                    title: InventoryStockReceipts.activityReports[path]!,
+                    controller: widget.controller,
+                    path: path,
+                    scopeHeaders: widget.scopeHeaders,
+                    cachePrefix: widget.cachePrefix,
+                    offlineOnly: _offlineOnly || _usedSavedFallback,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
             itemBuilder: (_) => [
+              for (final report in InventoryFinanceReport.values)
+                if (report.movementReport &&
+                    report != InventoryFinanceReport.stockLedger)
+                  PopupMenuItem(value: report, child: Text(report.title)),
               for (final report
                   in InventoryStockReceipts.activityReports.entries)
                 PopupMenuItem(value: report.key, child: Text(report.value)),
@@ -3068,7 +3085,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ),
             itemBuilder: (_) => [
               for (final report in InventoryFinanceReport.values)
-                if (report != InventoryFinanceReport.stockLedger)
+                if (!report.movementReport)
                   PopupMenuItem(value: report, child: Text(report.title)),
             ],
           ),

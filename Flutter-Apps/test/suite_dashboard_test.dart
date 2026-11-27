@@ -5914,6 +5914,20 @@ void main() {
           expect(calls.last.queryParameters['product_id'], '13');
           expect(calls.last.queryParameters['warehouse_id'], isNull);
           await back();
+          for (final (title, slug) in [
+            ('Sales Movement', 'sales'),
+            ('Purchase Movements', 'purchases'),
+            ('Stock Adjustments', 'adjustments'),
+            ('Stock Transfers', 'transfers'),
+          ]) {
+            await tester.tap(find.byTooltip('Stock activity reports'));
+            await tester.pumpAndSettle();
+            await open(title);
+            expect(find.text('Filtered stock movement'), findsOneWidget);
+            expect(calls.last.path, '/srm/inventory/reports');
+            expect(calls.last.queryParameters['report'], slug);
+            await back();
+          }
           for (final (title, path, detail) in [
             ('Stock Aging', 'stock-aging', 'Days since last movement 101'),
             ('Dead Stock', 'dead-stock', 'Last movement 2026-01-05'),
