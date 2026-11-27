@@ -2737,6 +2737,71 @@ void main() {
     expect(didSave, isTrue);
   });
 
+  testWidgets('KaryaFlow opens saved suite Notes after losing connection', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    mockUnavailableSqlite(tester);
+    const url = 'https://example.test/api/v1';
+    var connected = true;
+    final api = ApiClient(
+      baseUrl: url,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (!connected) fail('Offline KaryaFlow requested ${request.path}');
+          return switch (request.path) {
+            '/access/me' => response({
+              'companyId': 7,
+              'grants': {
+                'project_management': {'enabled': true},
+              },
+            }),
+            '/access/launcher-preferences' => response({'favorites': []}),
+            '/notifications/unread-count' => response({'unread': 0}),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    const identity = {'id': 19, 'email': 'member@example.test'};
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    final cache = NotesOfflineCache('["$url",19,7]');
+    const note = {
+      'id': 17,
+      'title': 'Shared suite note',
+      'content': 'Saved from the suite Notes screen',
+      'can_edit': true,
+      'visibility_scope': 'private',
+      'visibility': 'private',
+    };
+    await cache.saveSummaries([note]);
+    await cache.saveDetail(note);
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson(identity);
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    final module = find.text('KaryaFlow PMS');
+    await tester.ensureVisible(module);
+    await tester.tap(module);
+    await tester.pumpAndSettle();
+    expect(find.text('KaryaFlow'), findsOneWidget);
+    connected = false;
+    controller.offline = true;
+    await tester.tap(find.byTooltip('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Shared suite note'), findsOneWidget);
+    await tester.tap(find.text('Shared suite note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved from the suite Notes screen'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+  }, variant: TargetPlatformVariant({TargetPlatform.android}));
+
   testWidgets('Notes filters saved personal notes offline', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     final cache = NotesOfflineCache('["https://example.test/api/v1",19,7]');
