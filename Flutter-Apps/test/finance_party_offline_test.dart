@@ -137,6 +137,7 @@ void main() {
     await tester.tap(find.text('Apply filters'));
     await tester.pumpAndSettle();
     expect(find.text('Cable delivery 6'), findsOneWidget);
+    expect(find.text('Warehouse ID: 6'), findsOneWidget);
     await tester.tap(find.byTooltip('Export stock ledger'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Export Excel'));
@@ -165,6 +166,13 @@ void main() {
     expect(find.text('Stock Movement'), findsOneWidget);
     expect(find.text('Source movement 81'), findsOneWidget);
     expect(find.byTooltip('View source movement'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Remove Warehouse ID filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Warehouse ID: 6'), findsNothing);
+    expect(find.text('From: 2026-11-01'), findsOneWidget);
+    expect(find.text('Cable delivery all'), findsOneWidget);
   });
 
   testWidgets('Finance creates and edits a voucher draft with active ledgers', (

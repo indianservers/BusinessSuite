@@ -10,6 +10,15 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
 
+const _analysisFilterLabels = {
+  'start_date': 'From',
+  'end_date': 'To',
+  'product_id': 'Product ID',
+  'warehouse_id': 'Warehouse ID',
+  'category': 'Category ID',
+  'transaction_type': 'Transaction type',
+};
+
 const _movementFields = {
   'movement_date': 'Movement date',
   'movement_type': 'Movement type',
@@ -634,6 +643,24 @@ class _InventoryFinanceReportPageState
                       onFieldSubmitted: (value) =>
                           _changePage(1, search: value),
                     ),
+                  if (_analysis && _filters.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final filter in _filters.entries)
+                          if (_analysisFilterLabels[filter.key]
+                              case final String label)
+                            InputChip(
+                              label: Text('$label: ${filter.value}'),
+                              deleteButtonTooltipMessage:
+                                  'Remove $label filter',
+                              onDeleted: () => _changePage(
+                                1,
+                                filters: {..._filters}..remove(filter.key),
+                              ),
+                            ),
+                      ],
+                    ),
                   if (snapshot.hasError) Text('${snapshot.error}'),
                   if (!done) const LinearProgressIndicator(),
                   if (done && !snapshot.hasError && snapshot.data?.live != true)
@@ -814,16 +841,8 @@ class _LedgerFiltersState extends State<_LedgerFilters> {
   final _form = GlobalKey<FormState>();
   late final _values = Map<String, String>.of(widget.values);
 
-  static const _fields = {
-    'start_date': 'From',
-    'end_date': 'To',
-    'product_id': 'Product ID',
-    'warehouse_id': 'Warehouse ID',
-    'category': 'Category ID',
-    'transaction_type': 'Transaction type',
-  };
   Iterable<MapEntry<String, String>> get _visibleFields =>
-      _fields.entries.where(
+      _analysisFilterLabels.entries.where(
         (field) =>
             field.key != 'transaction_type' || widget.supportsTransactionType,
       );
