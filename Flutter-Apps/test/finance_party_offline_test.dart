@@ -13,6 +13,98 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Finance creates a voucher draft with active ledger choices', (
+    tester,
+  ) async {
+    var created = false;
+    const voucher = {'id': 7, 'voucher_number': 'V-007', 'status': 'draft'};
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch ((request.method, request.path)) {
+            case ('GET', '/fam/vouchers'):
+              return response({
+                'items': [if (created) voucher],
+              });
+            case ('GET', '/fam/voucher-types'):
+              return response({
+                'items': [
+                  {'id': 2, 'voucher_type_name': 'Journal', 'active': true},
+                ],
+              });
+            case ('GET', '/fam/ledgers'):
+              return response({
+                'items': [
+                  {'id': 8, 'ledger_name': 'Bank', 'active': true},
+                  {'id': 9, 'ledger_name': 'Sales', 'active': true},
+                  {'id': 10, 'ledger_name': 'Inactive ledger', 'active': false},
+                ],
+              });
+            case ('POST', '/fam/vouchers'):
+              expect(request.data, {
+                'voucher_type_id': 2,
+                'voucher_date': matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')),
+                'lines': [
+                  {
+                    'ledger_id': 8,
+                    'debit_amount': '250.00',
+                    'credit_amount': '0',
+                  },
+                  {
+                    'ledger_id': 9,
+                    'debit_amount': '0',
+                    'credit_amount': '250.00',
+                  },
+                ],
+              });
+              created = true;
+              return response(voucher, 201);
+            case ('GET', '/fam/vouchers/7'):
+              return response(voucher);
+            default:
+              throw StateError(request.path);
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FinanceVouchersPage(
+          api: api,
+          canCreate: true,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> tap(Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await tap(find.text('New voucher'));
+    await tap(
+      find.widgetWithText(DropdownButtonFormField<int>, 'Voucher type'),
+    );
+    await tap(find.text('Journal').last);
+    await tap(find.widgetWithText(DropdownButtonFormField<int>, 'Ledger 1'));
+    expect(find.text('Inactive ledger'), findsNothing);
+    await tap(find.text('Bank').last);
+    await tap(find.widgetWithText(DropdownButtonFormField<int>, 'Ledger 2'));
+    await tap(find.text('Sales').last);
+    for (final label in ['Amount 1', 'Amount 2']) {
+      final field = find.widgetWithText(TextFormField, label);
+      await tester.ensureVisible(field);
+      await tester.enterText(field, '250.00');
+    }
+    await tap(find.text('Save voucher draft'));
+    expect(created, isTrue);
+    expect(find.text('V-007'), findsOneWidget);
+  });
+
   testWidgets('Finance confirms posting, reversal, and cancellation', (
     tester,
   ) async {

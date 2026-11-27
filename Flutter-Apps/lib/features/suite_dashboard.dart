@@ -571,6 +571,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         path: app.endpoint,
         canViewFinanceInventory: _allowed(access, 'fam'),
         canPostVoucher: allowsVoucherAction('fam_vouchers_post', 'approve'),
+        canCreateVoucher: allowsVoucherAction('fam_vouchers_create', 'create'),
         canCancelVoucher: allowsVoucherAction('fam_vouchers_cancel', 'create'),
         canReverseVoucher: allowsVoucherAction(
           'fam_vouchers_reverse',
@@ -1489,6 +1490,7 @@ class _SuiteRecords extends StatefulWidget {
     this.showInventory = false,
     this.canViewFinanceInventory = false,
     this.canPostVoucher = false,
+    this.canCreateVoucher = false,
     this.canCancelVoucher = false,
     this.canReverseVoucher = false,
     this.canExportSalesDocuments = false,
@@ -1527,6 +1529,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool showInventory;
   final bool canViewFinanceInventory;
   final bool canPostVoucher;
+  final bool canCreateVoucher;
   final bool canCancelVoucher, canReverseVoucher;
   final bool canExportSalesDocuments;
   final bool canIssueInvoices;
@@ -2995,6 +2998,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 builder: (_) => FinanceVouchersPage(
                   api: widget.controller.api,
                   canPost: widget.canPostVoucher,
+                  canCreate: widget.canCreateVoucher,
                   canCancel: widget.canCancelVoucher,
                   canReverse: widget.canReverseVoucher,
                   scopeHeaders: widget.scopeHeaders,

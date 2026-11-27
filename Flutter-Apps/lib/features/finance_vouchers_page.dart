@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'finance_voucher_form.dart';
 
 class FinanceVouchersPage extends StatefulWidget {
   const FinanceVouchersPage({
@@ -16,13 +17,14 @@ class FinanceVouchersPage extends StatefulWidget {
     this.canPost = false,
     this.canCancel = false,
     this.canReverse = false,
+    this.canCreate = false,
   });
 
   final ApiClient api;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool offline;
-  final bool canPost, canCancel, canReverse;
+  final bool canPost, canCancel, canReverse, canCreate;
 
   @override
   State<FinanceVouchersPage> createState() => _FinanceVouchersPageState();
@@ -32,6 +34,23 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
   static const _path = '/fam/vouchers';
   late var _register = _load(offline: widget.offline);
   String _search = '';
+
+  Future<void> _create() async {
+    final revision = widget.api.sessionRevision;
+    final draft = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) =>
+            FinanceVoucherForm(api: widget.api, headers: widget.scopeHeaders),
+      ),
+    );
+    if (!mounted || draft == null || revision != widget.api.sessionRevision) {
+      return;
+    }
+    setState(() {
+      _register = _load(offline: false);
+    });
+    _open(draft, false);
+  }
 
   Json _summary(Json row) => {
     for (final key in [
@@ -381,6 +400,15 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
         return Column(
           children: [
             if (!result.live) const ListTile(title: Text('Saved vouchers')),
+            if (result.live && widget.canCreate)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: FilledButton.icon(
+                  onPressed: _create,
+                  icon: const Icon(LucideIcons.plus),
+                  label: const Text('New voucher'),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: TextField(
