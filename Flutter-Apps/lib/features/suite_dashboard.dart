@@ -1723,10 +1723,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       } catch (_) {}
     }
 
-    if (cacheKey != null) {
+    var showSavedSnapshot = true;
+    Future<List<Json>?> loadSavedSnapshot() async {
+      if (cacheKey == null) return null;
       try {
         final cached = await SuiteReadCache.snapshot(cacheKey);
-        if (mounted &&
+        if (showSavedSnapshot &&
+            mounted &&
             api.sessionRevision == revision &&
             loadRevision == _loadRevision &&
             cached != null) {
@@ -1753,6 +1756,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       } catch (_) {
         /* A cache failure does not block online reads. */
       }
+      return null;
+    }
+
+    final savedSnapshot = loadSavedSnapshot();
+    if (!reconnect || path != GstInvoicePage.listEndpoint) {
+      final fresh = await savedSnapshot;
+      if (fresh != null) return fresh;
     }
     if (api.sessionRevision != revision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
@@ -1808,8 +1818,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         },
         scopeHeaders: widget.scopeHeaders,
       );
+      showSavedSnapshot = false;
     } on ApiFailure catch (error) {
       if (cacheKey != null && (error.status == 401 || error.status == 403)) {
+        showSavedSnapshot = false;
         if (mounted && loadRevision == _loadRevision) {
           setState(() {
             _cached = null;
@@ -1831,6 +1843,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       } else if (error.connectionFailure ||
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
+        await savedSnapshot;
         await loadSavedPages();
         if (mounted &&
             api.sessionRevision == revision &&
@@ -1841,6 +1854,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           return _cached!;
         }
       }
+      showSavedSnapshot = false;
       rethrow;
     }
     final collection = widget.collection;
@@ -1982,9 +1996,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'totals_by_currency': record['totals_by_currency'],
           },
       ];
-      try {
-        await SuiteReadCache.writePage(cacheKey, page, projection);
-      } catch (_) {}
+      Future<void> saveProjection() async {
+        try {
+          await SuiteReadCache.writePage(cacheKey, page, projection);
+        } catch (_) {}
+      }
+
+      if (path == GstInvoicePage.listEndpoint) {
+        _cached = projection;
+        unawaited(saveProjection());
+      } else {
+        await saveProjection();
+      }
     }
     return records;
   }
