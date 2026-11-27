@@ -98,12 +98,6 @@ class _NotesPageState extends State<NotesPage> {
       if (_unreachable && !reconnect) {
         throw ApiFailure('Connect to see the latest notes.');
       }
-      try {
-        if (sync) await widget.cache?.sync(widget.api);
-      } catch (_) {
-        // Online reads remain available if the device queue is unavailable.
-      }
-      if (!current()) return;
       final result =
           await widget.api.request(
                 'GET',
@@ -120,8 +114,13 @@ class _NotesPageState extends State<NotesPage> {
         _loading = false;
       });
       if (view == 'all' && query.isEmpty) {
-        await widget.cache?.saveSummaries(notes);
+        try {
+          await widget.cache?.saveSummaries(notes);
+        } catch (_) {
+          // Keep the online results if the device store is unavailable.
+        }
       }
+      if (current() && sync) unawaited(_syncPending());
     } catch (error) {
       if (!current()) return;
       final denied =
@@ -152,6 +151,14 @@ class _NotesPageState extends State<NotesPage> {
           }
         } catch (_) {}
       }
+    }
+  }
+
+  Future<void> _syncPending() async {
+    try {
+      await widget.cache?.sync(widget.api);
+    } catch (_) {
+      // Queued changes can retry on the next successful connection.
     }
   }
 

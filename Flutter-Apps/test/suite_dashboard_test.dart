@@ -591,6 +591,49 @@ void main() {
     expect(find.text('Saved · Awaiting sync'), findsNothing);
     expect(find.text('Offline created note'), findsOneWidget);
   });
+  testWidgets('Notes shows the server list while a draft uploads', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",9,7]');
+    await cache.enqueueNew({'title': 'Queued note', 'content': 'Draft'});
+    final finishUpload = Completer<void>();
+    final uploadStarted = Completer<void>();
+    final dio = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        if (request.method == 'POST') {
+          uploadStarted.complete();
+          await finishUpload.future;
+          return response({'id': 31}, 201);
+        }
+        return response([
+          {'id': 8, 'title': 'Note from web'},
+        ]);
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: dio,
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache),
+      ),
+    );
+    await tester.pumpAndSettle();
+    try {
+      expect(uploadStarted.isCompleted, isTrue);
+      expect(find.text('Note from web'), findsOneWidget);
+    } finally {
+      finishUpload.complete();
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('Notes reuses the online operation ID after a lost response', (
     tester,
   ) async {
