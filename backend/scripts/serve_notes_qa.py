@@ -16,6 +16,7 @@ from app.core.security import get_password_hash, pwd_context
 from app.models.user import User, Role
 from app.models.company import Branch, Company
 from app.access.models import AccessMembership
+from app.branches.models import BranchGrant
 from app.apps.project_management.models import PMSWorkspace,PMSWorkspaceMember,PMSProject,PMSTask,PMSNote,PMSNoteRevision,PMSNoteFolder
 from app.api.v1.auth import router as auth_router
 from app.access.api import router as access_router
@@ -33,6 +34,10 @@ with Session() as db:
     reader=User(role_id=role.id,email="notes-reader@example.com",hashed_password=get_password_hash("NotesQA@123"),is_active=True)
     db.add_all([owner,reader]);db.flush()
     db.add_all([AccessMembership(user_id=user.id,company_id=1) for user in (owner,reader)])
+    db.add_all([
+        BranchGrant(company_id=company.id, branch_id=company.branches[0].id, user_id=user.id)
+        for user in (owner, reader)
+    ])
     workspace=PMSWorkspace(name="Notes QA Workspace",organization_id=1);db.add(workspace);db.flush()
     db.add_all([PMSWorkspaceMember(workspace_id=workspace.id,user_id=owner.id,role="Owner"),PMSWorkspaceMember(workspace_id=workspace.id,user_id=reader.id,role="Member")])
     project=PMSProject(name="Website Development",project_key="WEB",workspace_id=workspace.id,organization_id=1,manager_user_id=owner.id)
