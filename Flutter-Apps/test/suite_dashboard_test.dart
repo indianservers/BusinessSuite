@@ -3739,6 +3739,30 @@ void main() {
       final transport = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           calls.add(request);
+          if (request.uri.path.endsWith('/crm/pipelines')) {
+            return response({
+              'items': [
+                {'id': 2, 'name': 'Sales pipeline', 'is_default': true},
+              ],
+            });
+          }
+          if (request.uri.path.endsWith('/crm/pipeline-stages')) {
+            expect(request.uri.queryParameters['pipeline_id'], '2');
+            return response({
+              'items': [
+                {'id': 4, 'name': 'Qualified'},
+              ],
+            });
+          }
+          if (request.uri.path.endsWith('/crm/deals')) {
+            expect(request.uri.queryParameters['pipeline_id'], '2');
+            return response({
+              'items': [
+                {'id': 83, 'name': 'Next deal', 'stage_id': 4},
+              ],
+              'total': 1,
+            });
+          }
           if (request.path == '/crm/guided-selling-flows' &&
               request.method == 'POST') {
             final created = {'id': 16, ...request.data as Map<String, dynamic>};
@@ -4514,6 +4538,22 @@ void main() {
           await tester.tap(find.byTooltip('Deals'));
           await tester.pumpAndSettle();
           expect(find.text('Sample CRM deal'), findsOneWidget);
+          await tester.tap(find.byTooltip('Pipeline'));
+          await tester.pumpAndSettle();
+          expect(find.text('Sales pipeline'), findsOneWidget);
+          await open('All stages');
+          await open('Qualified');
+          expect(
+            calls
+                .lastWhere((r) => r.uri.path.endsWith('/crm/deals'))
+                .uri
+                .queryParameters['stage_id'],
+            '4',
+          );
+          await open('Next deal');
+          expect(find.text('A renewal from the CRM pipeline'), findsOneWidget);
+          await back();
+          await back();
           await tester.tap(find.byTooltip('Quotations'));
           await tester.pumpAndSettle();
           await open('QT-44');

@@ -18,6 +18,7 @@ import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
 import 'crm_cpq_evaluator.dart';
 import 'crm_guided_selling_form.dart';
+import 'crm_pipeline_page.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
@@ -1928,20 +1929,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (mounted) _refresh();
   }
 
-  CrmQuotationPage _quotationDetails(Json summary) => CrmQuotationPage(
-    api: widget.controller.api,
-    summary: summary,
-    cacheScope: widget.cachePrefix,
-    offline: _offlineOnly || _usedSavedFallback,
-    scopeHeaders: widget.scopeHeaders,
-    canManage: widget.canManageQuotes,
-    canCancel: widget.canCancelQuotes,
-    canApprove: widget.canApproveQuotes,
-    canSend: widget.canSendQuotes,
-    canCreateRevision: widget.canCreateQuotes,
-    canViewSalesOrder: widget.canViewQuoteSalesOrders,
-    onChanged: _refreshCrmRecords,
-  );
+  CrmQuotationPage _quotationDetails(Json summary, {bool? offline}) =>
+      CrmQuotationPage(
+        api: widget.controller.api,
+        summary: summary,
+        cacheScope: widget.cachePrefix,
+        offline: offline ?? (_offlineOnly || _usedSavedFallback),
+        scopeHeaders: widget.scopeHeaders,
+        canManage: widget.canManageQuotes,
+        canCancel: widget.canCancelQuotes,
+        canApprove: widget.canApproveQuotes,
+        canSend: widget.canSendQuotes,
+        canCreateRevision: widget.canCreateQuotes,
+        canViewSalesOrder: widget.canViewQuoteSalesOrders,
+        onChanged: _refreshCrmRecords,
+      );
 
   Future<void> _openGuidedFlow({Json flow = const {}}) async {
     final saved = await Navigator.of(context).push<bool>(
@@ -2151,6 +2153,36 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 await _refreshCrmRecords();
               }
             },
+          ),
+        if (_crmDeals)
+          IconButton(
+            tooltip: 'Pipeline',
+            icon: const Icon(Icons.view_kanban_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CrmPipelinePage(
+                  api: widget.controller.api,
+                  scopeHeaders: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                  dealBuilder: (summary, offline, refresh) => CrmDealPage(
+                    api: widget.controller.api,
+                    summary: summary,
+                    offline: offline,
+                    cacheScope: widget.cachePrefix,
+                    scopeHeaders: widget.scopeHeaders,
+                    canMove: widget.canMoveDeals,
+                    onChanged: () {
+                      refresh();
+                      _refreshCrmRecords();
+                    },
+                    quotationBuilder: widget.canCreateQuotes
+                        ? (quote) => _quotationDetails(quote, offline: false)
+                        : null,
+                  ),
+                ),
+              ),
+            ),
           ),
         if (_crmDeals)
           IconButton(
