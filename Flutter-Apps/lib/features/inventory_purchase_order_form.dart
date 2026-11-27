@@ -20,13 +20,18 @@ class InventoryPurchaseOrderForm extends StatefulWidget {
       _InventoryPurchaseOrderFormState();
 }
 
+class _PurchaseLine {
+  Json? product;
+  int? warehouse;
+  final values = {'quantity': '1', 'unit_price': '0', 'tax_amount': '0'};
+}
+
 class _InventoryPurchaseOrderFormState
     extends State<InventoryPurchaseOrderForm> {
   final _form = GlobalKey<FormState>();
-  final _values = {'quantity': '1', 'unit_price': '0', 'tax_amount': '0'};
+  final _lines = [_PurchaseLine()];
   late var _warehouses = _loadWarehouses();
-  Json? _vendor, _product;
-  int? _warehouse;
+  Json? _vendor;
   bool _saving = false;
   bool _uncertain = false;
   String? _error;
@@ -34,7 +39,8 @@ class _InventoryPurchaseOrderFormState
   Future<List<Json>> _loadWarehouses() =>
       loadActiveInventoryWarehouses(widget.api, widget.scopeHeaders);
 
-  Future<void> _pick({required bool vendor}) async {
+  Future<void> _pick({_PurchaseLine? line}) async {
+    final vendor = line == null;
     final revision = widget.api.sessionRevision;
     final item = await showDialog<Json>(
       context: context,
@@ -54,7 +60,7 @@ class _InventoryPurchaseOrderFormState
       if (vendor) {
         _vendor = item;
       } else {
-        _product = item;
+        line.product = item;
       }
     });
   }
@@ -67,8 +73,18 @@ class _InventoryPurchaseOrderFormState
 
   Future<void> _save() async {
     if (_saving || _uncertain || !_form.currentState!.validate()) return;
-    if (_vendor == null || _product == null || _warehouse == null) {
-      setState(() => _error = 'Choose a vendor, product, and warehouse.');
+    if (_vendor == null) {
+      setState(() => _error = 'Choose a vendor.');
+      return;
+    }
+    final incomplete = _lines.indexWhere(
+      (line) => line.product == null || line.warehouse == null,
+    );
+    if (incomplete >= 0) {
+      setState(
+        () => _error =
+            'Choose a product and warehouse for item ${incomplete + 1}.',
+      );
       return;
     }
     final api = widget.api;
@@ -86,11 +102,12 @@ class _InventoryPurchaseOrderFormState
           'vendor_id': _vendor!['id'],
           'vendor_name': _vendor!['name'],
           'lines': [
-            {
-              'product_id': _product!['id'],
-              'warehouse_id': _warehouse,
-              ..._values,
-            },
+            for (final line in _lines)
+              {
+                'product_id': line.product!['id'],
+                'warehouse_id': line.warehouse,
+                ...line.values,
+              },
           ],
         },
       );
@@ -115,22 +132,78 @@ class _InventoryPurchaseOrderFormState
     }
   }
 
-  Widget _number(String key, String label, {bool positive = false}) =>
-      TextFormField(
-        initialValue: _values[key],
-        enabled: !_saving,
-        decoration: InputDecoration(labelText: label),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        onChanged: (value) => _values[key] = value.trim(),
-        validator: (text) {
-          final number = num.tryParse(text?.trim() ?? '');
-          if (number == null || !number.isFinite || number < 0) {
-            return 'Enter a nonnegative number.';
-          }
-          return positive && number == 0
-              ? 'Quantity must be greater than zero.'
-              : null;
-        },
+  Widget _number(
+    _PurchaseLine line,
+    String key,
+    String label, {
+    bool positive = false,
+  }) => TextFormField(
+    initialValue: line.values[key],
+    enabled: !_saving,
+    decoration: InputDecoration(labelText: label),
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    onChanged: (value) => line.values[key] = value.trim(),
+    validator: (text) {
+      final number = num.tryParse(text?.trim() ?? '');
+      if (number == null || !number.isFinite || number < 0) {
+        return 'Enter a nonnegative number.';
+      }
+      return positive && number == 0
+          ? 'Quantity must be greater than zero.'
+          : null;
+    },
+  );
+
+  Widget _lineEditor(int index, _PurchaseLine line, List<Json> warehouses) =>
+      Card(
+        key: ObjectKey(line),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text('Item ${index + 1}')),
+                  if (_lines.length > 1)
+                    IconButton(
+                      tooltip: 'Remove item ${index + 1}',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: _saving
+                          ? null
+                          : () => setState(() {
+                              _lines.remove(line);
+                            }),
+                    ),
+                ],
+              ),
+              OutlinedButton(
+                onPressed: _saving ? null : () => _pick(line: line),
+                child: Text(
+                  "${line.product?['item_name'] ?? 'Choose product'}",
+                ),
+              ),
+              DropdownButtonFormField<int>(
+                isExpanded: true,
+                initialValue: line.warehouse,
+                decoration: const InputDecoration(labelText: 'Warehouse'),
+                items: [
+                  for (final row in warehouses)
+                    DropdownMenuItem(
+                      value: row['id'] as int,
+                      child: Text('${row['warehouse_name'] ?? row['name']}'),
+                    ),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (id) => setState(() => line.warehouse = id),
+              ),
+              _number(line, 'quantity', 'Order quantity', positive: true),
+              _number(line, 'unit_price', 'Order unit price'),
+              _number(line, 'tax_amount', 'Order tax amount'),
+            ],
+          ),
+        ),
       );
 
   @override
@@ -146,12 +219,8 @@ class _InventoryPurchaseOrderFormState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               OutlinedButton(
-                onPressed: _saving ? null : () => _pick(vendor: true),
+                onPressed: _saving ? null : _pick,
                 child: Text("${_vendor?['name'] ?? 'Choose vendor'}"),
-              ),
-              OutlinedButton(
-                onPressed: _saving ? null : () => _pick(vendor: false),
-                child: Text("${_product?['item_name'] ?? 'Choose product'}"),
               ),
               if (snapshot.hasError)
                 TextButton(
@@ -162,25 +231,19 @@ class _InventoryPurchaseOrderFormState
                 )
               else if (!snapshot.hasData)
                 const LinearProgressIndicator()
-              else
-                DropdownButtonFormField<int>(
-                  isExpanded: true,
-                  initialValue: _warehouse,
-                  decoration: const InputDecoration(labelText: 'Warehouse'),
-                  items: [
-                    for (final row in snapshot.requireData)
-                      DropdownMenuItem(
-                        value: row['id'] as int,
-                        child: Text('${row['warehouse_name'] ?? row['name']}'),
-                      ),
-                  ],
-                  onChanged: _saving
+              else ...[
+                for (final (index, line) in _lines.indexed)
+                  _lineEditor(index, line, snapshot.requireData),
+                OutlinedButton.icon(
+                  onPressed: _saving
                       ? null
-                      : (id) => setState(() => _warehouse = id),
+                      : () => setState(() {
+                          _lines.add(_PurchaseLine());
+                        }),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add item'),
                 ),
-              _number('quantity', 'Order quantity', positive: true),
-              _number('unit_price', 'Order unit price'),
-              _number('tax_amount', 'Order tax amount'),
+              ],
               if (_error case final String error) Text(error),
               const SizedBox(height: 16),
               FilledButton(

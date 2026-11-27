@@ -42,7 +42,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Purchase order form creates a draft with shared selections', (
+  testWidgets('Purchase order drafts preserve multiple item selections', (
     tester,
   ) async {
     final writes = <RequestOptions>[];
@@ -64,12 +64,14 @@ void main() {
               return response({
                 'items': [
                   {'id': 3, 'item_name': 'Office paper'},
+                  {'id': 5, 'item_name': 'Ink cartridge'},
                 ],
               });
             case '/srm/inventory/warehouses':
               return response({
                 'items': [
                   {'id': 6, 'warehouse_name': 'Main warehouse'},
+                  {'id': 7, 'warehouse_name': 'Annex warehouse'},
                 ],
               });
             case '/srm/procurement/purchase-orders/drafts':
@@ -113,6 +115,21 @@ void main() {
     expect(writes, isEmpty);
     await tester.ensureVisible(quantity);
     await tester.enterText(quantity, '4');
+    await tap('Add item');
+    await tap('Choose product');
+    await tap('Ink cartridge');
+    await tap('Warehouse');
+    await tap('Annex warehouse');
+    final secondPrice = find
+        .widgetWithText(TextFormField, 'Order unit price')
+        .last;
+    await tester.ensureVisible(secondPrice);
+    await tester.enterText(secondPrice, '12.50');
+    await tap('Add item');
+    final remove = find.byTooltip('Remove item 3');
+    await tester.ensureVisible(remove);
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
     await tap('Create purchase order draft');
     expect(await saved, {'id': 9, 'status': 'draft'});
     expect(writes.single.data, {
@@ -124,6 +141,13 @@ void main() {
           'warehouse_id': 6,
           'quantity': '4',
           'unit_price': '0',
+          'tax_amount': '0',
+        },
+        {
+          'product_id': 5,
+          'warehouse_id': 7,
+          'quantity': '1',
+          'unit_price': '12.50',
           'tax_amount': '0',
         },
       ],
