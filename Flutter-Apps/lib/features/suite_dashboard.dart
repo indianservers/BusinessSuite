@@ -33,6 +33,8 @@ import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 
+const _snapshotReuseWindow = Duration(seconds: 15);
+
 typedef _App = ({
   String key,
   String grant,
@@ -1332,7 +1334,6 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   static const _reorderPath = '/srm/inventory/reports/reorder';
   static const _stockSummaryCachePath = '/srm/inventory/reports/stock-summary';
-  static const _listReuseWindow = Duration(seconds: 15);
   bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
@@ -1449,7 +1450,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
               !age.isNegative &&
-              age < _listReuseWindow) {
+              age < _snapshotReuseWindow) {
             return cached.rows;
           }
         }
@@ -2482,9 +2483,18 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     final key = scope == null ? null : '$scope:$path:$branch';
     if (key != null) {
       try {
-        final rows = await SuiteReadCache.read(key);
+        final snapshot = await SuiteReadCache.snapshot(key);
         if (mounted && revision == api.sessionRevision) {
-          setState(() => _saved = rows?.firstOrNull);
+          final saved = snapshot?.rows.firstOrNull;
+          setState(() => _saved = saved);
+          if (!reconnect &&
+              !_offline &&
+              saved != null &&
+              snapshot != null &&
+              !snapshot.invalidated) {
+            final age = DateTime.now().difference(snapshot.savedAt);
+            if (!age.isNegative && age < _snapshotReuseWindow) return saved;
+          }
         }
       } catch (_) {
         // The API remains available when local storage fails.
