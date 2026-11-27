@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../app_controller.dart';
 import '../core/api_client.dart';
+import '../core/crm_detail_snapshot.dart';
 import '../core/crm_offline_edits.dart';
 import '../core/inventory_offline_creates.dart';
 import '../core/inventory_stock_receipts.dart';
@@ -4471,102 +4472,64 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
   Future<Json?> _load({bool reconnect = false}) async {
     final api = widget.api;
     final revision = api.sessionRevision;
-    final path = '/srm/inventory/items/${widget.summary['id']}';
-    final scope = widget.cacheScope;
-    final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
-    final key = scope == null ? null : '$scope:$path:$branch';
-    if (key != null) {
-      try {
-        final snapshot = await SuiteReadCache.snapshot(key);
-        if (mounted && revision == api.sessionRevision) {
-          final saved = snapshot?.rows.firstOrNull;
-          setState(() => _saved = saved);
-          if (!reconnect &&
-              !_offline &&
-              !widget.canRecordStock &&
-              !widget.canEditProduct &&
-              saved != null &&
-              snapshot != null &&
-              !snapshot.invalidated) {
-            final age = DateTime.now().difference(snapshot.savedAt);
-            if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
-              return saved;
-            }
-          }
-        }
-      } catch (_) {
-        // The API remains available when local storage fails.
-      }
-    }
-    if (!mounted) return null;
-    if (revision != api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
-    if (_offline && !reconnect) return null;
     try {
-      final data =
-          await api.request('GET', path, scopeHeaders: widget.scopeHeaders)
-              as Json;
-      if (revision != api.sessionRevision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
-      }
-      if (key != null) {
-        final ledger = (data['ledger'] as List? ?? []).whereType<Json>();
-        try {
-          await SuiteReadCache.write(key, [
-            {
-              for (final field in [
-                'item_name',
-                'name',
-                'updated_at',
-                ..._fields.keys,
-              ])
-                field: data[field],
-              'balances': [
-                for (final row
-                    in (data['balances'] as List? ?? []).whereType<Json>())
-                  {
-                    for (final field in const [
-                      'warehouse_id',
-                      'warehouse_name',
-                      'quantity',
-                    ])
-                      field: row[field],
-                  },
-              ],
-              'ledger': [
-                for (final row in ledger)
-                  {
-                    for (final field in const [
-                      'movement_number',
-                      'movement_type',
-                      'movement_date',
-                      'warehouse_name',
-                      'quantity_in',
-                      'quantity_out',
-                    ])
-                      field: row[field],
-                  },
-              ],
-            },
-          ]);
-        } catch (_) {
-          // A failed cache write does not hide the latest product.
-        }
-      }
-      _offline = false;
-      return data;
-    } on ApiFailure catch (error) {
-      if (error.status == null ||
-          error.status == 429 ||
-          (error.status ?? 0) >= 500) {
+      final result = await loadCrmDetail(
+        api: api,
+        path: '/srm/inventory/items/${widget.summary['id']}',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: _offline && !reconnect,
+        reuseFresh:
+            !reconnect && !widget.canRecordStock && !widget.canEditProduct,
+        onCached: (saved) {
+          if (mounted) setState(() => _saved = saved);
+        },
+        project: (data) => {
+          for (final field in [
+            'item_name',
+            'name',
+            'updated_at',
+            ..._fields.keys,
+          ])
+            field: data[field],
+          'balances': [
+            for (final row
+                in (data['balances'] as List? ?? []).whereType<Json>())
+              {
+                for (final field in const [
+                  'warehouse_id',
+                  'warehouse_name',
+                  'quantity',
+                ])
+                  field: row[field],
+              },
+          ],
+          'ledger': [
+            for (final row in (data['ledger'] as List? ?? []).whereType<Json>())
+              {
+                for (final field in const [
+                  'movement_number',
+                  'movement_type',
+                  'movement_date',
+                  'warehouse_name',
+                  'quantity_in',
+                  'quantity_out',
+                ])
+                  field: row[field],
+              },
+          ],
+        },
+      );
+      if (!mounted || revision != api.sessionRevision) return null;
+      if (!result.live) {
+        setState(() => _saved = result.record);
         return null;
       }
-      if (key != null && const {401, 403, 404}.contains(error.status)) {
-        if (mounted) setState(() => _saved = null);
-        try {
-          await SuiteReadCache.clear(key);
-        } catch (_) {}
+      _offline = false;
+      return result.record;
+    } on ApiFailure catch (error) {
+      if (mounted && const {401, 403, 404}.contains(error.status)) {
+        setState(() => _saved = null);
       }
       rethrow;
     }
@@ -4846,12 +4809,12 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
             if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
-                  '${_offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_offline ? 'Offline · ' : ''}'
                   '${details == null ? 'Saved product summary' : 'Saved product details'}',
                 ),
                 trailing: TextButton(
                   onPressed: _refresh,
-                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                  child: Text(_offline ? 'Reconnect' : 'Refresh'),
                 ),
               ),
             for (final field in _fields.entries)

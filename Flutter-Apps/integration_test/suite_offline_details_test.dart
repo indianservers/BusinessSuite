@@ -1773,10 +1773,14 @@ void main() {
     };
     var requests = 0;
     final transportErrors = <String>[];
+    Completer<void>? productRefresh;
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         requests++;
         expectSync(request.method, 'GET');
+        if (request.path == '/srm/inventory/items/1') {
+          await productRefresh?.future;
+        }
         return response(fixtures[request.path]!);
       });
     dio.interceptors.add(
@@ -1909,5 +1913,16 @@ void main() {
     expect(find.text('8471'), findsOneWidget);
     expect(find.text('18'), findsOneWidget);
     expect(requests, 4);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await SuiteReadCache.invalidateInventoryItem(scope, 1);
+    productRefresh = Completer<void>();
+    fixtures['/srm/inventory/items/1']!['item_name'] = 'Updated QA stock';
+    await tester.pumpWidget(MaterialApp(home: pages[1].$1(false)));
+    await findDetail('QA stock');
+    expect(requests, 5);
+    expect(find.text('Updated QA stock'), findsNothing);
+    productRefresh.complete();
+    await findDetail('Updated QA stock');
   });
 }
