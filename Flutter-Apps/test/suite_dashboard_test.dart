@@ -634,6 +634,50 @@ void main() {
     }
   });
 
+  testWidgets('Notes filters saved personal notes offline', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",19,7]');
+    await cache.saveSummaries([
+      for (final (id, title, flag) in [
+        (1, 'Top note', 'pinned'),
+        (2, 'Starred note', 'favorite'),
+      ])
+        {
+          'id': id,
+          'title': title,
+          'can_edit': true,
+          'visibility_scope': 'private',
+          'visibility': 'private',
+          flag: true,
+        },
+    ]);
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((_) async {
+          fail('Offline filtering should use saved notes');
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache, offline: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final (view, visible, hidden) in [
+      ('Pinned', 'Top note', 'Starred note'),
+      ('Favorites', 'Starred note', 'Top note'),
+    ]) {
+      await tester.tap(find.byTooltip('Filter notes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(view));
+      await tester.pumpAndSettle();
+      expect(find.text(visible), findsOneWidget);
+      expect(find.text(hidden), findsNothing);
+    }
+  });
+
   testWidgets('Notes reuses the online operation ID after a lost response', (
     tester,
   ) async {

@@ -58,6 +58,7 @@ class _NotesPageState extends State<NotesPage> {
     final request = ++_request;
     final query = _query.trim();
     final view = _view;
+    final canReadSaved = const {'all', 'pinned', 'favorites'}.contains(view);
     final revision = widget.api.sessionRevision;
     bool current() =>
         mounted &&
@@ -66,14 +67,10 @@ class _NotesPageState extends State<NotesPage> {
     setState(() {
       _loading = true;
       _error = null;
-      if (view != 'all' && _savedView) {
-        _notes = [];
-        _savedView = false;
-      }
     });
     List<Map<String, dynamic>>? saved;
     try {
-      if (view == 'all') saved = await widget.cache?.summaries();
+      if (canReadSaved) saved = await widget.cache?.summaries();
       final pending = await widget.cache?.pendingEdits();
       if (current()) setState(() => _pendingEdits = pending ?? {});
     } catch (_) {
@@ -85,13 +82,13 @@ class _NotesPageState extends State<NotesPage> {
       final term = query.toLowerCase();
       setState(() {
         _savedView = true;
-        _notes = savedNotes
-            .where(
-              (note) => '${_titleFor(note)} ${_previewFor(note)}'
-                  .toLowerCase()
-                  .contains(term),
-            )
-            .toList();
+        _notes = savedNotes.where((note) {
+          if (view == 'pinned' && note['pinned'] != true) return false;
+          if (view == 'favorites' && note['favorite'] != true) return false;
+          return '${_titleFor(note)} ${_previewFor(note)} ${note['tags'] ?? ''}'
+              .toLowerCase()
+              .contains(term);
+        }).toList();
       });
     }
     try {
@@ -130,7 +127,7 @@ class _NotesPageState extends State<NotesPage> {
             _unreachable && !reconnect ||
             error is ApiFailure &&
                 (error.connectionFailure || (error.status ?? 0) >= 500);
-        if (denied || view != 'all') {
+        if (denied || !canReadSaved) {
           _notes = [];
           _savedView = false;
         }
@@ -255,11 +252,16 @@ class _NotesPageState extends State<NotesPage> {
             tooltip: 'Filter notes',
             initialValue: _view,
             onSelected: (view) {
+              if (view == _view) return;
               _view = view;
+              _notes = [];
+              _savedView = false;
               _load();
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'all', child: Text('My notes')),
+              PopupMenuItem(value: 'pinned', child: Text('Pinned')),
+              PopupMenuItem(value: 'favorites', child: Text('Favorites')),
               PopupMenuItem(value: 'shared', child: Text('Shared with me')),
               PopupMenuItem(value: 'archive', child: Text('Archived')),
               PopupMenuItem(value: 'trash', child: Text('Trash')),
