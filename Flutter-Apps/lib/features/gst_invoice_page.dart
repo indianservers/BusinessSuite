@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -116,7 +117,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (api.sessionRevision != revision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
-      await _saveSnapshot(invoice);
+      unawaited(_saveSnapshot(invoice));
       _offline = false;
       return (invoice, false);
     } on ApiFailure catch (error) {
