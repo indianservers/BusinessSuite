@@ -48,6 +48,14 @@ void main() {
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/sales-orders/57') {
+            expect(request.headers['X-Suite-Organization'], '7');
+            return response({
+              'id': 57,
+              'order_number': 'SO-57',
+              'status': 'draft',
+            });
+          }
           if (request.method == 'POST') {
             writes.add(request);
             status = switch (request.path.split('/').last) {
@@ -74,6 +82,7 @@ void main() {
           scopeHeaders: const {'X-Suite-Organization': '7'},
           canManage: true,
           canApprove: true,
+          canViewSalesOrder: true,
         ),
       ),
     );
@@ -102,6 +111,9 @@ void main() {
     expect(writes.last.headers['X-Suite-Organization'], '7');
     expect(find.text('Accepted'), findsOneWidget);
     expect(find.text('57'), findsOneWidget);
+    await tester.tap(find.text('Open sales order'));
+    await tester.pumpAndSettle();
+    expect(find.text('SO-57'), findsOneWidget);
   });
 
   test(

@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
+import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
   const CrmQuotationPage({
@@ -16,6 +17,7 @@ class CrmQuotationPage extends StatefulWidget {
     this.cacheScope,
     this.canManage = false,
     this.canApprove = false,
+    this.canViewSalesOrder = false,
     this.onChanged,
   });
 
@@ -37,6 +39,7 @@ class CrmQuotationPage extends StatefulWidget {
   final String? cacheScope;
   final bool canManage;
   final bool canApprove;
+  final bool canViewSalesOrder;
   final VoidCallback? onChanged;
 
   @override
@@ -313,6 +316,24 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         title: Text(field.key),
                         subtitle: Text('${field.value}'),
                       ),
+                  if (widget.canViewSalesOrder &&
+                      record['converted_srm_sales_order_id'] is int)
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => SalesOrderPage(
+                            api: widget.api,
+                            summary: {
+                              'id': record['converted_srm_sales_order_id'],
+                            },
+                            offline: !live,
+                            cacheScope: widget.cacheScope,
+                            scopeHeaders: widget.scopeHeaders,
+                          ),
+                        ),
+                      ),
+                      child: const Text('Open sales order'),
+                    ),
                   if (lines.isNotEmpty)
                     Text(
                       'Items',

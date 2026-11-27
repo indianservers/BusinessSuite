@@ -528,6 +528,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                 'crm_admin',
               }),
             ),
+        canViewQuoteSalesOrders: app.grant == 'crm' && _allowed(access, 'srm'),
         canApproveQuotes:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'approve', const {
@@ -1356,6 +1357,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canMoveDeals = false,
     this.canCreateDeals = false,
     this.canManageQuotes = false,
+    this.canViewQuoteSalesOrders = false,
     this.canApproveQuotes = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
@@ -1378,6 +1380,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canMoveDeals;
   final bool canCreateDeals;
   final bool canManageQuotes;
+  final bool canViewQuoteSalesOrders;
   final bool canApproveQuotes;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
@@ -1997,6 +2000,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canMoveDeals: widget.canMoveDeals,
                   canCreateDeals: widget.canCreateDeals,
                   canManageQuotes: widget.canManageQuotes,
+                  canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
@@ -2057,6 +2061,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: CrmQuotationPage.endpoint,
                   canManageQuotes: widget.canManageQuotes,
+                  canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
@@ -2902,6 +2907,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             scopeHeaders: widget.scopeHeaders,
                                             canManage: widget.canManageQuotes,
                                             canApprove: widget.canApproveQuotes,
+                                            canViewSalesOrder:
+                                                widget.canViewQuoteSalesOrders,
                                             onChanged: _refreshCrmRecords,
                                           )
                                         : _crmTasks
