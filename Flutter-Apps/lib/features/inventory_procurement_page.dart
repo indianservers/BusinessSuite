@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -12,7 +13,8 @@ import 'inventory_goods_receipt_form.dart';
 enum _OrderAction {
   issue('Issue purchase order', 'Confirm issue'),
   revise('Create revision draft', 'Create revised draft'),
-  cancel('Cancel purchase order', 'Confirm cancellation');
+  cancel('Cancel purchase order', 'Confirm cancellation'),
+  edit('Modify draft with reason', 'Save draft changes');
 
   const _OrderAction(this.title, this.confirm);
   final String title, confirm;
@@ -106,7 +108,10 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   bool _changingOrder = false;
   bool _savingPdf = false;
   final _requests =
-      <_OrderAction, ({String reason, String version, String id})>{};
+      <
+        _OrderAction,
+        ({String reason, String version, String id, Json changes})
+      >{};
 
   Iterable<Json> _lines(Json data) =>
       (data['lines'] as List? ?? const []).whereType<Json>();
@@ -204,7 +209,8 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         throw ApiFailure('The purchase order version is unavailable.');
       }
       if (document['removed'] == true ||
-          (action == _OrderAction.issue && document['editable'] != true) ||
+          ((action == _OrderAction.issue || action == _OrderAction.edit) &&
+              document['editable'] != true) ||
           (action == _OrderAction.cancel && document['editable'] != false)) {
         _refresh();
         throw ApiFailure(
@@ -212,21 +218,37 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         );
       }
       final version = document['version'] as String;
-      final reason = await _actionReason(action);
-      if (reason == null || !mounted || revision != api.sessionRevision) return;
+      final record = document['record'];
+      if (action == _OrderAction.edit && record is! Json) {
+        throw ApiFailure('The draft details are unavailable.');
+      }
+      final input = await _actionInput(
+        action,
+        record is Json ? record : const {},
+      );
+      if (input == null || !mounted || revision != api.sessionRevision) return;
       final previous = _requests[action];
-      final request = previous?.version == version && previous?.reason == reason
+      final request =
+          previous?.version == version &&
+              previous?.reason == input.reason &&
+              mapEquals(previous?.changes, input.changes)
           ? previous!
-          : (reason: reason, version: version, id: const Uuid().v4());
+          : (
+              reason: input.reason,
+              version: version,
+              id: const Uuid().v4(),
+              changes: input.changes,
+            );
       _requests[action] = request;
       final response = await api.request(
-        'POST',
-        '$path/${action.name}',
+        action == _OrderAction.edit ? 'PATCH' : 'POST',
+        action == _OrderAction.edit ? path : '$path/${action.name}',
         scopeHeaders: widget.scopeHeaders,
         data: {
           'version': request.version,
           'reason': request.reason,
           'request_id': request.id,
+          if (action == _OrderAction.edit) 'changes': request.changes,
         },
       );
       if (!mounted || revision != api.sessionRevision) return;
@@ -253,30 +275,70 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<String?> _actionReason(_OrderAction action) {
+  Future<({String reason, Json changes})?> _actionInput(
+    _OrderAction action,
+    Json record,
+  ) {
     final form = GlobalKey<FormState>();
     var reason = '';
-    return showDialog<String>(
+    final editing = action == _OrderAction.edit;
+    final existingDate = record['expected_date']?.toString() ?? '';
+    final existingNotes = record['notes']?.toString() ?? '';
+    var date = existingDate;
+    var notes = existingNotes;
+    return showDialog<({String reason, Json changes})>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(action.title),
+        scrollable: true,
         content: Form(
           key: form,
-          child: TextFormField(
-            maxLines: 3,
-            maxLength: 500,
-            decoration: InputDecoration(
-              labelText: 'Reason',
-              helperText: switch (action) {
-                _OrderAction.revise => 'The original remains in the register.',
-                _OrderAction.cancel =>
-                  'The order stays in the register as cancelled.',
-                _OrderAction.issue => null,
-              },
-            ),
-            onChanged: (value) => reason = value.trim(),
-            validator: (_) =>
-                reason.length < 5 ? 'Enter at least five characters.' : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (editing) ...[
+                TextFormField(
+                  initialValue: existingDate,
+                  decoration: const InputDecoration(
+                    labelText: 'Expected date',
+                    hintText: 'YYYY-MM-DD',
+                  ),
+                  onChanged: (value) => date = value.trim(),
+                  validator: (_) {
+                    if (date.isEmpty) return null;
+                    final parsed = DateTime.tryParse(date);
+                    return parsed?.toIso8601String().split('T').first == date
+                        ? null
+                        : 'Enter a valid date as YYYY-MM-DD.';
+                  },
+                ),
+                TextFormField(
+                  initialValue: existingNotes,
+                  decoration: const InputDecoration(labelText: 'Notes'),
+                  maxLines: 4,
+                  maxLength: 10000,
+                  onChanged: (value) => notes = value,
+                ),
+              ],
+              TextFormField(
+                maxLines: 3,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  labelText: 'Reason',
+                  helperText: switch (action) {
+                    _OrderAction.revise =>
+                      'The original remains in the register.',
+                    _OrderAction.cancel =>
+                      'The order stays in the register as cancelled.',
+                    _OrderAction.issue || _OrderAction.edit => null,
+                  },
+                ),
+                onChanged: (value) => reason = value.trim(),
+                validator: (_) => reason.length < 5
+                    ? 'Enter at least five characters.'
+                    : null,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -286,7 +348,18 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           ),
           FilledButton(
             onPressed: () {
-              if (form.currentState!.validate()) Navigator.pop(context, reason);
+              if (!form.currentState!.validate()) return;
+              final changes = <String, dynamic>{
+                if (editing && date != existingDate)
+                  'expected_date': date.isEmpty ? null : date,
+                if (editing && notes != existingNotes) 'notes': notes,
+              };
+              Navigator.pop(
+                context,
+                editing && changes.isEmpty
+                    ? null
+                    : (reason: reason, changes: changes),
+              );
             },
             child: Text(action.confirm),
           ),
@@ -435,6 +508,21 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                           ? null
                           : () => _changeOrder(_OrderAction.issue),
                       child: const Text('Issue purchase order'),
+                    ),
+                  if (widget.canIssue &&
+                      kind == ProcurementRecord.order &&
+                      done &&
+                      snapshot.data?.live == true &&
+                      const {
+                        'draft',
+                        'created',
+                        'planned',
+                      }.contains(row['status']))
+                    OutlinedButton(
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(_OrderAction.edit),
+                      child: const Text('Modify draft with reason'),
                     ),
                   if (widget.canReceive &&
                       kind == ProcurementRecord.order &&

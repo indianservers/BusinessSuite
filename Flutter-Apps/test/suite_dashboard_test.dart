@@ -228,6 +228,7 @@ void main() {
   ) async {
     final writes = <RequestOptions>[];
     final issueRequests = <RequestOptions>[];
+    RequestOptions? edited;
     RequestOptions? revised;
     RequestOptions? pdfRequest;
     const document = '/srm/documents/purchase-orders/72';
@@ -239,6 +240,12 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
+          if (request.path == document && request.method == 'PATCH') {
+            edited = request;
+            return response({
+              'record': {'id': 72, 'status': 'draft'},
+            });
+          }
           if (request.path == '$document/pdf') {
             pdfRequest = request;
             return response({'message': 'Unexpected response'});
@@ -268,6 +275,10 @@ void main() {
             document => response({
               'version': version,
               'editable': !issued,
+              'record': {
+                'expected_date': '2026-12-01',
+                'notes': 'Existing notes',
+              },
               'history': [
                 if (issued)
                   {
@@ -283,6 +294,7 @@ void main() {
             '/srm/procurement/purchase-orders/72' => response({
               'id': 72,
               'po_number': 'PO-72',
+              'expected_date': edited == null ? '2026-12-01' : '2026-12-03',
               'status': issued
                   ? (writes.isEmpty ? 'ordered' : 'partially_received')
                   : 'draft',
@@ -332,6 +344,25 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Receive goods'), findsNothing);
+    await tester.tap(find.text('Modify draft with reason'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Expected date'),
+      '2026-12-03',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason'),
+      'Supplier rescheduled',
+    );
+    await tester.tap(find.text('Save draft changes'));
+    await tester.pumpAndSettle();
+    expect(edited?.data, {
+      'version': version,
+      'reason': 'Supplier rescheduled',
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+      'changes': {'expected_date': '2026-12-03'},
+    });
+    expect(find.text('2026-12-03'), findsOneWidget);
     for (var attempt = 0; attempt < 2; attempt++) {
       await tester.tap(find.text('Issue purchase order'));
       await tester.pumpAndSettle();
