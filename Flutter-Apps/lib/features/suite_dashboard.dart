@@ -48,6 +48,7 @@ import 'my_roster_page.dart';
 import 'my_timesheets_page.dart';
 import 'finance_party_page.dart';
 import 'finance_chart_page.dart';
+import 'finance_vouchers_page.dart';
 import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
@@ -2957,6 +2958,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   in InventoryStockReceipts.activityReports.entries)
                 PopupMenuItem(value: report.key, child: Text(report.value)),
             ],
+          ),
+        if (widget.path == FinancePartyPage.endpoint)
+          IconButton(
+            tooltip: 'Voucher register',
+            icon: const Icon(LucideIcons.bookOpen),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => FinanceVouchersPage(
+                  api: widget.controller.api,
+                  scopeHeaders: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
           ),
         if (widget.path == FinancePartyPage.endpoint)
           IconButton(

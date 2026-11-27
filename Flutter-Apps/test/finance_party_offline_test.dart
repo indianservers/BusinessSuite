@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/features/finance_chart_page.dart';
+import 'package:business_suite_mobile/features/finance_vouchers_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,65 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Finance opens saved backend voucher entries from the register', (
+    tester,
+  ) async {
+    final paths = <String>[];
+    const voucher = {
+      'id': 7,
+      'voucher_number': 'V-007',
+      'voucher_date': '2026-11-27',
+      'status': 'posted',
+      'total_debit': '250.00',
+      'total_credit': '250.00',
+      'source_module': 'fam',
+    };
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          paths.add(request.path);
+          return switch (request.path) {
+            '/fam/vouchers' => response({
+              'items': [voucher],
+            }),
+            '/fam/vouchers/7' => response({
+              ...voucher,
+              'lines': [
+                {
+                  'ledger_id': 8,
+                  'debit_amount': '250.00',
+                  'credit_amount': '0.00',
+                },
+              ],
+            }),
+            _ => throw StateError(request.path),
+          };
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FinanceVouchersPage(
+          api: api,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'missing');
+    await tester.pumpAndSettle();
+    expect(find.text('No matching vouchers'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'v-007');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('V-007'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ledger #8'), findsOneWidget);
+    expect(find.text('Debit 250.00\nCredit 0.00'), findsOneWidget);
+    expect(paths, ['/fam/vouchers', '/fam/vouchers/7']);
+  });
+
   testWidgets(
     'Finance chart browses ledger groups and searches the shared list',
     (tester) async {
