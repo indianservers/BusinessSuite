@@ -16,6 +16,7 @@ import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
+import 'crm_cpq_evaluator.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
@@ -1502,6 +1503,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _crmTasks => widget.path == CrmTaskPage.endpoint;
   bool get _crmQuotations => widget.path == CrmQuotationPage.endpoint;
   static const _quoteApprovalsPath = '/crm/quote-approvals';
+  static const _cpqPath = '/crm/cpq-rules';
+  bool get _crmCpq => widget.path == _cpqPath;
   bool get _crmQuoteApprovals => widget.path == _quoteApprovalsPath;
   static const _approvalFields = [
     'quote_id',
@@ -1519,7 +1522,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmCustomers ||
       _crmTasks ||
       _crmQuotations ||
-      _crmQuoteApprovals;
+      _crmQuoteApprovals ||
+      _crmCpq;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1784,6 +1788,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmTasks) ...['due_date', 'updated_at'],
               if (_crmQuotations) ...CrmQuotationPage.fields,
               if (_crmQuoteApprovals) ..._approvalFields,
+              if (_crmCpq) ...['rule_type', 'active'],
               'order_number',
               'currency',
               'subtotal',
@@ -2151,6 +2156,36 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_crmQuotations)
+          IconButton(
+            tooltip: 'CPQ Rules',
+            icon: const Icon(Icons.rule),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'CPQ Rules',
+                  controller: widget.controller,
+                  path: _cpqPath,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_crmCpq && !_offlineOnly && !_usedSavedFallback)
+          IconButton(
+            tooltip: 'Evaluate CPQ rules',
+            icon: const Icon(Icons.calculate_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CrmCpqEvaluator(
+                  api: widget.controller.api,
+                  scopeHeaders: widget.scopeHeaders,
                 ),
               ),
             ),
@@ -2555,6 +2590,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     ],
                                     if (_crmDeals) 'stage_name',
                                     if (_crmQuotations) 'quote_number',
+                                    if (_crmCpq) 'rule_type',
                                     if (_crmQuoteApprovals) ...[
                                       'quote_id',
                                       'reason',
@@ -2829,6 +2865,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmCpq) ...[
+                            item['rule_type'],
+                            if (item['active'] case final bool active)
+                              active ? 'Active' : 'Inactive',
+                          ],
                           if (_crmQuotations) ...[
                             if ((item['grand_total'] ?? item['total_amount']) !=
                                 null)

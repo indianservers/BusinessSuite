@@ -3988,6 +3988,24 @@ void main() {
               ],
               'total': 1,
             }),
+            '/crm/cpq-rules' => response({
+              'items': [
+                {
+                  'id': 12,
+                  'name': 'Discount review',
+                  'rule_type': 'approval',
+                  'active': true,
+                },
+              ],
+              'total': 1,
+            }),
+            '/crm/cpq/evaluate' => response({
+              'ruleCount': 1,
+              'warnings': [
+                {'rule': 'Manager approval required'},
+              ],
+              'recommendations': [],
+            }),
             '/crm/quotations/44/pdf' => response({
               'message': 'Unexpected payload',
             }),
@@ -4487,6 +4505,25 @@ void main() {
           expect(find.textContaining('Discount needs review'), findsOneWidget);
           await open('Quotation #44');
           expect(find.text('Annual support'), findsOneWidget);
+          await back();
+          await back();
+          await tester.tap(find.byTooltip('CPQ Rules'));
+          await tester.pumpAndSettle();
+          expect(find.text('Discount review'), findsOneWidget);
+          await tester.tap(find.byTooltip('Evaluate CPQ rules'));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.widgetWithText(TextFormField, 'Discount'),
+            '250.50',
+          );
+          await open('Evaluate');
+          expect(find.text('Warnings: 1'), findsOneWidget);
+          expect(find.text('Manager approval required'), findsOneWidget);
+          final evaluation = calls.lastWhere(
+            (request) => request.path == '/crm/cpq/evaluate',
+          );
+          expect(evaluation.method, 'POST');
+          expect(evaluation.data, {'amount': 250000, 'discount': 250.50});
           await back();
           await back();
           await back();
