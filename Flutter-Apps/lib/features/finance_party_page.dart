@@ -33,31 +33,34 @@ class FinancePartyPage extends StatefulWidget {
 }
 
 class _FinancePartyPageState extends State<FinancePartyPage> {
-  late Future<Json?> _party = _load();
+  late var _party = _load();
   Future<({Json? record, bool live})>? _outstanding;
 
-  Future<Json> _read() async =>
-      await widget.api.request(
-            'GET',
-            '${FinancePartyPage.endpoint}/${widget.id}',
-            scopeHeaders: widget.scopeHeaders,
-          )
-          as Json;
-
-  Future<Json?> _load({bool reconnect = false}) async {
-    if (widget.offline && !reconnect) return null;
-    try {
-      return await _read();
-    } on ApiFailure catch (error) {
-      if (widget.summary != null &&
-          (error.connectionFailure ||
-              error.status == 429 ||
-              (error.status ?? 0) >= 500)) {
-        return null;
-      }
-      rethrow;
-    }
-  }
+  Future<({Json? record, bool live})> _load({bool reconnect = false}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '${FinancePartyPage.endpoint}/${widget.id}',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: widget.offline && !reconnect,
+        project: (record) => {
+          for (final key in [
+            ...FinancePartyPage.summaryFields,
+            'gstin',
+            'payment_terms_days',
+            'credit_limit',
+          ])
+            if (record.containsKey(key)) key: record[key],
+          'contacts': [
+            for (final contact
+                in (record['contacts'] as List? ?? const []).whereType<Json>())
+              {
+                for (final key in ['name', 'designation', 'is_primary'])
+                  if (contact.containsKey(key)) key: contact[key],
+              },
+          ],
+        },
+      );
 
   void _refresh() => setState(() {
     _party = _load(reconnect: true);
@@ -141,7 +144,7 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Party details')),
-    body: FutureBuilder<Json?>(
+    body: FutureBuilder(
       future: _party,
       builder: (context, snapshot) {
         final loading = snapshot.connectionState != ConnectionState.done;
@@ -157,8 +160,18 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
             ),
           );
         }
-        final live = !loading && snapshot.data != null;
-        final party = (live ? snapshot.data : widget.summary) ?? const {};
+        final result = loading ? null : snapshot.data;
+        final live = result?.live == true;
+        final party = result?.record ?? widget.summary;
+        if (party == null) {
+          return ListTile(
+            title: const Text('Connect to load party details.'),
+            trailing: TextButton(
+              onPressed: _refresh,
+              child: const Text('Reconnect'),
+            ),
+          );
+        }
         final contacts = (party['contacts'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -170,7 +183,11 @@ class _FinancePartyPageState extends State<FinancePartyPage> {
             if (loading) const LinearProgressIndicator(),
             if (!loading && !live)
               ListTile(
-                title: const Text('Saved party summary'),
+                title: Text(
+                  result?.record == null
+                      ? 'Saved party summary'
+                      : 'Saved party details',
+                ),
                 trailing: TextButton(
                   onPressed: _refresh,
                   child: const Text('Reconnect'),

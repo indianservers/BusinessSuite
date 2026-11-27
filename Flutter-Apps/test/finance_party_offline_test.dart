@@ -12,7 +12,7 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore;
 
 void main() {
   testWidgets(
-    'Finance loads saved bills and statements without contacting the API',
+    'Finance loads saved details, bills, and statements without contacting the API',
     (tester) async {
       const scope = '["https://example.test/api/v1",5,7]';
       const channel = MethodChannel('com.tekartik.sqflite');
@@ -37,17 +37,21 @@ void main() {
               ];
             }
             reads++;
-            expect(
-              (args['arguments'] as List).first,
-              reads == 1
-                  ? '$scope:/fam/parties/4/outstanding:6'
-                  : '$scope:/fam/parties/4/statement:6',
-            );
+            expect((args['arguments'] as List).first, switch (reads) {
+              1 => '$scope:/fam/parties/4:6',
+              2 => '$scope:/fam/parties/4/outstanding:6',
+              _ => '$scope:/fam/parties/4/statement:6',
+            });
             return [
               {
                 'saved_at': DateTime.now().millisecondsSinceEpoch,
                 'rows': jsonEncode([
                   {
+                    'legal_name': 'Saved party record',
+                    'payment_terms_days': 30,
+                    'contacts': [
+                      {'name': 'Accounts desk'},
+                    ],
                     'openBills': 1,
                     'outstanding': '75.00',
                     'party': {'legal_name': 'Saved party'},
@@ -102,18 +106,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Saved party details'), findsOneWidget);
+      expect(find.text('Saved party record'), findsOneWidget);
+      expect(find.text('Accounts desk'), findsOneWidget);
       await tester.tap(find.text('View outstanding bills'));
       await tester.pumpAndSettle();
       expect(find.text('Saved outstanding bills'), findsOneWidget);
       expect(find.text('B-22'), findsOneWidget);
       expect(find.text('Due 2026-12-15'), findsOneWidget);
-      expect(reads, 1);
+      expect(reads, 2);
       await tester.tap(find.text('View statement'));
       await tester.pumpAndSettle();
       expect(find.text('Saved statement'), findsOneWidget);
       expect(find.text('B-22 · Open'), findsOneWidget);
       expect(find.text('R-7 → B-22'), findsOneWidget);
-      expect(reads, 2);
+      expect(reads, 3);
     },
   );
 }
