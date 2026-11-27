@@ -20,6 +20,7 @@ import 'package:business_suite_mobile/features/branch_membership_page.dart';
 import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
+import 'package:business_suite_mobile/features/login_page.dart';
 import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
 import 'package:business_suite_mobile/features/inventory_tracking_form.dart';
 import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
@@ -60,6 +61,26 @@ void mockUnavailableSqlite(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('First launch opens server setup directly from sign-in', (
+    tester,
+  ) async {
+    String? saved;
+    await tester.pumpWidget(
+      MaterialApp(home: LoginPage(onServerChanged: (url) async => saved = url)),
+    );
+    await tester.tap(find.text('Set server address'));
+    await tester.pumpAndSettle();
+    expect(find.text('Server settings'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Business Suite server URL'),
+      'http://10.0.2.2:1534/api/v1',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(saved, 'http://10.0.2.2:1534/api/v1');
+    expect(find.text('Server settings'), findsNothing);
+  });
+
   testWidgets('My Payslips opens history and sends a query for that record', (
     tester,
   ) async {

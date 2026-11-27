@@ -140,6 +140,15 @@ class _LoginPageState extends State<LoginPage> {
                             : 'Sign in to your business workspace',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      if (controller == null &&
+                          widget.onServerChanged != null) ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _settings,
+                          icon: const Icon(Icons.settings_outlined),
+                          label: const Text('Set server address'),
+                        ),
+                      ],
                       const SizedBox(height: 32),
                       if (!mfa) ...[
                         TextFormField(
