@@ -1437,6 +1437,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   String _serverSearch = '';
   int _page = 1;
   bool _hasNextPage = false;
+  bool _customerCreateAllowed = false;
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
@@ -1604,7 +1605,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     } on ApiFailure catch (error) {
       if (cacheKey != null && (error.status == 401 || error.status == 403)) {
         if (mounted && loadRevision == _loadRevision) {
-          setState(() => _cached = null);
+          setState(() {
+            _cached = null;
+            _customerCreateAllowed = false;
+          });
         }
         try {
           if (_cacheCrmPages) {
@@ -1659,6 +1663,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (loadRevision != _loadRevision) return records;
     _offlineOnly = false;
+    if (mounted && _crmCustomers && data is Json) {
+      final allowed = (data['context'] as Json?)?['canCreate'] == true;
+      if (allowed != _customerCreateAllowed) {
+        setState(() => _customerCreateAllowed = allowed);
+      }
+    }
     if (_inventory && searchTerm.isEmpty) unawaited(_prepareInventoryDrafts());
     if (_hasPages) {
       final total = data is Json ? data['total'] : null;
@@ -1948,6 +1958,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_crmCustomers &&
+            _customerCreateAllowed &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New customer',
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => CrmCustomerForm(
+                    api: widget.controller.api,
+                    scopeHeaders: widget.scopeHeaders,
+                  ),
+                ),
+              );
+              if (mounted && created == true) {
+                _page = 1;
+                await _refreshCrmRecords();
+              }
+            },
           ),
         if (_crmDeals &&
             widget.canCreateDeals &&
@@ -2763,6 +2795,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
+                                            onChanged: _refreshCrmRecords,
                                           )
                                         : _crmDeals
                                         ? CrmDealPage(

@@ -3278,9 +3278,14 @@ void main() {
               ],
               'total': 1,
               'pageSize': 25,
+              'context': {'canCreate': true},
             }),
+            '/master-data/companies' => response({'id': 83}, 201),
             '/master-data/companies/82' => response({
+              'id': 82,
               'name': 'Sample customer',
+              'canEdit': true,
+              'version': 'reviewed-version',
               'contacts': [
                 {'name': 'Customer representative'},
               ],
@@ -3668,6 +3673,22 @@ void main() {
         if (entry.key == 'VyaparaCRM') {
           await tester.tap(find.byTooltip('Customers'));
           await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('New customer'));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.widgetWithText(TextFormField, 'Customer name'),
+            'New customer sample',
+          );
+          await open('Create customer');
+          final createdCustomer = calls.lastWhere(
+            (request) => request.path == '/master-data/companies',
+          );
+          expect(createdCustomer.method, 'POST');
+          expect(createdCustomer.data, {
+            'name': 'New customer sample',
+            'entityKind': 'Individual',
+            'roles': ['Customer'],
+          });
           await tester.enterText(find.byType(TextField), 'sample');
           await tester.pump(const Duration(milliseconds: 350));
           await tester.pumpAndSettle();
@@ -3686,6 +3707,19 @@ void main() {
           });
           await open('Sample customer');
           expect(find.text('Customer representative'), findsOneWidget);
+          await open('Edit customer');
+          await tester.enterText(
+            find.widgetWithText(TextFormField, 'Email'),
+            'updated@example.test',
+          );
+          await open('Save changes');
+          final updatedCustomer = calls.lastWhere(
+            (request) =>
+                request.method == 'PATCH' &&
+                request.path == '/master-data/companies/82',
+          );
+          expect(updatedCustomer.data['version'], 'reviewed-version');
+          expect(updatedCustomer.data['email'], 'updated@example.test');
           await back();
           await back();
           await tester.tap(find.byTooltip('Deals'));
