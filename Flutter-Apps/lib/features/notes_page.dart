@@ -83,8 +83,15 @@ class _NotesPageState extends State<NotesPage> {
       setState(() {
         _savedView = true;
         _notes = savedNotes.where((note) {
-          if (view == 'pinned' && note['pinned'] != true) return false;
-          if (view == 'favorites' && note['favorite'] != true) return false;
+          final edits = _pendingFor(note)?['values'];
+          if (view == 'pinned' &&
+              (edits?['pinned'] ?? note['pinned']) != true) {
+            return false;
+          }
+          if (view == 'favorites' &&
+              (edits?['favorite'] ?? note['favorite']) != true) {
+            return false;
+          }
           return '${_titleFor(note)} ${_previewFor(note)} ${note['tags'] ?? ''}'
               .toLowerCase()
               .contains(term);
@@ -388,6 +395,7 @@ class _NoteEditorState extends State<_NoteEditor> {
   bool _loading = false;
   bool _saving = false;
   bool _dirty = false;
+  final _flagEdits = <String, bool>{};
   bool _savedView = false;
   Map<String, dynamic>? _pending;
 
@@ -517,7 +525,7 @@ class _NoteEditorState extends State<_NoteEditor> {
             'favorite',
             'archived',
           ])
-            key: note[key],
+            key: _flagEdits[key] ?? note[key],
       };
       if (_savedView || _offline) {
         if (note == null) {
@@ -692,6 +700,25 @@ class _NoteEditorState extends State<_NoteEditor> {
                 child: const Text('Retry'),
               ),
           ] else ...[
+            if (_note != null)
+              for (final (key, label, icon) in const [
+                ('pinned', 'Pinned', Icons.push_pin_outlined),
+                ('favorite', 'Favorite', Icons.star_border),
+              ])
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: Icon(icon),
+                  title: Text(label),
+                  value:
+                      _flagEdits[key] ??
+                      (_pending?['values']?[key] ?? _note?[key]) == true,
+                  onChanged: _editable && !_saving
+                      ? (value) => setState(() {
+                          _flagEdits[key] = value;
+                          _dirty = true;
+                        })
+                      : null,
+                ),
             TextField(
               controller: _title,
               readOnly: !_editable || _saving,
