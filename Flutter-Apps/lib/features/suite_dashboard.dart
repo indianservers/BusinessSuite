@@ -1358,6 +1358,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _warehouseStock => widget.path == _warehouseStockPath;
   static const _valuationPath = InventoryStockReceipts.valuationEndpoint;
   bool get _valuation => widget.path == _valuationPath;
+  bool get _activityReport =>
+      InventoryStockReceipts.activityReports.containsKey(widget.path);
   bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
@@ -1478,6 +1480,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _warehouseStock ||
                   _stockSummary ||
                   _valuation ||
+                  _activityReport ||
                   path == '/srm/sales-orders' ||
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
@@ -1648,6 +1651,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ],
               if (_valuation) ...['stock_value', 'unpriced_currency_items'],
               if (_stockSummary) 'stock_value',
+              if (_activityReport) ...[
+                'last_movement_date',
+                'age_days',
+                'quantity_out',
+                'movement_class',
+              ],
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
               if (path == FinancePartyPage.endpoint)
@@ -1703,6 +1712,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           SuiteReadCache.invalidate('$scope:$_stockSummaryPath'),
           SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
           SuiteReadCache.invalidate('$scope:$_valuationPath'),
+          for (final path in InventoryStockReceipts.activityReports.keys)
+            SuiteReadCache.invalidate('$scope:$path'),
         ]);
       } catch (_) {
         // Refresh the online list even if the device cache is unavailable.
@@ -1946,6 +1957,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
+        if (_stockSummary)
+          PopupMenuButton<String>(
+            tooltip: 'Stock activity reports',
+            icon: const Icon(LucideIcons.chartNoAxesColumn),
+            onSelected: (path) => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: InventoryStockReceipts.activityReports[path]!,
+                  controller: widget.controller,
+                  path: path,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+            itemBuilder: (_) => [
+              for (final report
+                  in InventoryStockReceipts.activityReports.entries)
+                PopupMenuItem(value: report.key, child: Text(report.value)),
+            ],
+          ),
         if (_warehouseStock)
           IconButton(
             tooltip: 'Inventory Valuation',
@@ -2076,6 +2109,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _warehouses ||
                   _warehouseStock ||
                   _valuation ||
+                  _activityReport ||
                   _appointments ||
                   widget.path == GstInvoicePage.listEndpoint ||
                   widget.path == FinancePartyPage.endpoint;
@@ -2258,6 +2292,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   _warehouseStockPath =>
                                     'Search products or warehouses',
                                   _valuationPath => 'Search products',
+                                  _ when _activityReport => 'Search products',
                                   GstInvoicePage.listEndpoint =>
                                     'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
@@ -2416,6 +2451,32 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 if (_stockSummary && _lowStock(item))
                                   'Low stock · reorder at ${item['reorder_threshold']}',
                               ].where((text) => text.isNotEmpty).join('\n'),
+                            ),
+                          );
+                        }
+                        if (_activityReport) {
+                          final movement = item['last_movement_date'];
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: Text(
+                              [
+                                if (subtitle.isNotEmpty) subtitle,
+                                if (widget.path!.endsWith(
+                                  '/fast-slow-moving',
+                                )) ...[
+                                  'Quantity issued ${item['quantity_out'] ?? '—'}',
+                                  switch (item['movement_class']) {
+                                    'fast' => 'Fast moving',
+                                    'slow' => 'Slow moving',
+                                    'non_moving' => 'Non-moving',
+                                    _ => 'Movement class unavailable',
+                                  },
+                                ] else if (movement != null) ...[
+                                  'Last movement $movement',
+                                  'Days since last movement ${item['age_days'] ?? '—'}',
+                                ] else
+                                  'No movement recorded',
+                              ].join('\n'),
                             ),
                           );
                         }

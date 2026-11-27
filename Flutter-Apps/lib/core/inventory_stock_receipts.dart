@@ -18,6 +18,11 @@ class InventoryStockReceipts {
   static const stockSummaryEndpoint = '/srm/inventory/reports/stock-summary';
   // The previous key stored the low-stock subset.
   static const stockSummaryCache = '$stockSummaryEndpoint:full';
+  static const activityReports = {
+    '/srm/inventory/reports/stock-aging': 'Stock Aging',
+    '/srm/inventory/reports/dead-stock': 'Dead Stock',
+    '/srm/inventory/reports/fast-slow-moving': 'Fast and Slow Moving Stock',
+  };
   static final Map<String, Future<void>> _operations = {};
 
   String get _prefix => 'stock_receipt_${Uri.encodeComponent('$scope:')}';
@@ -94,6 +99,7 @@ class InventoryStockReceipts {
       '$scope:$stockSummaryCache',
       '$scope:$warehouseStockEndpoint',
       '$scope:$valuationEndpoint',
+      for (final path in activityReports.keys) '$scope:$path',
     ]) {
       try {
         await SuiteReadCache.invalidate(key);

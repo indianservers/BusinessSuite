@@ -2987,6 +2987,21 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/srm/inventory/reports/stock-aging' ||
+            '/srm/inventory/reports/dead-stock' ||
+            '/srm/inventory/reports/fast-slow-moving' => response({
+              'items': [
+                {
+                  'id': 14,
+                  'sku': 'STOCK-3',
+                  'item_name': 'Archived stock sample',
+                  'last_movement_date': '2026-01-05',
+                  'age_days': 101,
+                  'quantity_out': 4,
+                  'movement_class': 'slow',
+                },
+              ],
+            }),
             '/srm/inventory/reports/stock-summary' => response({
               'items': [
                 {
@@ -3269,6 +3284,22 @@ void main() {
           expect(find.text('Healthy product'), findsOneWidget);
           expect(find.textContaining('Quantity 10'), findsOneWidget);
           expect(find.textContaining('Stock value 240 INR'), findsOneWidget);
+          for (final (title, path, detail) in [
+            ('Stock Aging', 'stock-aging', 'Days since last movement 101'),
+            ('Dead Stock', 'dead-stock', 'Last movement 2026-01-05'),
+            ('Fast and Slow Moving Stock', 'fast-slow-moving', 'Slow moving'),
+          ]) {
+            await tester.tap(find.byTooltip('Stock activity reports'));
+            await tester.pumpAndSettle();
+            await open(title);
+            expect(find.text('Archived stock sample'), findsOneWidget);
+            expect(find.textContaining(detail), findsOneWidget);
+            expect(
+              calls.any((r) => r.path == '/srm/inventory/reports/$path'),
+              isTrue,
+            );
+            await back();
+          }
           await back();
           await tester.tap(find.byTooltip('Warehouses'));
           await tester.pumpAndSettle();
