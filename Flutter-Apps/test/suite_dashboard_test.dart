@@ -678,6 +678,43 @@ void main() {
     }
   });
 
+  test('syncing an archived note evicts its offline copies', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",39,7]');
+    const note = {
+      'id': 51,
+      'version': 2,
+      'title': 'Saved work',
+      'content': 'Saved body',
+      'visibility_scope': 'private',
+      'visibility': 'private',
+      'can_edit': true,
+    };
+    await cache.saveSummaries([note]);
+    await cache.saveDetail(note);
+    await cache.enqueue(note, {'archived': true});
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/project-management/notes/51');
+          expect(request.method, 'PUT');
+          expect(request.data['archived'], isTrue);
+          return response({...note, 'archived': true, 'version': 3});
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await cache.sync(api);
+    expect(await cache.pending(51), isNull);
+    expect(await cache.summaries(), isEmpty);
+    expect(await cache.detail(51), isNull);
+  });
+
   testWidgets('Notes moves a note to Trash and restores it by version', (
     tester,
   ) async {

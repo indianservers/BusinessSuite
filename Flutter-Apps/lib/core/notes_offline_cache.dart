@@ -188,7 +188,11 @@ class NotesOfflineCache {
                     data: edit['values'],
                   )
                   as Json;
-          await saveDetail(note);
+          if (note['archived'] == true) {
+            await forgetNote(note['id']);
+          } else {
+            await saveDetail(note);
+          }
           edits.remove(id);
         } on ApiFailure catch (failure) {
           if (failure.status == null ||
