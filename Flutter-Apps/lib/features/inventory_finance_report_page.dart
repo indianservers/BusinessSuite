@@ -83,6 +83,28 @@ enum InventoryFinanceReport {
     },
     reconciliation: true,
     metrics: {'total': 'Stock items', 'exceptions': 'Missing mappings'},
+  ),
+  salesReconciliation(
+    'Sales Reconciliation',
+    'srm',
+    {},
+    reconciliation: true,
+    metrics: {
+      'srm_sales_orders': 'Sales orders',
+      'srm_invoices': 'Invoices',
+      'inventory_reservations': 'Reservations',
+      'posted_inventory_movements': 'Posted movements',
+    },
+  ),
+  stockAudit(
+    'Stock Movement Audit',
+    'audit',
+    {
+      'record_type': 'Record type',
+      'record_id': 'Record ID',
+      'performed_at': 'Recorded at',
+    },
+    metrics: {'total': 'Audit entries'},
   );
 
   const InventoryFinanceReport(
@@ -97,15 +119,19 @@ enum InventoryFinanceReport {
   final Map<String, String> metrics;
   final bool reconciliation;
 
-  String get endpoint =>
-      '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug';
+  String get endpoint => this == stockAudit
+      ? '/fam/inventory/audit'
+      : '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug';
   String get labelField => switch (this) {
     grossMargin => 'item_name',
     cogs || grniReconciliation || cogsReconciliation => 'movement_number',
     hsn => 'hsn_code',
     glReconciliation => 'inventory_ledger_id',
     gstReconciliation => 'sku',
+    salesReconciliation => 'id',
+    stockAudit => 'action',
   };
+  bool get hasRows => this != glReconciliation && this != salesReconciliation;
 }
 
 class InventoryFinanceReportPage extends StatefulWidget {
@@ -150,6 +176,7 @@ class _InventoryFinanceReportPageState
         project: (data) => {
           'currency': _currency(data),
           'total_cogs': data['total_cogs'],
+          'duplicate_deduction_guard': data['duplicate_deduction_guard'],
           for (final key in widget.report.metrics.keys) key: data[key],
           'items': [
             for (final row in _rows(data))
@@ -225,9 +252,7 @@ class _InventoryFinanceReportPageState
                   if (!done) const LinearProgressIndicator(),
                   if (done && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
-                  if (data != null &&
-                      rows.isEmpty &&
-                      widget.report != InventoryFinanceReport.glReconciliation)
+                  if (data != null && rows.isEmpty && widget.report.hasRows)
                     const Text('No records.'),
                   if (_currency(data) case final String currency)
                     Text('Currency: $currency'),
@@ -238,6 +263,9 @@ class _InventoryFinanceReportPageState
                       Text(
                         '${metric.value}: ${_metric(metric.key, data[metric.key], data)}',
                       ),
+                  if (data?['duplicate_deduction_guard']
+                      case final String guard)
+                    Text(guard),
                 ],
               );
             }

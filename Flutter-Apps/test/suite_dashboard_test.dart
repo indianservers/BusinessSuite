@@ -4036,6 +4036,23 @@ void main() {
                 {'sku': 'SKU-12', 'gst_rate_configured': false},
               ],
             }),
+            '/fam/inventory/reconciliation/srm' => response({
+              'srm_sales_orders': 8,
+              'srm_invoices': 3,
+              'inventory_reservations': 2,
+              'posted_inventory_movements': 1,
+              'duplicate_deduction_guard': 'Duplicate deductions are blocked',
+            }),
+            '/fam/inventory/audit' => response({
+              'total': 1,
+              'items': [
+                {
+                  'action': 'STOCK_OUT',
+                  'record_type': 'inventory_movement',
+                  'record_id': 44,
+                },
+              ],
+            }),
             '/power-apps/environments' => response({
               'items': [
                 {'key': 'development', 'enabled': true},
@@ -4562,6 +4579,12 @@ void main() {
             ('GRNI Reconciliation', 'GRN-2', 'Unbilled receipts: 1'),
             ('COGS Reconciliation', 'ISSUE-2', 'Cost posted: INR 270'),
             ('GST Reconciliation', 'SKU-12', 'Missing mappings: 1'),
+            (
+              'Sales Reconciliation',
+              'Sales orders: 8',
+              'Duplicate deductions are blocked',
+            ),
+            ('Stock Movement Audit', 'STOCK_OUT', 'Record ID: 44'),
           ]) {
             await tester.tap(find.byTooltip('Inventory financial reports'));
             await tester.pumpAndSettle();
