@@ -53,6 +53,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
   late var _rows = _load();
   String _term = '';
   String _status = '';
+  Json? _owner;
   int _page = 1;
   int _generation = 0;
   Json? _cachedRows;
@@ -108,7 +109,8 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
       path: _path,
       scope: scope == null
           ? null
-          : '$scope:follow-ups:${Uri.encodeComponent(_term)}:$_status:$_page',
+          : '$scope:follow-ups:${Uri.encodeComponent(_term)}:$_status:$_page'
+                '${_owner == null ? '' : ':owner:${_owner!['id']}'}',
       headers: widget.headers,
       offline: _offline,
       onCached: (record) {
@@ -119,6 +121,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
       query: {
         'search': _term,
         'status': _status,
+        if (_owner != null) 'assigned_user_id': _owner!['id'],
         'page': _page,
         'per_page': _size,
       },
@@ -191,6 +194,29 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     _rows = _load();
   });
 
+  Future<void> _chooseOwner() async {
+    final revision = widget.api.sessionRevision;
+    final selection = await showDialog<Json>(
+      context: context,
+      builder: (_) => _FollowUpOwnerFilter(
+        api: widget.api,
+        headers: widget.headers,
+        cacheScope: widget.cacheScope,
+        offline: _offline,
+      ),
+    );
+    if (!mounted ||
+        selection == null ||
+        revision != widget.api.sessionRevision) {
+      return;
+    }
+    setState(() {
+      _owner = selection.isEmpty ? null : selection;
+      _page = 1;
+      _rows = _load();
+    });
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -242,13 +268,27 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
             onSubmitted: _find,
           ),
         ),
-        DropdownButton<String>(
-          value: _status,
-          onChanged: (value) => _selectStatus(value!),
-          items: [
-            const DropdownMenuItem(value: '', child: Text('All statuses')),
-            for (final status in _states)
-              DropdownMenuItem(value: status, child: Text(status)),
+        Wrap(
+          spacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            DropdownButton<String>(
+              value: _status,
+              onChanged: (value) => _selectStatus(value!),
+              items: [
+                const DropdownMenuItem(value: '', child: Text('All statuses')),
+                for (final status in _states)
+                  DropdownMenuItem(value: status, child: Text(status)),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: _chooseOwner,
+              icon: const Icon(LucideIcons.user),
+              label: Text(
+                _owner == null ? 'All assignees' : '${_owner!['name']}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         Expanded(
@@ -320,6 +360,109 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     _page += delta;
     _rows = _load();
   });
+}
+
+class _FollowUpOwnerFilter extends StatefulWidget {
+  const _FollowUpOwnerFilter({
+    required this.api,
+    required this.headers,
+    required this.cacheScope,
+    required this.offline,
+  });
+
+  final ApiClient api;
+  final Map<String, String> headers;
+  final String? cacheScope;
+  final bool offline;
+
+  @override
+  State<_FollowUpOwnerFilter> createState() => _FollowUpOwnerFilterState();
+}
+
+class _FollowUpOwnerFilterState extends State<_FollowUpOwnerFilter> {
+  late var _options = _load(offline: widget.offline);
+  String _term = '';
+
+  Future<({Json? record, bool live})> _load({required bool offline}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '/follow-ups/options',
+        scope: widget.cacheScope,
+        headers: widget.headers,
+        offline: offline,
+        project: (record) => {
+          'employees': [
+            for (final user in (record['employees'] as List).cast<Json>())
+              {'id': user['id'], 'name': user['name']},
+          ],
+        },
+      );
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Filter by assignee'),
+    content: SizedBox(
+      width: 360,
+      height: 300,
+      child: Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(labelText: 'Search assignees'),
+            onChanged: (value) =>
+                setState(() => _term = value.trim().toLowerCase()),
+          ),
+          Expanded(
+            child: FutureBuilder(
+              future: _options,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final result = snapshot.data;
+                final record = result?.record;
+                if (record == null) {
+                  return Center(
+                    child: TextButton(
+                      onPressed: () => setState(() {
+                        _options = _load(offline: false);
+                      }),
+                      child: const Text('Retry assignees'),
+                    ),
+                  );
+                }
+                final users = [
+                  for (final user in (record['employees'] as List).cast<Json>())
+                    if (user['id'] is int &&
+                        '${user['name']}'.toLowerCase().contains(_term))
+                      user,
+                ];
+                if (users.isEmpty) {
+                  return const Center(child: Text('No matching assignees'));
+                }
+                return ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) => ListTile(
+                    title: Text('${users[index]['name']}'),
+                    onTap: () => Navigator.pop(context, users[index]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context, <String, dynamic>{}),
+        child: const Text('All assignees'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Close'),
+      ),
+    ],
+  );
 }
 
 class _FollowUpStatistics extends StatefulWidget {
