@@ -606,6 +606,7 @@ void main() {
   testWidgets('A purchase order can be issued and receive linked goods', (
     tester,
   ) async {
+    Set<int>? receivedProducts;
     final writes = <RequestOptions>[];
     final issueRequests = <RequestOptions>[];
     RequestOptions? edited;
@@ -711,12 +712,14 @@ void main() {
               'lines': [
                 {
                   'id': 19,
+                  'product_id': 91,
                   'description': 'Printer paper',
                   'quantity': 2,
                   'received_quantity': writes.isEmpty ? 0 : 1.25,
                 },
                 {
                   'id': 20,
+                  'product_id': 92,
                   'description': 'Ink cartridge',
                   'quantity': 5,
                   'received_quantity': writes.isEmpty ? 0 : 2,
@@ -750,6 +753,7 @@ void main() {
           canIssue: true,
           canExport: true,
           canArchive: true,
+          onReceived: (products) => receivedProducts = products,
         ),
       ),
     );
@@ -874,6 +878,7 @@ void main() {
     await tester.tap(post);
     await tester.pumpAndSettle();
     expect(writes.single.path, '/srm/procurement/grn');
+    expect(receivedProducts, {91, 92});
     expect(writes.single.data, {
       'purchase_order_id': 72,
       'lines': [

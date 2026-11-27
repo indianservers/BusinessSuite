@@ -2073,27 +2073,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
   }
 
-  Future<void> _refreshStockLists() async {
+  Future<void> _refreshStockLists([Set<int> products = const {}]) async {
     final scope = widget.cachePrefix;
     final api = widget.controller.api;
     final session = api.sessionRevision;
     if (scope != null) {
-      try {
-        await Future.wait([
-          SuiteReadCache.invalidate(
-            '$scope:${InventoryOfflineCreates.itemsEndpoint}',
-          ),
-          SuiteReadCache.invalidate('$scope:$_stockSummaryCachePath'),
-          SuiteReadCache.invalidate('$scope:$_stockSummaryPath'),
-          SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
-          SuiteReadCache.invalidate('$scope:$_valuationPath'),
-          SuiteReadCache.invalidateInventoryReports(scope),
-          for (final path in InventoryStockReceipts.activityReports.keys)
-            SuiteReadCache.invalidate('$scope:$path'),
-        ]);
-      } catch (_) {
-        // Refresh the online list even if the device cache is unavailable.
-      }
+      await InventoryStockReceipts(scope).invalidateLists(products: products);
     }
     if (mounted && session == api.sessionRevision) _refresh();
   }

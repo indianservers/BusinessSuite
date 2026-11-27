@@ -100,7 +100,7 @@ class InventoryProcurementPage extends StatefulWidget {
   final bool canIssue;
   final bool canExport;
   final bool canArchive, archived;
-  final VoidCallback? onReceived;
+  final ValueChanged<Set<int>>? onReceived;
   final VoidCallback? onOrderChanged;
 
   @override
@@ -468,12 +468,12 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           api: api,
           order: {...order, 'id': widget.summary['id']},
           scopeHeaders: widget.scopeHeaders,
+          onPosted: widget.onReceived,
         ),
       ),
     );
     if (!mounted || receipt == null || api.sessionRevision != revision) return;
     _refresh();
-    widget.onReceived?.call();
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => InventoryProcurementPage(

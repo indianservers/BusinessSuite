@@ -9,11 +9,13 @@ class InventoryGoodsReceiptForm extends StatefulWidget {
     required this.api,
     required this.order,
     required this.scopeHeaders,
+    this.onPosted,
   });
 
   final ApiClient api;
   final Json order;
   final Map<String, String> scopeHeaders;
+  final ValueChanged<Set<int>>? onPosted;
 
   @override
   State<InventoryGoodsReceiptForm> createState() =>
@@ -57,8 +59,10 @@ class _InventoryGoodsReceiptFormState extends State<InventoryGoodsReceiptForm> {
       return;
     }
     final entries = <Json>[];
+    final products = <int>{};
     for (final (index, line) in _lines.indexed) {
-      final received = _milli(line.accepted)! + _milli(line.rejected)!;
+      final accepted = _milli(line.accepted)!;
+      final received = accepted + _milli(line.rejected)!;
       if (received == 0 || received > 99999999999999) {
         setState(
           () =>
@@ -73,6 +77,11 @@ class _InventoryGoodsReceiptFormState extends State<InventoryGoodsReceiptForm> {
         'rejected_quantity': line.rejected,
         'tax_amount': line.tax,
       });
+      if (accepted > 0) {
+        if (line.orderLine!['product_id'] case final int product) {
+          products.add(product);
+        }
+      }
     }
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -96,6 +105,7 @@ class _InventoryGoodsReceiptFormState extends State<InventoryGoodsReceiptForm> {
           _showUnconfirmedReceipt();
           return;
         }
+        widget.onPosted?.call(products);
         Navigator.pop(context, result);
       }
     } on ApiFailure catch (error) {
