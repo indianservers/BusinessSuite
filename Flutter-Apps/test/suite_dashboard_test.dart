@@ -41,31 +41,49 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('An open purchase order posts a linked goods receipt', (
+  testWidgets('A purchase order can be issued and receive linked goods', (
     tester,
   ) async {
     final writes = <RequestOptions>[];
+    final issueRequests = <RequestOptions>[];
+    const document = '/srm/documents/purchase-orders/72';
+    var issued = false;
+    final version = 'a' * 64;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
+          if (request.path == '$document/issue') {
+            expect(request.method, 'POST');
+            issueRequests.add(request);
+            if (issueRequests.length == 1) {
+              return response({'detail': 'Try issuing again.'}, 503);
+            }
+            issued = true;
+            return response({
+              'record': {'id': 72, 'status': 'ordered'},
+            });
+          }
           if (request.method == 'POST') {
             writes.add(request);
             return response({'id': 80, 'grn_number': 'GRN-80'}, 201);
           }
           return switch (request.path) {
+            document => response({'version': version, 'editable': !issued}),
             '/srm/procurement/purchase-orders/72' => response({
               'id': 72,
               'po_number': 'PO-72',
-              'status': 'partially_received',
+              'status': issued
+                  ? (writes.isEmpty ? 'ordered' : 'partially_received')
+                  : 'draft',
               'lines': [
                 {
                   'id': 19,
                   'description': 'Printer paper',
-                  'quantity': 10,
-                  'received_quantity': writes.isEmpty ? 8 : 9.25,
+                  'quantity': 2,
+                  'received_quantity': writes.isEmpty ? 0 : 1.25,
                 },
               ],
             }),
@@ -88,10 +106,33 @@ void main() {
           cacheScope: null,
           offline: false,
           canReceive: true,
+          canIssue: true,
         ),
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Receive goods'), findsNothing);
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await tester.tap(find.text('Issue purchase order'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirm issue'));
+      await tester.pumpAndSettle();
+      expect(issueRequests, hasLength(attempt));
+      await tester.enterText(
+        find.byType(TextFormField),
+        '  Supplier confirmed  ',
+      );
+      await tester.tap(find.text('Confirm issue'));
+      await tester.pumpAndSettle();
+    }
+    expect(issueRequests, hasLength(2));
+    expect(issueRequests.first.data, {
+      'version': version,
+      'reason': 'Supplier confirmed',
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(issueRequests.last.data, issueRequests.first.data);
+    expect(find.text('Issue purchase order'), findsNothing);
     await tester.tap(find.text('Receive goods'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Purchase order line'));
@@ -131,7 +172,7 @@ void main() {
     expect(find.text('GRN-80'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.textContaining('Received: 9.25'), findsOneWidget);
+    expect(find.textContaining('Received: 1.25'), findsOneWidget);
   });
 
   testWidgets(
