@@ -339,11 +339,12 @@ void main() {
     expect(find.text('QT-RENEWAL'), findsOneWidget);
   });
 
-  testWidgets('Quotation approval and conversion use the shared workflow', (
+  testWidgets('Quotation versioning, sending and conversion use shared APIs', (
     tester,
   ) async {
     final writes = <RequestOptions>[];
     var status = 'Draft';
+    var version = 1;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -359,15 +360,21 @@ void main() {
           }
           if (request.method == 'POST') {
             writes.add(request);
-            status = switch (request.path.split('/').last) {
+            final action = request.path.split('/').last;
+            if (action == 'new-version') version++;
+            status = switch (action) {
+              'new-version' => 'Draft',
               'submit' => 'Pending Approval',
               'approve' => 'Approved',
-              _ => 'Accepted',
+              'send' => 'Sent',
+              'accept' => 'Accepted',
+              _ => throw StateError('Unexpected quotation action: $action'),
             };
           }
           return response({
             'id': 44,
             'quote_number': 'QT-44',
+            'version_number': version,
             'status': status,
             'deal_id': 9,
             if (status == 'Accepted') 'converted_srm_sales_order_id': 57,
@@ -383,16 +390,21 @@ void main() {
           scopeHeaders: const {'X-Suite-Organization': '7'},
           canManage: true,
           canApprove: true,
+          canSend: true,
           canViewSalesOrder: true,
         ),
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Mark quotation as sent'), findsNothing);
     for (final (index, label) in [
+      'Create new version',
       'Submit for approval',
       'Approve quotation',
+      'Mark quotation as sent',
       'Accept and convert',
     ].indexed) {
+      await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(writes, hasLength(index));
@@ -405,11 +417,18 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(writes.map((request) => request.path), [
+      '/crm/quotes/44/new-version',
       '/crm/quotes/44/submit',
       '/crm/quotes/44/approve',
+      '/crm/quotes/44/send',
       '/crm/quotes/44/accept',
     ]);
-    expect(writes.last.headers['X-Suite-Organization'], '7');
+    expect(
+      writes.map((request) => request.headers['X-Suite-Organization']),
+      everyElement('7'),
+    );
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('Mark quotation as sent'), findsNothing);
     expect(find.text('Accepted'), findsOneWidget);
     expect(find.text('57'), findsOneWidget);
     await tester.tap(find.text('Open sales order'));

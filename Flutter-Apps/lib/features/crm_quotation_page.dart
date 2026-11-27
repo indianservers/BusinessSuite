@@ -19,6 +19,7 @@ class CrmQuotationPage extends StatefulWidget {
     this.cacheScope,
     this.canManage = false,
     this.canApprove = false,
+    this.canSend = false,
     this.canViewSalesOrder = false,
     this.onChanged,
   });
@@ -30,6 +31,7 @@ class CrmQuotationPage extends StatefulWidget {
     'expiry_date',
     'approval_status',
     'status',
+    'version_number',
     'currency',
     'grand_total',
     'total_amount',
@@ -41,6 +43,7 @@ class CrmQuotationPage extends StatefulWidget {
   final String? cacheScope;
   final bool canManage;
   final bool canApprove;
+  final bool canSend;
   final bool canViewSalesOrder;
   final VoidCallback? onChanged;
 
@@ -179,6 +182,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             "Quotation ${quote['quote_number'] ?? widget.summary['id']}",
             if (action == 'accept')
               'This records the customer’s acceptance and creates or links commercial records in Sales & POS.',
+            if (action == 'send')
+              'This generates the PDF and marks the quotation as Sent.',
+            if (action == 'new-version')
+              'This keeps the current version in history and starts a new draft for approval.',
           ].join('\n\n'),
         ),
         actions: [
@@ -193,7 +200,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
         ],
       ),
     );
-    if (!mounted || confirmed != true || api.sessionRevision != revision) {
+    if (!mounted ||
+        confirmed != true ||
+        _changingStatus ||
+        api.sessionRevision != revision) {
       return;
     }
     setState(() => _changingStatus = true);
@@ -246,6 +256,15 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             snapshot.connectionState == ConnectionState.done &&
             snapshot.data?.live == true;
         final status = record['status']?.toString().toLowerCase();
+        final approval = record['approval_status']?.toString().toLowerCase();
+        final readyToSend =
+            (status == 'approved' || approval == 'not_required') &&
+            !const {
+              'sent',
+              'accepted',
+              'declined',
+              'converted',
+            }.contains(status);
         final canEditLines =
             live &&
             widget.canManage &&
@@ -254,6 +273,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
         final amount = record['grand_total'] ?? record['total_amount'];
         final fields = {
           'Status': record['status'],
+          'Version': record['version_number'],
           'Approval': (record['approval_status'] as String?)?.replaceAll(
             '_',
             ' ',
@@ -330,6 +350,17 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         ),
                       ],
                     ),
+                  if (live && widget.canSend && readyToSend)
+                    FilledButton(
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _changeStatus(
+                              'send',
+                              'Mark quotation as sent',
+                              record,
+                            ),
+                      child: const Text('Mark quotation as sent'),
+                    ),
                   if (live &&
                       widget.canManage &&
                       const {'sent', 'approved'}.contains(status))
@@ -355,6 +386,17 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         title: Text(field.key),
                         subtitle: Text('${field.value}'),
                       ),
+                  if (canEditLines)
+                    OutlinedButton(
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _changeStatus(
+                              'new-version',
+                              'Create new version',
+                              record,
+                            ),
+                      child: const Text('Create new version'),
+                    ),
                   if (widget.canViewSalesOrder &&
                       record['converted_srm_sales_order_id'] is int)
                     OutlinedButton(

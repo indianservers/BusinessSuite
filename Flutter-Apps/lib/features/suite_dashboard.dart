@@ -543,6 +543,15 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               'crm_manage',
               'crm_admin',
             }),
+        canSendQuotes:
+            app.grant == 'crm' &&
+            ['send', 'manage', 'edit'].any(
+              (action) => _canWriteCrm(access, action, const {
+                'crm_quotes_send',
+                'crm_manage',
+                'crm_admin',
+              }),
+            ),
         canMoveDeals:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'edit', const {
@@ -1367,6 +1376,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canCreateQuotes = false,
     this.canViewQuoteSalesOrders = false,
     this.canApproveQuotes = false,
+    this.canSendQuotes = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
@@ -1391,6 +1401,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canCreateQuotes;
   final bool canViewQuoteSalesOrders;
   final bool canApproveQuotes;
+  final bool canSendQuotes;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
@@ -2012,6 +2023,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canCreateQuotes: widget.canCreateQuotes,
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
+                  canSendQuotes: widget.canSendQuotes,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2073,6 +2085,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canManageQuotes: widget.canManageQuotes,
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
+                  canSendQuotes: widget.canSendQuotes,
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2917,6 +2930,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             scopeHeaders: widget.scopeHeaders,
                                             canManage: widget.canManageQuotes,
                                             canApprove: widget.canApproveQuotes,
+                                            canSend: widget.canSendQuotes,
                                             canViewSalesOrder:
                                                 widget.canViewQuoteSalesOrders,
                                             onChanged: _refreshCrmRecords,
@@ -2978,6 +2992,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                         widget.canManageQuotes,
                                                     canApprove:
                                                         widget.canApproveQuotes,
+                                                    canSend:
+                                                        widget.canSendQuotes,
                                                     canViewSalesOrder: widget
                                                         .canViewQuoteSalesOrders,
                                                   ),
