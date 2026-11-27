@@ -117,7 +117,9 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
     ),
   );
 
-  void _refresh() => setState(() => _history = _load());
+  void _refresh() => setState(() {
+    _history = _load();
+  });
 
   @override
   Widget build(BuildContext context) => Scaffold(

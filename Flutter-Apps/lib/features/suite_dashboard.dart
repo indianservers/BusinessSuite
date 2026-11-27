@@ -2483,6 +2483,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: kind.title,
                   controller: widget.controller,
                   path: kind.path,
+                  canCreateOrder: widget.canCreateOrder,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -3195,6 +3196,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 builder: (_) => InventoryProcurementPage(
                                   api: widget.controller.api,
                                   kind: procurement,
+                                  canReceive: widget.canCreateOrder,
+                                  onReceived: _refreshStockLists,
                                   summary: item,
                                   scopeHeaders: widget.scopeHeaders,
                                   cacheScope: widget.cachePrefix,

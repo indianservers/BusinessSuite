@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import 'inventory_goods_receipt_form.dart';
 
 enum ProcurementRecord {
   order(
@@ -62,6 +63,8 @@ class InventoryProcurementPage extends StatefulWidget {
     required this.scopeHeaders,
     required this.cacheScope,
     required this.offline,
+    this.canReceive = false,
+    this.onReceived,
   });
 
   final ApiClient api;
@@ -70,6 +73,8 @@ class InventoryProcurementPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
   final bool offline;
+  final bool canReceive;
+  final VoidCallback? onReceived;
 
   @override
   State<InventoryProcurementPage> createState() =>
@@ -82,6 +87,41 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
 
   Iterable<Json> _lines(Json data) =>
       (data['lines'] as List? ?? const []).whereType<Json>();
+
+  void _refresh() => setState(() {
+    _record = _load();
+  });
+
+  Future<void> _receive(Json order) async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final receipt = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => InventoryGoodsReceiptForm(
+          api: api,
+          order: {...order, 'id': widget.summary['id']},
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || receipt == null || api.sessionRevision != revision) return;
+    _refresh();
+    widget.onReceived?.call();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => InventoryProcurementPage(
+          api: api,
+          kind: ProcurementRecord.receipt,
+          summary: receipt,
+          scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cacheScope,
+          offline: false,
+          canReceive: widget.canReceive,
+          onReceived: widget.onReceived,
+        ),
+      ),
+    );
+  }
 
   Future<({Json? record, bool live})> _load({bool offline = false}) {
     final kind = widget.kind;
@@ -123,7 +163,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         IconButton(
           tooltip: 'Refresh record',
           icon: const Icon(Icons.refresh),
-          onPressed: () => setState(() => _record = _load()),
+          onPressed: _refresh,
         ),
       ],
     ),
@@ -136,6 +176,12 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         final row = data ?? widget.summary;
         final lines = _lines(row).toList();
         final done = snapshot.connectionState == ConnectionState.done;
+        final canReceive =
+            widget.canReceive &&
+            kind == ProcurementRecord.order &&
+            done &&
+            snapshot.data?.live == true &&
+            const {'ordered', 'partially_received'}.contains(row['status']);
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: lines.length + 1,
@@ -152,6 +198,11 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                     '${row[kind.number] ?? 'Procurement record'}',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  if (canReceive)
+                    FilledButton(
+                      onPressed: () => _receive(row),
+                      child: const Text('Receive goods'),
+                    ),
                   for (final field in kind.fields.entries)
                     if (row[field.key] case final Object value)
                       ListTile(
@@ -170,6 +221,8 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                             scopeHeaders: widget.scopeHeaders,
                             cacheScope: widget.cacheScope,
                             offline: snapshot.data?.live != true,
+                            canReceive: widget.canReceive,
+                            onReceived: widget.onReceived,
                           ),
                         ),
                       ),

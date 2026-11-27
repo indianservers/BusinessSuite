@@ -229,7 +229,9 @@ class _InventoryFinanceReportPageState
       actions: [
         IconButton(
           tooltip: 'Refresh report',
-          onPressed: () => setState(() => _report = _load()),
+          onPressed: () => setState(() {
+            _report = _load();
+          }),
           icon: const Icon(Icons.refresh),
         ),
       ],

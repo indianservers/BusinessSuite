@@ -63,7 +63,9 @@ class _InventoryTrackingFormState extends State<InventoryTrackingForm> {
         scopeHeaders: widget.scopeHeaders,
       ),
     );
-    if (!mounted || selected == null || revision != widget.api.sessionRevision) {
+    if (!mounted ||
+        selected == null ||
+        revision != widget.api.sessionRevision) {
       return;
     }
     setState(() {
@@ -186,8 +188,9 @@ class _InventoryTrackingFormState extends State<InventoryTrackingForm> {
                 ),
                 if (snapshot.hasError)
                   TextButton(
-                    onPressed: () =>
-                        setState(() => _warehouses = _loadWarehouses()),
+                    onPressed: () => setState(() {
+                      _warehouses = _loadWarehouses();
+                    }),
                     child: Text('${snapshot.error}\nRetry warehouses'),
                   )
                 else if (!ready)

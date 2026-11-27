@@ -85,7 +85,9 @@ class _InventoryBatchPageState extends State<InventoryBatchPage> {
         IconButton(
           tooltip: 'Refresh batch',
           icon: const Icon(Icons.refresh),
-          onPressed: () => setState(() => _detail = _load(offline: false)),
+          onPressed: () => setState(() {
+            _detail = _load(offline: false);
+          }),
         ),
       ],
     ),

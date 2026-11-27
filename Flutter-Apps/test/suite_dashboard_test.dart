@@ -22,6 +22,7 @@ import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
 import 'package:business_suite_mobile/features/inventory_tracking_form.dart';
+import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
@@ -40,6 +41,99 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('An open purchase order posts a linked goods receipt', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          if (request.method == 'POST') {
+            writes.add(request);
+            return response({'id': 80, 'grn_number': 'GRN-80'}, 201);
+          }
+          return switch (request.path) {
+            '/srm/procurement/purchase-orders/72' => response({
+              'id': 72,
+              'po_number': 'PO-72',
+              'status': 'partially_received',
+              'lines': [
+                {
+                  'id': 19,
+                  'description': 'Printer paper',
+                  'quantity': 10,
+                  'received_quantity': writes.isEmpty ? 8 : 9.25,
+                },
+              ],
+            }),
+            '/srm/procurement/grn/80' => response({
+              'id': 80,
+              'grn_number': 'GRN-80',
+              'purchase_order_id': 72,
+            }),
+            _ => throw StateError('Unexpected request: ${request.path}'),
+          };
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryProcurementPage(
+          api: api,
+          summary: const {'id': 72},
+          kind: ProcurementRecord.order,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+          cacheScope: null,
+          offline: false,
+          canReceive: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Receive goods'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Purchase order line'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Printer paper').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Remaining quantity: 2.000'), findsOneWidget);
+    final accepted = find.widgetWithText(TextFormField, 'Accepted quantity');
+    await tester.enterText(accepted, '3');
+    final post = find.text('Post goods receipt');
+    await tester.ensureVisible(post);
+    await tester.tap(post);
+    await tester.pumpAndSettle();
+    expect(writes, isEmpty);
+    await tester.ensureVisible(accepted);
+    await tester.enterText(accepted, '1.25');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Rejected quantity'),
+      '0.25',
+    );
+    await tester.ensureVisible(post);
+    await tester.tap(post);
+    await tester.pumpAndSettle();
+    expect(writes.single.path, '/srm/procurement/grn');
+    expect(writes.single.data, {
+      'purchase_order_id': 72,
+      'lines': [
+        {
+          'purchase_order_line_id': 19,
+          'quantity': '1.500',
+          'accepted_quantity': '1.25',
+          'rejected_quantity': '0.25',
+          'tax_amount': '0',
+        },
+      ],
+    });
+    expect(find.text('GRN-80'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Received: 9.25'), findsOneWidget);
+  });
+
   testWidgets(
     'Inventory tracking registers batches and product-scoped serials',
     (tester) async {
