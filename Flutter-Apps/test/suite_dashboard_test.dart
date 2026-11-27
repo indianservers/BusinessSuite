@@ -5492,6 +5492,25 @@ void main() {
             }),
             '/srm/inventory/reports' => response({
               'total': 1,
+              if (request.queryParameters['report'] == 'overview') ...{
+                'total_products': 1,
+                'totals_by_currency': [
+                  {
+                    'currency': 'INR',
+                    'stock_value': 240,
+                    'quantity': 10,
+                    'positions': 1,
+                    'negative_positions': 0,
+                  },
+                ],
+                'trends': [
+                  {
+                    'movement_date': '2026-11-27',
+                    'quantity_in': 10,
+                    'quantity_out': 0,
+                  },
+                ],
+              },
               'items': [
                 if ([
                   'summary',
@@ -6046,6 +6065,24 @@ void main() {
             expect(calls.last.queryParameters['report'], slug);
             await back();
           }
+          await tester.tap(find.byTooltip('Stock activity reports'));
+          await tester.pumpAndSettle();
+          await open('Inventory Overview');
+          expect(
+            find.text('Products with recorded movements: 1'),
+            findsOneWidget,
+          );
+          expect(find.text('INR · 240'), findsOneWidget);
+          await open('Inspect valuation');
+          expect(calls.last.queryParameters['report'], 'valuation');
+          await back();
+          await open('Stock movement trend');
+          await open('2026-11-27');
+          expect(calls.last.queryParameters['report'], 'ledger');
+          expect(calls.last.queryParameters['start_date'], '2026-11-27');
+          expect(calls.last.queryParameters['end_date'], '2026-11-27');
+          await back();
+          await back();
           for (final (title, path, detail) in [
             ('Stock Aging', 'stock-aging', 'Days since last movement 101'),
             ('Dead Stock', 'dead-stock', 'Last movement 2026-01-05'),

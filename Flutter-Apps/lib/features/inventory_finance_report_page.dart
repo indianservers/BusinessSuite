@@ -29,6 +29,13 @@ const _movementFields = {
 };
 
 enum InventoryFinanceReport {
+  overview('Inventory Overview', 'overview', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'quantity': 'Quantity',
+    'stock_value': 'Stock value',
+    'currency': 'Currency',
+  }, analysisReport: true),
   stockLedger('Stock Ledger', 'ledger', _movementFields, analysisReport: true),
   salesMovements(
     'Sales Movement',
@@ -235,6 +242,7 @@ enum InventoryFinanceReport {
       '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug',
   };
   String get labelField => switch (this) {
+    overview ||
     inventoryReconciliation ||
     stockSummary ||
     historicalValuation ||
@@ -345,6 +353,11 @@ class _InventoryFinanceReportPageState
         if (_analysis) 'warnings': data['warnings'],
         if (_analysis) 'limitations': data['limitations'],
         if (_analysis) 'supported': data['supported'],
+        if (widget.report == InventoryFinanceReport.overview) ...{
+          'total_products': data['total_products'],
+          'totals_by_currency': data['totals_by_currency'],
+          'trends': data['trends'],
+        },
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -430,18 +443,28 @@ class _InventoryFinanceReportPageState
     return Uint8List.fromList(data);
   }
 
-  void _openLedger({int? movementId, int? productId, Object? warehouseId}) {
+  void _openAnalysis({
+    int? movementId,
+    int? productId,
+    Object? warehouseId,
+    String? date,
+    InventoryFinanceReport report = InventoryFinanceReport.stockLedger,
+  }) {
     final filters = {..._filters};
     if (productId != null) {
       filters.remove('transaction_type');
       filters['product_id'] = '$productId';
       if (warehouseId is int) filters['warehouse_id'] = '$warehouseId';
     }
+    if (date != null) {
+      filters['start_date'] = date;
+      filters['end_date'] = date;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => InventoryFinanceReportPage(
           api: widget.api,
-          report: InventoryFinanceReport.stockLedger,
+          report: report,
           scopeHeaders: widget.scopeHeaders,
           cacheScope: widget.cacheScope,
           offline: _offline,
@@ -625,6 +648,44 @@ class _InventoryFinanceReportPageState
                     const Text('No records.'),
                   if (data?['limitations'] case final String limitations)
                     Text(limitations),
+                  if (data?['total_products'] case final num products)
+                    Text('Products with recorded movements: $products'),
+                  if (data?['totals_by_currency'] case final List totals)
+                    for (final total in totals.whereType<Json>())
+                      ListTile(
+                        title: Text(
+                          '${total['currency'] ?? 'Unknown currency'} · ${total['stock_value'] ?? 'Value unavailable'}',
+                        ),
+                        subtitle: Text(
+                          '${total['quantity']} base units · ${total['positions']} warehouse positions · ${total['negative_positions']} negative',
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => _openAnalysis(
+                            report: InventoryFinanceReport.historicalValuation,
+                          ),
+                          child: const Text('Inspect valuation'),
+                        ),
+                      ),
+                  if (data?['trends'] case final List trends)
+                    if (trends.isNotEmpty)
+                      ExpansionTile(
+                        title: const Text('Stock movement trend'),
+                        subtitle: const Text(
+                          'Quantities use each item’s base unit.',
+                        ),
+                        children: [
+                          for (final point in trends.whereType<Json>())
+                            if (point['movement_date'] case final String date)
+                              ListTile(
+                                title: Text(date),
+                                subtitle: Text(
+                                  'In: ${point['quantity_in']} · Out: ${point['quantity_out']}',
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _openAnalysis(date: date),
+                              ),
+                        ],
+                      ),
                   if (_analysis &&
                       widget.report != InventoryFinanceReport.stockExpiry &&
                       data?['as_of'] is String)
@@ -663,7 +724,7 @@ class _InventoryFinanceReportPageState
                     ? IconButton(
                         tooltip: 'View source movement',
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _openLedger(movementId: movement),
+                        onPressed: () => _openAnalysis(movementId: movement),
                       )
                     : _analysis &&
                           widget.report != InventoryFinanceReport.stockLedger &&
@@ -671,7 +732,7 @@ class _InventoryFinanceReportPageState
                     ? IconButton(
                         tooltip: 'View item ledger',
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _openLedger(
+                        onPressed: () => _openAnalysis(
                           productId: product,
                           warehouseId: row['warehouse_id'],
                         ),
