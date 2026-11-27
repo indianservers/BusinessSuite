@@ -40,6 +40,7 @@ class CrmDealPage extends StatefulWidget {
 }
 
 class _CrmDealPageState extends State<CrmDealPage> {
+  Json? _cachedDetails;
   late Future<({Json? record, bool live})> _deal = _load(
     offline: widget.offline,
   );
@@ -52,6 +53,9 @@ class _CrmDealPageState extends State<CrmDealPage> {
         scope: widget.cacheScope,
         headers: widget.scopeHeaders,
         offline: offline,
+        onCached: (record) {
+          if (mounted) setState(() => _cachedDetails = record);
+        },
         project: (record) => {
           for (final field in [
             'name',
@@ -65,6 +69,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
       );
 
   void _refresh() => setState(() {
+    _cachedDetails = null;
     _deal = _load();
   });
 
@@ -125,7 +130,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
             ),
           );
         }
-        final data = snapshot.data?.record ?? widget.summary;
+        final data = snapshot.data?.record ?? _cachedDetails ?? widget.summary;
         final movedStageName = _movedStage?['name'];
         final fields = {
           'Company': data['company_name'] ?? widget.summary['company_name'],

@@ -39,6 +39,7 @@ class CrmContactPage extends StatefulWidget {
 }
 
 class _CrmContactPageState extends State<CrmContactPage> {
+  Json? _cachedDetails;
   late Future<({Json? record, bool live})> _record = _load(
     offline: widget.offline,
   );
@@ -50,6 +51,9 @@ class _CrmContactPageState extends State<CrmContactPage> {
         scope: widget.cacheScope,
         headers: widget.scopeHeaders,
         offline: offline,
+        onCached: (record) {
+          if (mounted) setState(() => _cachedDetails = record);
+        },
         project: (record) => {
           for (final field in [
             'full_name',
@@ -67,6 +71,7 @@ class _CrmContactPageState extends State<CrmContactPage> {
       );
 
   void _refresh() => setState(() {
+    _cachedDetails = null;
     _record = _load();
   });
 
@@ -112,7 +117,7 @@ class _CrmContactPageState extends State<CrmContactPage> {
             ),
           );
         }
-        final data = snapshot.data?.record ?? widget.summary;
+        final data = snapshot.data?.record ?? _cachedDetails ?? widget.summary;
         final history = (data['timeline'] as List? ?? const [])
             .whereType<Json>();
         return ListView(

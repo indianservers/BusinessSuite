@@ -9,6 +9,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   required Map<String, String> headers,
   required bool offline,
   required Json Function(Json) project,
+  void Function(Json)? onCached,
 }) async {
   final revision = api.sessionRevision;
   final branch = headers['X-Suite-Branch'] ?? '';
@@ -17,6 +18,15 @@ Future<({Json? record, bool live})> loadCrmDetail({
     if (revision != api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
+  }
+
+  Json? cached;
+  if (key != null) {
+    try {
+      cached = (await SuiteReadCache.read(key))?.firstOrNull;
+    } catch (_) {}
+    checkSession();
+    if (!offline && cached != null) onCached?.call(cached);
   }
 
   if (!offline) {
@@ -47,12 +57,6 @@ Future<({Json? record, bool live})> loadCrmDetail({
       }
     }
   }
-  List<Json>? rows;
-  if (key != null) {
-    try {
-      rows = await SuiteReadCache.read(key);
-    } catch (_) {}
-  }
   checkSession();
-  return (record: rows?.firstOrNull, live: false);
+  return (record: cached, live: false);
 }

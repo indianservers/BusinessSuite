@@ -58,6 +58,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
     'Done',
     'Cancelled',
   ];
+  Json? _cachedDetails;
   late Future<({Json? record, bool live})> _task = _load(
     offline: widget.offline,
   );
@@ -69,6 +70,9 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
         scope: widget.cacheScope,
         headers: widget.scopeHeaders,
         offline: offline,
+        onCached: (record) {
+          if (mounted) setState(() => _cachedDetails = record);
+        },
         project: (record) => {
           for (final field in [
             'title',
@@ -80,6 +84,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
       );
 
   void _refresh() => setState(() {
+    _cachedDetails = null;
     _error = null;
     _task = _load();
     _readPending();
@@ -207,7 +212,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
             ),
           );
         }
-        final data = snapshot.data?.record ?? widget.summary;
+        final data = snapshot.data?.record ?? _cachedDetails ?? widget.summary;
         final live = snapshot.data?.live == true;
         return ListView(
           padding: const EdgeInsets.all(16),

@@ -39,6 +39,7 @@ class CrmCustomerPage extends StatefulWidget {
 }
 
 class _CrmCustomerPageState extends State<CrmCustomerPage> {
+  Json? _cachedDetails;
   late Future<({Json? record, bool live})> _profile = _load(
     offline: widget.offline,
   );
@@ -50,6 +51,9 @@ class _CrmCustomerPageState extends State<CrmCustomerPage> {
         scope: widget.cacheScope,
         headers: widget.scopeHeaders,
         offline: offline,
+        onCached: (record) {
+          if (mounted) setState(() => _cachedDetails = record);
+        },
         project: (record) => {
           for (final field in ['name', ...CrmCustomerPage.fields.keys])
             field: record[field],
@@ -64,6 +68,7 @@ class _CrmCustomerPageState extends State<CrmCustomerPage> {
       );
 
   void _refresh() => setState(() {
+    _cachedDetails = null;
     _profile = _load();
   });
 
@@ -108,7 +113,7 @@ class _CrmCustomerPageState extends State<CrmCustomerPage> {
             ),
           );
         }
-        final data = snapshot.data?.record ?? widget.summary;
+        final data = snapshot.data?.record ?? _cachedDetails ?? widget.summary;
         final contacts = (data['contacts'] as List? ?? const [])
             .whereType<Json>();
         return ListView(
