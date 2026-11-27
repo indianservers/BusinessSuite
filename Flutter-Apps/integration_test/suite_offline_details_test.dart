@@ -8,6 +8,8 @@ import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/crm_contact_page.dart';
+import 'package:business_suite_mobile/features/crm_deal_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/inventory_stock_movement_page.dart';
@@ -27,6 +29,78 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android retains CRM contact and deal details offline', (
+    tester,
+  ) async {
+    final scope = 'crm-detail-qa-${DateTime.now().microsecondsSinceEpoch}';
+    var connected = true;
+    final requests = <String>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request.path);
+          if (!connected) throw StateError('Offline request ${request.path}');
+          return switch (request.path) {
+            '/crm/contacts/4' => response({
+              'id': 4,
+              'full_name': 'Cached contact',
+              'timeline': [
+                {'title': 'Requested a quote', 'occurredAt': '2026-11-27'},
+              ],
+            }),
+            '/crm/deal-workspace/9/record' => response({
+              'id': 9,
+              'name': 'Cached deal',
+              'description': 'Annual support renewal',
+            }),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+
+    Future<void> open(Widget page) async {
+      await tester.pumpWidget(MaterialApp(home: page));
+      await tester.pumpAndSettle();
+    }
+
+    for (final offline in [false, true]) {
+      connected = !offline;
+      await open(
+        CrmContactPage(
+          api: api,
+          summary: const {'id': 4},
+          offline: offline,
+          cacheScope: scope,
+          canEdit: true,
+          scopeHeaders: const {},
+        ),
+      );
+      expect(find.text('Requested a quote'), findsOneWidget);
+      expect(
+        find.text('Edit contact'),
+        offline ? findsNothing : findsOneWidget,
+      );
+      await open(
+        CrmDealPage(
+          api: api,
+          summary: const {'id': 9},
+          offline: offline,
+          cacheScope: scope,
+          canMove: true,
+          scopeHeaders: const {},
+        ),
+      );
+      expect(find.text('Annual support renewal'), findsOneWidget);
+      expect(
+        find.text('Review stage move'),
+        offline ? findsNothing : findsOneWidget,
+      );
+    }
+    expect(requests, ['/crm/contacts/4', '/crm/deal-workspace/9/record']);
+  });
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
     var connected = true;

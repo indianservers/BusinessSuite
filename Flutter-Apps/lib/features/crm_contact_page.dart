@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 
 class CrmContactPage extends StatefulWidget {
@@ -10,6 +11,7 @@ class CrmContactPage extends StatefulWidget {
     required this.summary,
     required this.offline,
     required this.scopeHeaders,
+    this.cacheScope,
     this.canEdit = false,
     this.onSaved,
   });
@@ -27,6 +29,7 @@ class CrmContactPage extends StatefulWidget {
   final ApiClient api;
   final Json summary;
   final bool offline;
+  final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool canEdit;
   final VoidCallback? onSaved;
@@ -36,30 +39,32 @@ class CrmContactPage extends StatefulWidget {
 }
 
 class _CrmContactPageState extends State<CrmContactPage> {
-  late Future<Json?> _record = widget.offline ? Future<Json?>.value() : _load();
+  late Future<({Json? record, bool live})> _record = _load(
+    offline: widget.offline,
+  );
 
-  Future<Json?> _load() async {
-    final revision = widget.api.sessionRevision;
-    try {
-      final data = await widget.api.request(
-        'GET',
-        '${CrmContactPage.endpoint}/${widget.summary['id']}',
-        scopeHeaders: widget.scopeHeaders,
+  Future<({Json? record, bool live})> _load({bool offline = false}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '${CrmContactPage.endpoint}/${widget.summary['id']}',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: offline,
+        project: (record) => {
+          for (final field in [
+            'full_name',
+            ...CrmContactPage.summaryFields.keys,
+          ])
+            field: record[field],
+          'timeline': [
+            for (final event
+                in (record['timeline'] as List? ?? const [])
+                    .whereType<Json>()
+                    .take(30))
+              {'title': event['title'], 'occurredAt': event['occurredAt']},
+          ],
+        },
       );
-      if (revision != widget.api.sessionRevision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
-      }
-      return data as Json;
-    } on ApiFailure catch (error) {
-      if (revision == widget.api.sessionRevision &&
-          (error.connectionFailure ||
-              error.status == 429 ||
-              (error.status ?? 0) >= 500)) {
-        return null;
-      }
-      rethrow;
-    }
-  }
 
   void _refresh() => setState(() {
     _record = _load();
@@ -93,7 +98,7 @@ class _CrmContactPageState extends State<CrmContactPage> {
         ),
       ],
     ),
-    body: FutureBuilder<Json?>(
+    body: FutureBuilder<({Json? record, bool live})>(
       future: _record,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -107,7 +112,7 @@ class _CrmContactPageState extends State<CrmContactPage> {
             ),
           );
         }
-        final data = snapshot.data ?? widget.summary;
+        final data = snapshot.data?.record ?? widget.summary;
         final history = (data['timeline'] as List? ?? const [])
             .whereType<Json>();
         return ListView(
@@ -115,15 +120,19 @@ class _CrmContactPageState extends State<CrmContactPage> {
           children: [
             if (snapshot.connectionState != ConnectionState.done)
               const LinearProgressIndicator()
-            else if (snapshot.data == null)
-              const Text('Saved contact summary'),
+            else if (snapshot.data?.live != true)
+              Text(
+                snapshot.data?.record == null
+                    ? 'Saved contact summary'
+                    : 'Saved contact details',
+              ),
             Text(
               '${data['full_name'] ?? 'Contact'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (widget.canEdit &&
                 snapshot.connectionState == ConnectionState.done &&
-                snapshot.data != null)
+                snapshot.data?.live == true)
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton(

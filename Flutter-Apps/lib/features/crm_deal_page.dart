@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_deal_stage_page.dart';
 
@@ -11,6 +12,7 @@ class CrmDealPage extends StatefulWidget {
     required this.summary,
     required this.offline,
     required this.scopeHeaders,
+    this.cacheScope,
     this.canMove = false,
     this.onChanged,
   });
@@ -28,6 +30,7 @@ class CrmDealPage extends StatefulWidget {
   final ApiClient api;
   final Json summary;
   final bool offline;
+  final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool canMove;
   final VoidCallback? onChanged;
@@ -37,33 +40,29 @@ class CrmDealPage extends StatefulWidget {
 }
 
 class _CrmDealPageState extends State<CrmDealPage> {
-  late Future<Json?> _deal = widget.offline ? Future.value() : _load();
+  late Future<({Json? record, bool live})> _deal = _load(
+    offline: widget.offline,
+  );
   Json? _movedStage;
 
-  Future<Json?> _load() async {
-    final revision = widget.api.sessionRevision;
-    try {
-      final record =
-          await widget.api.request(
-                'GET',
-                '/crm/deal-workspace/${widget.summary['id']}/record',
-                scopeHeaders: widget.scopeHeaders,
-              )
-              as Json;
-      if (revision != widget.api.sessionRevision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
-      }
-      return record;
-    } on ApiFailure catch (error) {
-      if (revision == widget.api.sessionRevision &&
-          (error.connectionFailure ||
-              error.status == 429 ||
-              (error.status ?? 0) >= 500)) {
-        return null;
-      }
-      rethrow;
-    }
-  }
+  Future<({Json? record, bool live})> _load({bool offline = false}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '/crm/deal-workspace/${widget.summary['id']}/record',
+        scope: widget.cacheScope,
+        headers: widget.scopeHeaders,
+        offline: offline,
+        project: (record) => {
+          for (final field in [
+            'name',
+            'stage_id',
+            'status',
+            'description',
+            ...CrmDealPage.summaryFields,
+          ])
+            field: record[field],
+        },
+      );
 
   void _refresh() => setState(() {
     _deal = _load();
@@ -112,7 +111,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
         ),
       ],
     ),
-    body: FutureBuilder<Json?>(
+    body: FutureBuilder<({Json? record, bool live})>(
       future: _deal,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -126,7 +125,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
             ),
           );
         }
-        final data = snapshot.data ?? widget.summary;
+        final data = snapshot.data?.record ?? widget.summary;
         final movedStageName = _movedStage?['name'];
         final fields = {
           'Company': data['company_name'] ?? widget.summary['company_name'],
@@ -135,7 +134,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
               (_movedStage?['id'] == data['stage_id']
                   ? movedStageName
                   : null) ??
-              (snapshot.data == null ||
+              (snapshot.data?.live != true ||
                       data['stage_id'] == widget.summary['stage_id']
                   ? widget.summary['stage_name']
                   : null),
@@ -155,15 +154,19 @@ class _CrmDealPageState extends State<CrmDealPage> {
           children: [
             if (snapshot.connectionState != ConnectionState.done)
               const LinearProgressIndicator()
-            else if (snapshot.data == null)
-              const Text('Saved deal summary'),
+            else if (snapshot.data?.live != true)
+              Text(
+                snapshot.data?.record == null
+                    ? 'Saved deal summary'
+                    : 'Saved deal details',
+              ),
             Text(
               '${data['name'] ?? 'Deal'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (widget.canMove &&
                 snapshot.connectionState == ConnectionState.done &&
-                snapshot.data != null)
+                snapshot.data?.live == true)
               Wrap(
                 spacing: 8,
                 children: [

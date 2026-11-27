@@ -2710,6 +2710,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? CrmDealPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
@@ -2721,6 +2722,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? CrmContactPage(
                                             api: widget.controller.api,
                                             summary: item,
+                                            cacheScope: widget.cachePrefix,
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
