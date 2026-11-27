@@ -108,17 +108,22 @@ class SuiteReadCache {
   );
 
   static String _pagePrefix(String scope) => '$scope:page:';
+  static const _pageScopeFilter = 'scope = ? OR (scope >= ? AND scope < ?)';
+
+  // A bounded range lets SQLite use the snapshot primary-key index.
+  static List<String> _pageScopeArgs(String scope) => [
+    scope,
+    _pagePrefix(scope),
+    '$scope:page;',
+  ];
 
   static Future<List<Json>?> readPages(String scope) async {
-    final prefix = _pagePrefix(scope);
     final entries = await (await _open()).query(
       'snapshots',
       columns: ['rows'],
-      where: '(scope = ? OR substr(scope, 1, ?) = ?) AND saved_at >= ?',
+      where: '($_pageScopeFilter) AND saved_at >= ?',
       whereArgs: [
-        scope,
-        prefix.length,
-        prefix,
+        ..._pageScopeArgs(scope),
         DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
       ],
       orderBy: 'saved_at DESC',
@@ -139,11 +144,10 @@ class SuiteReadCache {
       write(page == 1 ? scope : '${_pagePrefix(scope)}$page', rows);
 
   static Future<void> clearPages(String scope) async {
-    final prefix = _pagePrefix(scope);
     await (await _open()).delete(
       'snapshots',
-      where: 'scope = ? OR substr(scope, 1, ?) = ?',
-      whereArgs: [scope, prefix.length, prefix],
+      where: _pageScopeFilter,
+      whereArgs: _pageScopeArgs(scope),
     );
   }
 }
