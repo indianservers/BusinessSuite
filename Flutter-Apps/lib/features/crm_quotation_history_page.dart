@@ -28,6 +28,23 @@ class CrmQuotationHistoryPage extends StatefulWidget {
 }
 
 class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
+  static const _fields = {
+    'quote_number': 'Quotation number',
+    'number': 'Document number',
+    'status': 'Status',
+    'currency': 'Currency',
+    'issue_date': 'Issued',
+    'expiry_date': 'Expires',
+    'subtotal': 'Subtotal',
+    'discount_total': 'Discount',
+    'tax_total': 'Tax',
+    'grand_total': 'Grand total',
+    'total_amount': 'Total',
+    'notes': 'Notes',
+    'terms': 'Terms',
+    'terms_and_conditions': 'Terms and conditions',
+  };
+
   Json? _cached;
   late var _history = _load(offline: widget.offline);
 
@@ -48,15 +65,57 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
       (record?['history'] as List? ?? const []).whereType<Json>();
 
   Json _entry(Json entry) {
-    final after = (entry['after'] as Json?)?['record'] as Json?;
+    final after = entry['after'] is Json ? entry['after'] as Json : null;
+    final record = after?['record'] is Json ? after!['record'] as Json : after;
     return {
       for (final field in ['action', 'created_at', 'actor_id', 'reason'])
         field: entry[field],
       'related_id':
-          after?['source_id'] ??
-          (entry['action'] == 'revision_created' ? (after?['id']) : null),
+          record?['source_id'] ??
+          (entry['action'] == 'revision_created' ? (record?['id']) : null),
+      'before': _snapshot(entry['before']),
+      'after': _snapshot(record),
     };
   }
+
+  Json _snapshot(Object? value) {
+    if (value is! Json) return {};
+    return {
+      for (final key in _fields.keys)
+        if (value[key] case final String text when text.isNotEmpty)
+          key: text
+        else if (value[key] is num)
+          key: value[key],
+      if (value['lines'] case final List lines)
+        'lines': [
+          for (final line in lines.whereType<Json>())
+            {
+              'name': line['name'] ?? line['description'],
+              'quantity': line['quantity'],
+              'unit_price': line['unit_price'],
+              'total': line['line_total'] ?? line['total_amount'],
+            },
+        ],
+    };
+  }
+
+  Widget _savedValues(String heading, Json values) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(heading, style: Theme.of(context).textTheme.titleSmall),
+        for (final field in _fields.entries)
+          if (values[field.key] != null)
+            SelectableText('${field.value}: ${values[field.key]}'),
+        for (final line
+            in (values['lines'] as List? ?? const []).whereType<Json>())
+          SelectableText(
+            "${line['name'] ?? 'Item'} · ${line['quantity'] ?? '—'} × ${line['unit_price'] ?? '—'} · Total ${line['total'] ?? '—'}",
+          ),
+      ],
+    ),
+  );
 
   void _refresh() => setState(() => _history = _load());
 
@@ -104,7 +163,7 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
             }
             final entry = entries[index - 1];
             final related = entry['related_id'];
-            return ListTile(
+            final tile = ListTile(
               title: Text(switch (entry['action']) {
                 'document_cancelled' => 'Document cancelled',
                 'revision_created' => 'Revision created',
@@ -125,6 +184,25 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
                       icon: const Icon(Icons.open_in_new),
                     )
                   : null,
+            );
+            final before = entry['before'] as Json?;
+            final after = entry['after'] as Json?;
+            if (before?.isNotEmpty != true && after?.isNotEmpty != true) {
+              return tile;
+            }
+            return Column(
+              children: [
+                tile,
+                ExpansionTile(
+                  title: const Text('View saved values'),
+                  children: [
+                    if (before != null && before.isNotEmpty)
+                      _savedValues('Before', before),
+                    if (after != null && after.isNotEmpty)
+                      _savedValues('After', after),
+                  ],
+                ),
+              ],
             );
           },
         );

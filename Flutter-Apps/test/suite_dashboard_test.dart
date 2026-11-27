@@ -490,6 +490,20 @@ void main() {
                       'action': 'document_cancelled',
                       'actor_id': 7,
                       'reason': 'Offer withdrawn',
+                      'before': {
+                        'status': 'Sent',
+                        'lines': [
+                          {
+                            'name': 'Consulting',
+                            'quantity': 2,
+                            'unit_price': 50,
+                            'line_total': 100,
+                          },
+                        ],
+                      },
+                      'after': {
+                        'record': {'status': 'Cancelled', 'total_amount': 100},
+                      },
                     },
                   if (refreshed > 0)
                     {
@@ -582,6 +596,14 @@ void main() {
     expect(find.text('Document cancelled'), findsOneWidget);
     expect(find.textContaining('Offer withdrawn'), findsOneWidget);
     expect(find.textContaining('Updated offer'), findsOneWidget);
+    final values = find.text('View saved values');
+    await tester.tap(values);
+    await tester.pumpAndSettle();
+    expect(find.text('Status: Sent'), findsOneWidget);
+    expect(find.text('Status: Cancelled'), findsOneWidget);
+    expect(find.text('Consulting · 2 × 50 · Total 100'), findsOneWidget);
+    await tester.tap(values);
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Open related quotation'));
     await tester.pumpAndSettle();
     expect(find.text('QT-44-R2'), findsOneWidget);
