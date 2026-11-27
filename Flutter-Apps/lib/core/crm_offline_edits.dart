@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import 'api_client.dart';
+import 'crm_detail_snapshot.dart';
 import 'models.dart';
 import 'suite_read_cache.dart';
 
@@ -24,9 +25,11 @@ class CrmOfflineEdits {
       final updatedAt = record['updated_at'];
       if (status is! String || updatedAt is! String) return;
       const path = '/project-management/tasks';
+      final detailScope = '$scope:$path/$id:$branch';
+      await flushCrmDetailWrite(detailScope);
       await SuiteReadCache.updateTaskStatus(
         listScope: '$scope:$path',
-        detailScope: '$scope:$path/$id:$branch',
+        detailScope: detailScope,
         id: id,
         status: status,
         updatedAt: updatedAt,

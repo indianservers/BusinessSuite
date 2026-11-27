@@ -43,6 +43,8 @@ void main() {
       {'full_name': 'Saved contact from SQLite'},
     ]);
     final responseReady = Completer<void>();
+    var requested = false;
+    int? responseStatus;
     addTearDown(() {
       if (!responseReady.isCompleted) responseReady.complete();
     });
@@ -52,10 +54,11 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.path, path);
+          requested = true;
           await responseReady.future;
           return response({'id': 33, 'full_name': 'Live contact from API'});
         }),
-    );
+    )..onResponse = (_, _, status) => responseStatus = status;
     await tester.pumpWidget(
       MaterialApp(
         home: CrmContactPage(
@@ -70,10 +73,12 @@ void main() {
     );
     final saved = find.text('Saved contact from SQLite');
     final deadline = DateTime.now().add(const Duration(seconds: 15));
-    while (saved.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+    while ((!requested || saved.evaluate().isEmpty) &&
+        DateTime.now().isBefore(deadline)) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(saved, findsOneWidget);
+    expect(requested, isTrue);
     expect(find.text('Edit contact'), findsNothing);
     responseReady.complete();
     final live = find.text('Live contact from API');
@@ -81,7 +86,11 @@ void main() {
     while (live.evaluate().isEmpty && DateTime.now().isBefore(liveDeadline)) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(live, findsOneWidget);
+    expect(
+      live,
+      findsOneWidget,
+      reason: 'HTTP response status: $responseStatus',
+    );
     expect(find.text('Edit contact'), findsOneWidget);
   });
 
