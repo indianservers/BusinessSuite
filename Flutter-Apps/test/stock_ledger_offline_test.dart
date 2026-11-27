@@ -1,4 +1,5 @@
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/inventory_finance_report_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,19 @@ void main() {
           return 1;
         case 'delete':
           return 0;
+        case 'update':
+          final values = (call.arguments as Map)['arguments'] as List;
+          expect(values, [
+            1,
+            'ledger-test:',
+            'ledger-test;',
+            'ledger-test:',
+            ':/srm/inventory/reports:',
+          ]);
+          for (final row in snapshots.values) {
+            row['invalidated'] = 1;
+          }
+          return snapshots.length;
         default:
           fail('Unexpected SQLite method ${call.method}');
       }
@@ -106,6 +120,9 @@ void main() {
     await tester.tap(find.byTooltip('Refresh report'));
     await tester.pumpAndSettle();
     expect(requests, 3);
+    await SuiteReadCache.invalidateInventoryReports('ledger-test');
+    await warehouse('6');
+    expect(requests, 4);
     await open(true);
     expect(find.text('Movements for all'), findsOneWidget);
     await warehouse('6');
@@ -114,6 +131,6 @@ void main() {
     await warehouse('7');
     expect(find.text('No saved report.'), findsOneWidget);
     expect(find.text('Movements for 6'), findsNothing);
-    expect(requests, 3);
+    expect(requests, 4);
   });
 }

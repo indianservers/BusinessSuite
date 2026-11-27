@@ -129,6 +129,17 @@ class SuiteReadCache {
     whereArgs: [scope],
   );
 
+  static Future<void> invalidateInventoryReports(String scope) async {
+    final prefix = '$scope:';
+    await (await _open()).update(
+      'snapshots',
+      {'invalidated': 1},
+      where:
+          'scope >= ? AND scope < ? AND instr(substr(scope, length(?) + 1), ?) > 0',
+      whereArgs: [prefix, '$scope;', prefix, ':/srm/inventory/reports:'],
+    );
+  }
+
   static String _pagePrefix(String scope) => '$scope:page:';
   static const _pageScopeFilter = 'scope = ? OR (scope >= ? AND scope < ?)';
 

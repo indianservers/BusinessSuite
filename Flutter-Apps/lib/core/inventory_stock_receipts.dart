@@ -92,6 +92,11 @@ class InventoryStockReceipts {
   }
 
   Future<void> invalidate(String branch, int product) async {
+    try {
+      await SuiteReadCache.invalidateInventoryReports(scope);
+    } catch (_) {
+      // A local cache failure cannot undo a confirmed movement.
+    }
     for (final key in [
       '$scope:/srm/inventory/items/$product:$branch',
       '$scope:/srm/inventory/items',

@@ -2087,6 +2087,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           SuiteReadCache.invalidate('$scope:$_stockSummaryPath'),
           SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
           SuiteReadCache.invalidate('$scope:$_valuationPath'),
+          SuiteReadCache.invalidateInventoryReports(scope),
           for (final path in InventoryStockReceipts.activityReports.keys)
             SuiteReadCache.invalidate('$scope:$path'),
         ]);
