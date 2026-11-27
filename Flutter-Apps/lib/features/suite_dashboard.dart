@@ -1759,12 +1759,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       return null;
     }
 
-    final refreshWithoutCache =
-        reconnect &&
-        (path == GstInvoicePage.listEndpoint ||
-            path == SalesOrderDrafts.endpoint ||
-            _inventory ||
-            _isCrm);
+    final refreshWithoutCache = reconnect && cacheKey != null;
     final savedSnapshot = loadSavedSnapshot();
     if (!refreshWithoutCache) {
       final fresh = await savedSnapshot;

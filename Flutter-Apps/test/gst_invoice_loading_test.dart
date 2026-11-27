@@ -15,11 +15,12 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  for (final (screen, route, prefix) in [
-    ('GST', 'GST Billing', 'GST'),
-    ('Sales Orders', null, 'ORDER'),
-    ('Inventory', 'Inventory', 'ITEM'),
-    ('CRM Leads', null, 'LEAD'),
+  for (final (screen, moduleTitle, route, prefix) in [
+    ('GST', 'Sales & POS', 'GST Billing', 'GST'),
+    ('Sales Orders', 'Sales & POS', null, 'ORDER'),
+    ('Inventory', 'Sales & POS', 'Inventory', 'ITEM'),
+    ('CRM Leads', 'VyaparaCRM', null, 'LEAD'),
+    ('Finance Parties', 'Finance & Accounting', null, 'PARTY'),
   ]) {
     testWidgets('Refreshing the $screen list does not wait for SQLite', (
       tester,
@@ -54,6 +55,7 @@ void main() {
                 'grants': {
                   'srm': {'enabled': true},
                   'crm': {'enabled': true},
+                  'fam': {'enabled': true},
                 },
               }),
               '/access/launcher-preferences' => response({'favorites': []}),
@@ -85,6 +87,9 @@ void main() {
                 ],
                 'total': 1,
               }),
+              '/fam/parties' => response([
+                {'id': 4, 'legal_name': 'PARTY-${++requests}'},
+              ]),
               _ => throw StateError('Unexpected request ${request.path}'),
             };
           }),
@@ -95,9 +100,7 @@ void main() {
       try {
         await tester.pumpWidget(BusinessSuiteApp(controller: controller));
         await tester.pumpAndSettle();
-        final module = find.text(
-          prefix == 'LEAD' ? 'VyaparaCRM' : 'Sales & POS',
-        );
+        final module = find.text(moduleTitle);
         await tester.ensureVisible(module);
         await tester.tap(module);
         await tester.pumpAndSettle();
