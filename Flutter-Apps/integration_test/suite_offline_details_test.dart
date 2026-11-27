@@ -937,7 +937,8 @@ void main() {
     expect(submitted, hasLength(1));
     expect(submitted.single.headers['X-Offline-Operation'], saved['operation']);
     expect(submitted.single.data, saved['payload']);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await waitFor(find.text('Android offline order'));
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -1044,7 +1045,7 @@ void main() {
         saved['key'],
       );
       expect(await queue.creations(), isEmpty);
-      await tester.pageBack();
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       await waitFor(find.text('Android field lead'));
       await tester.pumpWidget(const SizedBox.shrink());
