@@ -7,10 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('CRM searches follow-ups and completes one through the API', (
+  testWidgets('CRM searches, reschedules, and completes a follow-up', (
     tester,
   ) async {
     var status = 'Due';
+    var due = '2026-11-27T10:30:00Z';
     final searches = <String>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -23,6 +24,7 @@ void main() {
             'title': 'Renew maintenance',
             'customer_name': 'Paper supplier',
             'status': status,
+            'due_at': due,
           };
           switch ((request.method, request.path)) {
             case ('GET', '/follow-ups'):
@@ -34,6 +36,24 @@ void main() {
             case ('GET', '/follow-ups/12'):
               return response({...row, 'activities': []});
             case ('POST', '/follow-ups/12/actions'):
+              final data = request.data as Map;
+              if (data['action'] == 'reschedule') {
+                expect(data['notes'], 'Customer requested a new time');
+                final current = DateTime.parse(due).toLocal();
+                expect(
+                  data['due_at'],
+                  DateTime(
+                    current.year,
+                    current.month,
+                    28,
+                    current.hour,
+                    current.minute,
+                  ).toUtc().toIso8601String(),
+                );
+                due = data['due_at'] as String;
+                status = 'Rescheduled';
+                return response({...row, 'status': status, 'due_at': due});
+              }
               expect(request.data, {
                 'action': 'complete',
                 'notes': 'Renewal confirmed',
@@ -64,6 +84,35 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add comment'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Reschedule').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Notes'),
+      'Customer requested a new time',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Save action'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('Choose due date and time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('28').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save action'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Rescheduled'), findsOneWidget);
+    await tester.tap(find.text('Renew maintenance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add comment'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mark complete').last);
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -73,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save action'));
     await tester.pumpAndSettle();
-    expect(searches, ['', 'maintenance', 'maintenance']);
-    expect(find.text('Paper supplier · Completed'), findsOneWidget);
+    expect(searches, ['', 'maintenance', 'maintenance', 'maintenance']);
+    expect(find.textContaining('Completed'), findsOneWidget);
   });
 }

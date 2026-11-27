@@ -37,6 +37,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     'Cancelled',
   ];
   static const _actions = {
+    'reschedule': 'Reschedule',
     'contact': 'Log contact',
     'comment': 'Add comment',
     'complete': 'Mark complete',
@@ -284,8 +285,43 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
   final _notes = TextEditingController();
   late final _record = _load();
   String _action = 'comment';
+  DateTime? _newDue;
   String? _error;
   bool _busy = false;
+  bool get _canSave =>
+      !_busy &&
+      _notes.text.trim().isNotEmpty &&
+      (_action != 'reschedule' || _newDue != null);
+
+  Future<void> _chooseDue(Json row) async {
+    final initial =
+        _newDue ??
+        DateTime.tryParse('${row['due_at']}')?.toLocal() ??
+        DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(initial.year - 100),
+      lastDate: DateTime(initial.year + 100, 12, 31),
+      helpText: 'New due date',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+      helpText: 'New due time',
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      _newDue = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
 
   Future<Json> _load() async {
     final result = await widget.api.request(
@@ -307,9 +343,7 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
 
   Future<void> _save() async {
     final notes = _notes.text.trim();
-    if (_busy ||
-        notes.isEmpty ||
-        widget.revision != widget.api.sessionRevision) {
+    if (!_canSave || widget.revision != widget.api.sessionRevision) {
       return;
     }
     setState(() {
@@ -321,7 +355,12 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
         'POST',
         '${widget.path}/actions',
         scopeHeaders: widget.headers,
-        data: {'action': _action, 'notes': notes},
+        data: {
+          'action': _action,
+          'notes': notes,
+          if (_action == 'reschedule')
+            'due_at': _newDue!.toUtc().toIso8601String(),
+        },
       );
       if (mounted && widget.revision == widget.api.sessionRevision) {
         Navigator.pop(context, true);
@@ -378,6 +417,15 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
                       ),
                 ],
               ),
+              if (_action == 'reschedule')
+                OutlinedButton(
+                  onPressed: _busy ? null : () => _chooseDue(row),
+                  child: Text(switch (_newDue) {
+                    final DateTime date =>
+                      '${MaterialLocalizations.of(context).formatCompactDate(date)} · ${TimeOfDay.fromDateTime(date).format(context)}',
+                    null => 'Choose due date and time',
+                  }),
+                ),
               TextField(
                 controller: _notes,
                 enabled: !_busy,
@@ -396,7 +444,7 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
           ),
           if (editable)
             FilledButton(
-              onPressed: _busy || _notes.text.trim().isEmpty ? null : _save,
+              onPressed: _canSave ? _save : null,
               child: Text(_busy ? 'Saving…' : 'Save action'),
             ),
         ],
