@@ -588,6 +588,30 @@ class _NoteEditorState extends State<_NoteEditor> {
     }
   }
 
+  Future<void> _restore() async {
+    final note = _note;
+    if (_saving || note == null) return;
+    final revision = widget.api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request(
+        'POST',
+        '$_notesPath/${note['id']}/restore',
+        data: {'version': note['version']},
+      );
+      if (!mounted || widget.api.sessionRevision != revision) return;
+      setState(() => _saving = false);
+      Navigator.of(context).pop(true);
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted && _saving) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _discardPending() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -687,6 +711,13 @@ class _NoteEditorState extends State<_NoteEditor> {
               ),
           ],
           if (_error != null) Text(_error!),
+          if (_note?['deleted_at'] != null &&
+              _note?['can_edit'] == true &&
+              _note?['version'] is int)
+            OutlinedButton(
+              onPressed: _loading || _saving || _offline ? null : _restore,
+              child: const Text('Restore note'),
+            ),
           if (widget.summary != null && _note == null) ...[
             if (_loading) ...[
               Text(

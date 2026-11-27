@@ -678,6 +678,51 @@ void main() {
     }
   });
 
+  testWidgets('Notes restores a trashed note with its current version', (
+    tester,
+  ) async {
+    const path = '/project-management/notes';
+    const note = {
+      'id': 15,
+      'title': 'Trashed note',
+      'can_edit': true,
+      'deleted_at': '2026-11-27T10:00:00Z',
+      'version': 7,
+    };
+    var restored = false;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '$path/15/restore') {
+            expect(request.method, 'POST');
+            expect(request.data, {'version': 7});
+            restored = true;
+            return response({...note, 'deleted_at': null, 'version': 8});
+          }
+          if (request.path == '$path/15') return response(note);
+          return response([
+            if (request.queryParameters['view'] == 'trash' && !restored) note,
+          ]);
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filter notes'));
+    await tester.pumpAndSettle();
+    for (final label in ['Trash', 'Trashed note', 'Restore note']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+    expect(restored, isTrue);
+    expect(find.text('Trashed note'), findsNothing);
+  });
+
   testWidgets('Notes reuses the online operation ID after a lost response', (
     tester,
   ) async {
