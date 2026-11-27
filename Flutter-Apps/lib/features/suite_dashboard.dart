@@ -2509,6 +2509,18 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
             {
               for (final field in ['item_name', 'name', ..._fields.keys])
                 field: data[field],
+              'balances': [
+                for (final row
+                    in (data['balances'] as List? ?? []).whereType<Json>())
+                  {
+                    for (final field in const [
+                      'warehouse_id',
+                      'warehouse_name',
+                      'quantity',
+                    ])
+                      field: row[field],
+                  },
+              ],
               'ledger': [
                 for (final row in ledger)
                   {
@@ -2571,6 +2583,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
         final details = (pending ? null : snapshot.data) ?? _saved;
         final data = details ?? widget.summary;
         final ledger = (data['ledger'] as List? ?? []).whereType<Json>();
+        final balances = (data['balances'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -2596,6 +2609,26 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
                   title: Text(field.value),
                   trailing: Text('${data[field.key]}'),
                 ),
+            if (balances.isNotEmpty) ...[
+              const Divider(),
+              Text(
+                'Warehouse balances',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              for (final balance in balances)
+                ListTile(
+                  title: Text(
+                    balance['warehouse_name']?.toString() ??
+                        "Warehouse #${balance['warehouse_id']}",
+                  ),
+                  trailing: Text(
+                    [
+                      balance['quantity'] ?? '—',
+                      if (data['unit_code'] != null) data['unit_code'],
+                    ].join(' '),
+                  ),
+                ),
+            ],
             if (details != null) ...[
               const Divider(),
               Text(
