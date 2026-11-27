@@ -538,19 +538,37 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       }
     }
 
-    Future<Json?> readCache() async {
-      if (key == null) return null;
-      try {
-        final cached = (await SuiteReadCache.read(key))?.firstOrNull;
-        if (cached != null && awaitingLive && current()) {
-          setState(() => _saved = cached);
+    final snapshot = key == null
+        ? null
+        : SuiteReadCache.snapshot(
+            key,
+          ).then((value) => value, onError: (Object _) => null);
+    if (snapshot != null &&
+        !_offline &&
+        !reconnect &&
+        !widget.canEdit &&
+        !widget.canIssue &&
+        !widget.canExport) {
+      final recent = await snapshot.timeout(
+        const Duration(milliseconds: 120),
+        onTimeout: () => null,
+      );
+      checkSession();
+      if (recent != null && !recent.invalidated && recent.rows.isNotEmpty) {
+        final age = DateTime.now().difference(recent.savedAt);
+        if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
+          return (recent.rows.first, true);
         }
-        return cached;
-      } catch (_) {}
-      return null;
+      }
     }
 
-    final cached = readCache();
+    final cached = snapshot?.then((value) {
+      final invoice = value?.rows.firstOrNull;
+      if (invoice != null && awaitingLive && current()) {
+        setState(() => _saved = invoice);
+      }
+      return invoice;
+    });
     Future<(Json, bool)> fallback(ApiFailure error) async {
       final saved = await cached ?? widget.summary;
       checkSession();
@@ -641,11 +659,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (!mounted || confirmed != true || api.sessionRevision != revision) {
         return;
       }
-      await api.request(
-        'POST',
-        '$_path/approve',
-        scopeHeaders: _writeHeaders,
-      );
+      await api.request('POST', '$_path/approve', scopeHeaders: _writeHeaders);
       if (mounted && api.sessionRevision == revision) {
         setState(() {
           _invoice = _load();
@@ -879,13 +893,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
             if (!loading && saved)
               ListTile(
                 title: Text(
-                  _offline
-                      ? 'Offline · Saved invoice'
-                      : 'Refresh unavailable · Saved invoice',
+                  _offline ? 'Offline · Saved invoice' : 'Saved invoice',
                 ),
                 trailing: TextButton(
                   onPressed: _refresh,
-                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                  child: Text(_offline ? 'Reconnect' : 'Refresh'),
                 ),
               ),
             if (!saved && widget.canExport)

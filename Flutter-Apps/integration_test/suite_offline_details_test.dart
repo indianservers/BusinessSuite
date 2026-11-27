@@ -1862,7 +1862,11 @@ void main() {
         expect(cached?.single['invoice_number'], 'QA invoice');
       }
       final requestsBeforeOffline = requests;
-      if (expected == 'QA movement' || expected == 'QA order line') {
+      if (const {
+        'QA movement',
+        'QA order line',
+        'QA invoice line',
+      }.contains(expected)) {
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpWidget(MaterialApp(home: page(false)));
         await findDetail(expected);
@@ -1935,5 +1939,16 @@ void main() {
     expect(find.text('Payment due in 45 days'), findsNothing);
     orderRefresh.complete();
     await findDetail('Payment due in 45 days');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(MaterialApp(home: pages[0].$1(false)));
+    await findDetail('QA invoice line');
+    expect(requests, 6);
+    fixtures['/srm/invoices/1']!['lines'] = [
+      {'description': 'Updated invoice line', 'quantity': 3},
+    ];
+    await tester.tap(find.text('Refresh').hitTestable());
+    await findDetail('Updated invoice line');
+    expect(requests, 7);
   });
 }
