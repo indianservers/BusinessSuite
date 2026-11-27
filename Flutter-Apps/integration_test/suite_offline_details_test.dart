@@ -613,13 +613,16 @@ void main() {
     await tester.pumpAndSettle();
     if (!conflict) {
       expect(find.text('Customer edit saved · awaiting sync'), findsOneWidget);
+      expect(customerName, 'Offline customer edit');
+      customerName = 'Customer edited in web after sync';
+      version = 'customer-web-v3';
       await tester.tap(find.text('Sync now').hitTestable());
       await tester.pumpAndSettle();
     }
     expect(editAttempts, conflict ? 1 : 2);
     expect(
       customerName,
-      conflict ? 'Customer edited in web' : 'Offline customer edit',
+      conflict ? 'Customer edited in web' : 'Customer edited in web after sync',
     );
     expect(find.text(customerName), findsOneWidget);
     if (conflict) {
@@ -634,6 +637,18 @@ void main() {
       expect(find.text('Saved customer edit needs review'), findsNothing);
     }
     expect(find.text('Customer edit saved · awaiting sync'), findsNothing);
+    expect(await CrmOfflineEdits(scope).pendingCustomer(7), isNull);
+    connected = false;
+    await open(
+      CrmCustomerPage(
+        api: api,
+        summary: const {'id': 7},
+        offline: true,
+        cacheScope: scope,
+        scopeHeaders: const {'X-Suite-Branch': '3'},
+      ),
+    );
+    expect(find.text(customerName), findsOneWidget);
   }, variant: customerConflict);
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
