@@ -37,7 +37,16 @@ void main() {
               }
               posts.add(Map<String, dynamic>.of(request.data as Json));
               return response({
-                'appointment': {'id': 23},
+                'appointment': {
+                  'id': 23,
+                  'revision': 4,
+                  'data': {'starts_at': '2026-12-01T08:00:00Z'},
+                },
+                'schedule': {
+                  'appointment_revision': 5,
+                  'booking': request.data['booking'],
+                  'additional_resource_ids': [12],
+                },
               });
             case '/srm/business/customers':
               return response({
@@ -164,6 +173,10 @@ void main() {
       posts.first['booking'],
       containsPair('expected_eligibility_revision', 3),
     );
-    expect(booked, {'id': 23});
+    expect(booked?['id'], 23);
+    if (grouped) {
+      expect(booked?['revision'], 5);
+      expect(booked?['data']['starts_at'], startsAt);
+    }
   }, variant: linked);
 }

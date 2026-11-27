@@ -270,6 +270,26 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
       if (appointment is! Json || appointment['id'] is! int) {
         throw ApiFailure('Booking confirmation is unavailable.', 503);
       }
+      if (grouped != null && result is Json && result['schedule'] is Json) {
+        final confirmed = result['schedule'] as Json;
+        final booking = confirmed['booking'] as Json;
+        final record = Map<String, dynamic>.of(appointment['data'] as Json)
+          ..remove('ends_at');
+        Navigator.pop(context, {
+          ...appointment,
+          'revision': confirmed['appointment_revision'],
+          'data': {
+            ...record,
+            'starts_at': booking['starts_at'],
+            'duration_minutes': booking['duration_minutes'],
+            'resource_ids': [
+              booking['provider_resource_id'],
+              ...(confirmed['additional_resource_ids'] as List),
+            ],
+          },
+        });
+        return;
+      }
       Navigator.pop(context, appointment);
     } on ApiFailure catch (failure) {
       if (_active && const {400, 403, 404, 409, 422}.contains(failure.status)) {
