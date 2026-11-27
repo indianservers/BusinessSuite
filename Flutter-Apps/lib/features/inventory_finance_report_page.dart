@@ -20,7 +20,10 @@ enum InventoryFinanceReport {
     'closing_quantity': 'Closing',
     'rate': 'Rate',
     'value': 'Value',
+    'created_by': 'Created by',
+    'posted_by': 'Posted by',
     'notes': 'Notes',
+    'status': 'Status',
   }),
   grossMargin('Gross Margin', 'gross-margin', {
     'sku': 'SKU',
@@ -225,6 +228,7 @@ class _InventoryFinanceReportPageState
       },
       project: (data) => {
         if (_ledger) 'total': data['total'],
+        if (_ledger) 'as_of': data['as_of'],
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -393,6 +397,8 @@ class _InventoryFinanceReportPageState
                     ),
                   if (data != null && rows.isEmpty && widget.report.hasRows)
                     const Text('No records.'),
+                  if (_ledger && data?['as_of'] is String)
+                    Text('Posted movements · As of ${data!['as_of']}'),
                   if (_currency(data) case final String currency)
                     Text('Currency: $currency'),
                   if (data?['total_cogs'] case final num total)
