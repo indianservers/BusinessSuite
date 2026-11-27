@@ -4577,7 +4577,11 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     _savedEdit = _readSavedEdit();
   });
 
-  Future<void> _editProduct(Json product, {required bool offline}) async {
+  Future<void> _editProduct(
+    Json product, {
+    required bool offline,
+    Json? rejected,
+  }) async {
     final queue = _editorQueue!;
     final revision = widget.api.sessionRevision;
     if (_savingEdit) return;
@@ -4588,51 +4592,84 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
         offline: offline,
       );
       if (!mounted || widget.api.sessionRevision != revision) return;
+      final rejectedBranch = rejected?['branch'] as int?;
+      if (rejectedBranch != null &&
+          !branches.any((row) => row['id'] == rejectedBranch)) {
+        throw StateError('The saved edit’s branch is no longer writable.');
+      }
       final selected = int.tryParse(
         widget.scopeHeaders['X-Suite-Branch'] ?? '',
       );
-      final branch = branches.any((row) => row['id'] == selected)
-          ? selected
-          : branches.length == 1
-          ? branches.single['id'] as int
-          : await showDialog<int>(
-              context: context,
-              builder: (context) => SimpleDialog(
-                title: const Text('Choose a writable branch'),
-                children: [
-                  for (final row in branches)
-                    SimpleDialogOption(
-                      onPressed: () => Navigator.pop(context, row['id']),
-                      child: Text('${row['name']}'),
-                    ),
-                  if (branches.isEmpty)
-                    const ListTile(
-                      title: Text('No writable branches available'),
-                    ),
-                ],
-              ),
-            );
+      final branch =
+          rejectedBranch ??
+          (branches.any((row) => row['id'] == selected)
+              ? selected
+              : branches.length == 1
+              ? branches.single['id'] as int
+              : await showDialog<int>(
+                  context: context,
+                  builder: (context) => SimpleDialog(
+                    title: const Text('Choose a writable branch'),
+                    children: [
+                      for (final row in branches)
+                        SimpleDialogOption(
+                          onPressed: () => Navigator.pop(context, row['id']),
+                          child: Text('${row['name']}'),
+                        ),
+                      if (branches.isEmpty)
+                        const ListTile(
+                          title: Text('No writable branches available'),
+                        ),
+                    ],
+                  ),
+                ));
       if (!mounted ||
           branch == null ||
           widget.api.sessionRevision != revision) {
         return;
       }
+      final id = widget.summary['id'] as int;
+      final reference = rejected == null
+          ? product
+          : await widget.api.request(
+                  'GET',
+                  '${InventoryOfflineCreates.itemsEndpoint}/$id',
+                  scopeHeaders: {
+                    ...widget.scopeHeaders,
+                    'X-Suite-Organization': queue.organizationId,
+                    'X-Suite-Branch': '$branch',
+                  },
+                )
+                as Json;
+      if (!mounted || widget.api.sessionRevision != revision) return;
+      if (!reference.containsKey('updated_at')) {
+        throw StateError('The product version is unavailable.');
+      }
       final changes = await showDialog<Json>(
         context: context,
-        builder: (_) =>
-            _InventoryProductEditDialog(product: product, offline: offline),
+        builder: (_) => _InventoryProductEditDialog(
+          product: reference,
+          offline: offline,
+          proposed: rejected?['changes'] as Json?,
+        ),
       );
       if (!mounted ||
           changes == null ||
           widget.api.sessionRevision != revision) {
         return;
       }
+      if (rejected != null && changes.isEmpty) {
+        await queue.discard(rejected['operation'] as String);
+        if (mounted && widget.api.sessionRevision == revision) _refresh();
+        return;
+      }
       await queue.enqueueEdit(
         productId: widget.summary['id'] as int,
-        name: '${product['item_name'] ?? product['name']}',
-        sku: '${product['sku'] ?? ''}',
+        name: '${reference['item_name'] ?? reference['name']}',
+        sku: '${reference['sku'] ?? ''}',
         branchId: branch,
-        changes: {...changes, 'expected_updated_at': product['updated_at']},
+        changes: {...changes, 'expected_updated_at': reference['updated_at']},
+        replaceRejected: rejected?['operation'] as String?,
       );
       if (!offline && widget.api.sessionRevision == revision) {
         await queue.sync(widget.api, onlyProduct: widget.summary['id'] as int);
@@ -4767,12 +4804,20 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
                                 'Reorder level: $level',
                             ].join('\n'),
                       ),
-                      trailing: rejected == null
-                          ? TextButton(
-                              onPressed: _savingEdit ? null : _syncProductEdit,
-                              child: const Text('Sync now'),
-                            )
-                          : null,
+                      trailing: TextButton(
+                        onPressed: _savingEdit
+                            ? null
+                            : rejected == null
+                            ? _syncProductEdit
+                            : () => _editProduct(
+                                data,
+                                offline: false,
+                                rejected: entry,
+                              ),
+                        child: Text(
+                          rejected == null ? 'Sync now' : 'Review edit',
+                        ),
+                      ),
                     );
                   }
                   if (details == null || !details.containsKey('updated_at')) {
@@ -4869,10 +4914,12 @@ class _InventoryProductEditDialog extends StatefulWidget {
   const _InventoryProductEditDialog({
     required this.product,
     required this.offline,
+    this.proposed,
   });
 
   final Json product;
   final bool offline;
+  final Json? proposed;
 
   @override
   State<_InventoryProductEditDialog> createState() =>
@@ -4882,7 +4929,16 @@ class _InventoryProductEditDialog extends StatefulWidget {
 class _InventoryProductEditDialogState
     extends State<_InventoryProductEditDialog> {
   final _form = GlobalKey<FormState>();
-  final _changes = <String, dynamic>{};
+  late final _changes = <String, dynamic>{
+    for (final field in ['item_name', 'description', 'reorder_level'])
+      if (widget.proposed?[field] case final String value
+          when value != '${widget.product[field] ?? ''}')
+        field: value,
+  };
+
+  String? _current(String field) => widget.proposed?.containsKey(field) == true
+      ? 'Current: ${widget.product[field] ?? '—'}'
+      : null;
 
   void _track(String field, String value) {
     final text = value.trim();
@@ -4895,7 +4951,9 @@ class _InventoryProductEditDialogState
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Edit product details'),
+    title: Text(
+      widget.proposed == null ? 'Edit product details' : 'Review product edit',
+    ),
     scrollable: true,
     content: Form(
       key: _form,
@@ -4903,24 +4961,36 @@ class _InventoryProductEditDialogState
         mainAxisSize: MainAxisSize.min,
         children: [
           TextFormField(
-            initialValue: '${widget.product['item_name'] ?? ''}',
+            initialValue:
+                '${widget.proposed?['item_name'] ?? widget.product['item_name'] ?? ''}',
             maxLength: 220,
-            decoration: const InputDecoration(labelText: 'Product name'),
+            decoration: InputDecoration(
+              labelText: 'Product name',
+              helperText: _current('item_name'),
+            ),
             validator: (value) =>
                 (value ?? '').trim().isEmpty ? 'Enter a product name' : null,
             onChanged: (value) => _track('item_name', value),
           ),
           TextFormField(
-            initialValue: '${widget.product['description'] ?? ''}',
+            initialValue:
+                '${widget.proposed?['description'] ?? widget.product['description'] ?? ''}',
             maxLength: 4000,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Description'),
+            decoration: InputDecoration(
+              labelText: 'Description',
+              helperText: _current('description'),
+            ),
             onChanged: (value) => _track('description', value),
           ),
           TextFormField(
-            initialValue: '${widget.product['reorder_level'] ?? 0}',
+            initialValue:
+                '${widget.proposed?['reorder_level'] ?? widget.product['reorder_level'] ?? 0}',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Reorder level'),
+            decoration: InputDecoration(
+              labelText: 'Reorder level',
+              helperText: _current('reorder_level'),
+            ),
             validator: (value) =>
                 RegExp(r'^\d{1,11}(\.\d{1,3})?$').hasMatch(value?.trim() ?? '')
                 ? null
@@ -4935,6 +5005,11 @@ class _InventoryProductEditDialogState
         onPressed: () => Navigator.pop(context),
         child: const Text('Cancel'),
       ),
+      if (widget.proposed != null)
+        TextButton(
+          onPressed: () => Navigator.pop(context, <String, dynamic>{}),
+          child: const Text('Keep server values'),
+        ),
       FilledButton(
         onPressed: () {
           if (_form.currentState!.validate()) {

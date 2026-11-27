@@ -144,6 +144,29 @@ void main() {
     final saved = (await drafts.entries()).single;
     expect(saved['changes'], changes);
     expect(saved['error'], contains('Product changed'));
+    const reviewed = {
+      'description': 'Reviewed offline draft',
+      'expected_updated_at': '2026-11-28T03:00:00Z',
+    };
+    await drafts.enqueueEdit(
+      productId: 314,
+      name: 'QA product',
+      sku: 'QA',
+      branchId: 3,
+      changes: reviewed,
+      replaceRejected: operation as String,
+    );
+    final replacement = (await drafts.entries()).single;
+    expect(replacement['operation'], isNot(operation));
+    expect(replacement['error'], isNull);
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.headers['X-Offline-Operation'], replacement['operation']);
+      expect(request.headers['X-Suite-Branch'], '3');
+      expect(request.data, reviewed);
+      return response({'id': 314});
+    });
+    await drafts.sync(api);
+    expect(await drafts.entries(), isEmpty);
   });
   test(
     'restores the saved suite only for a disconnected signed-in session',

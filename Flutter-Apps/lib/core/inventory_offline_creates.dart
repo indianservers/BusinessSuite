@@ -147,18 +147,36 @@ class InventoryOfflineCreates {
     required String sku,
     required int branchId,
     required Json changes,
+    String? replaceRejected,
   }) => _serialized(() async {
     final pending = await entries();
-    if (pending.any((entry) => entry['product_id'] == productId)) {
+    final index = pending.indexWhere(
+      (entry) => entry['product_id'] == productId,
+    );
+    if (replaceRejected != null &&
+        (index < 0 ||
+            pending[index]['operation'] != replaceRejected ||
+            pending[index]['error'] == null ||
+            pending[index]['branch'] != branchId)) {
+      throw StateError(
+        'The saved product edit has changed. Refresh and try again.',
+      );
+    }
+    if (replaceRejected == null && index >= 0) {
       throw StateError('This product already has a saved edit.');
     }
-    pending.add({
+    final replacement = {
       'operation': const Uuid().v4(),
       'product_id': productId,
       'product': {'name': name, 'code': sku},
       'changes': changes,
       'branch': branchId,
-    });
+    };
+    if (index < 0) {
+      pending.add(replacement);
+    } else {
+      pending[index] = replacement;
+    }
     await _storage.write(key: _key, value: jsonEncode(pending));
   });
 
