@@ -189,7 +189,21 @@ void main() {
             return response({'id': 80, 'grn_number': 'GRN-80'}, 201);
           }
           return switch (request.path) {
-            document => response({'version': version, 'editable': !issued}),
+            document => response({
+              'version': version,
+              'editable': !issued,
+              'history': [
+                if (issued)
+                  {
+                    'action': 'document_issued',
+                    'reason': 'Supplier confirmed',
+                    'before': {'status': 'draft', 'po_number': 'PO-72'},
+                    'after': {
+                      'record': {'status': 'ordered'},
+                    },
+                  },
+              ],
+            }),
             '/srm/procurement/purchase-orders/72' => response({
               'id': 72,
               'po_number': 'PO-72',
@@ -258,6 +272,16 @@ void main() {
     });
     expect(issueRequests.last.data, issueRequests.first.data);
     expect(find.text('Issue purchase order'), findsNothing);
+    await tester.tap(find.byTooltip('Document history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Document issued'), findsOneWidget);
+    expect(find.textContaining('Supplier confirmed'), findsOneWidget);
+    await tester.tap(find.text('View saved values'));
+    await tester.pumpAndSettle();
+    expect(find.text('Status: draft'), findsOneWidget);
+    expect(find.text('Status: ordered'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save purchase order PDF'));

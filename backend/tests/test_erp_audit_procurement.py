@@ -93,6 +93,11 @@ def test_purchase_order_draft_requires_issue_before_receiving(client, procuremen
     )
     assert issued.status_code == 200, issued.text
     assert issued.json()["record"]["status"] == "ordered"
+    history = client.get(document, headers=headers).json()["history"]
+    issuance = next(entry for entry in history if entry["action"] == "document_issued")
+    assert issuance["reason"] == "Approved for purchasing"
+    assert issuance["before"]["status"] == "draft"
+    assert issuance["after"]["record"]["status"] == "ordered"
     pdf = client.get(f"{document}/pdf", headers=headers)
     assert pdf.status_code == 200
     assert pdf.headers["content-type"] == "application/pdf"

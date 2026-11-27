@@ -4,15 +4,16 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 
-class CrmQuotationHistoryPage extends StatefulWidget {
-  const CrmQuotationHistoryPage({
+class CommercialDocumentHistoryPage extends StatefulWidget {
+  const CommercialDocumentHistoryPage({
     super.key,
     required this.api,
     required this.path,
     required this.offline,
     required this.scopeHeaders,
     required this.cacheScope,
-    required this.onOpenQuotation,
+    required this.onOpenDocument,
+    required this.relatedDocumentTooltip,
   });
 
   final ApiClient api;
@@ -20,16 +21,23 @@ class CrmQuotationHistoryPage extends StatefulWidget {
   final bool offline;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
-  final void Function(int id, bool offline) onOpenQuotation;
+  final void Function(int id, bool offline) onOpenDocument;
+  final String relatedDocumentTooltip;
 
   @override
-  State<CrmQuotationHistoryPage> createState() =>
-      _CrmQuotationHistoryPageState();
+  State<CommercialDocumentHistoryPage> createState() =>
+      _CommercialDocumentHistoryPageState();
 }
 
-class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
+class _CommercialDocumentHistoryPageState
+    extends State<CommercialDocumentHistoryPage> {
   static const _fields = {
     'quote_number': 'Quotation number',
+    'po_number': 'Purchase order number',
+    'vendor_name': 'Supplier',
+    'order_date': 'Order date',
+    'expected_date': 'Expected date',
+    'tax_amount': 'Tax',
     'number': 'Document number',
     'status': 'Status',
     'currency': 'Currency',
@@ -168,6 +176,7 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
             final tile = ListTile(
               title: Text(switch (entry['action']) {
                 'document_cancelled' => 'Document cancelled',
+                'document_issued' => 'Document issued',
                 'revision_created' => 'Revision created',
                 'revised_from' => 'Revised from original',
                 final String action => action.replaceAll('_', ' '),
@@ -181,8 +190,8 @@ class _CrmQuotationHistoryPageState extends State<CrmQuotationHistoryPage> {
               ),
               trailing: related is int
                   ? IconButton(
-                      tooltip: 'Open related quotation',
-                      onPressed: () => widget.onOpenQuotation(related, !live),
+                      tooltip: widget.relatedDocumentTooltip,
+                      onPressed: () => widget.onOpenDocument(related, !live),
                       icon: const Icon(Icons.open_in_new),
                     )
                   : null,

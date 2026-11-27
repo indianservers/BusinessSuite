@@ -8,7 +8,7 @@ import '../core/models.dart';
 import '../core/suite_pdf.dart';
 import 'crm_quotation_line_page.dart';
 import 'crm_quotation_draft_page.dart';
-import 'crm_quotation_history_page.dart';
+import 'commercial_document_history_page.dart';
 import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
@@ -152,13 +152,14 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
   void _openDocumentHistory({required bool offline}) =>
       Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => CrmQuotationHistoryPage(
+          builder: (_) => CommercialDocumentHistoryPage(
             api: widget.api,
             path: _documentPath,
             offline: offline,
             scopeHeaders: widget.scopeHeaders,
             cacheScope: widget.cacheScope,
-            onOpenQuotation: (id, offline) =>
+            relatedDocumentTooltip: 'Open related quotation',
+            onOpenDocument: (id, offline) =>
                 _openQuotation({'id': id}, offline: offline),
           ),
         ),

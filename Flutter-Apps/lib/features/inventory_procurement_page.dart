@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
+import 'commercial_document_history_page.dart';
 import 'inventory_goods_receipt_form.dart';
 
 enum ProcurementRecord {
@@ -106,6 +107,39 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
 
   String get _documentPath =>
       '/srm/documents/purchase-orders/${widget.summary['id']}';
+
+  void _openOrder(int id, bool offline) => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => InventoryProcurementPage(
+        api: widget.api,
+        kind: ProcurementRecord.order,
+        summary: {'id': id},
+        scopeHeaders: widget.scopeHeaders,
+        cacheScope: widget.cacheScope,
+        offline: offline,
+        canReceive: widget.canReceive,
+        canIssue: widget.canIssue,
+        canExport: widget.canExport,
+        onReceived: widget.onReceived,
+        onIssued: widget.onIssued,
+      ),
+    ),
+  );
+
+  void _openHistory({required bool offline}) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CommercialDocumentHistoryPage(
+            api: widget.api,
+            path: _documentPath,
+            offline: offline,
+            scopeHeaders: widget.scopeHeaders,
+            cacheScope: widget.cacheScope,
+            relatedDocumentTooltip: 'Open related purchase order',
+            onOpenDocument: _openOrder,
+          ),
+        ),
+      );
 
   Future<void> _savePdf(Json order) async {
     if (_savingPdf) return;
@@ -301,6 +335,19 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
             : 'Goods receipt',
       ),
       actions: [
+        if (widget.kind == ProcurementRecord.order)
+          FutureBuilder<({Json? record, bool live})>(
+            future: _record,
+            builder: (context, snapshot) => IconButton(
+              tooltip: 'Document history',
+              icon: const Icon(Icons.history),
+              onPressed:
+                  snapshot.connectionState == ConnectionState.done &&
+                      !snapshot.hasError
+                  ? () => _openHistory(offline: snapshot.data?.live != true)
+                  : null,
+            ),
+          ),
         IconButton(
           tooltip: 'Refresh record',
           icon: const Icon(Icons.refresh),
@@ -378,22 +425,9 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                   if (kind == ProcurementRecord.receipt &&
                       row['purchase_order_id'] is int)
                     TextButton(
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => InventoryProcurementPage(
-                            api: widget.api,
-                            kind: ProcurementRecord.order,
-                            summary: {'id': row['purchase_order_id']},
-                            scopeHeaders: widget.scopeHeaders,
-                            cacheScope: widget.cacheScope,
-                            offline: snapshot.data?.live != true,
-                            canReceive: widget.canReceive,
-                            canIssue: widget.canIssue,
-                            canExport: widget.canExport,
-                            onReceived: widget.onReceived,
-                            onIssued: widget.onIssued,
-                          ),
-                        ),
+                      onPressed: () => _openOrder(
+                        row['purchase_order_id'] as int,
+                        snapshot.data?.live != true,
                       ),
                       child: const Text('Open purchase order'),
                     ),
