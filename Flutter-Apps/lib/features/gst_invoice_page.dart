@@ -48,6 +48,7 @@ Future<Json?> showGstInvoiceDraftForm(
   SalesOrderDrafts? drafts,
   String? customerCacheScope,
   bool offline = false,
+  Json? rejectedDraft,
 }) => showDialog<Json>(
   context: context,
   barrierDismissible: false,
@@ -57,6 +58,7 @@ Future<Json?> showGstInvoiceDraftForm(
     drafts: drafts,
     customerCacheScope: customerCacheScope,
     offline: offline,
+    rejectedDraft: rejectedDraft,
   ),
 );
 
@@ -67,6 +69,7 @@ class _GstDraftForm extends StatefulWidget {
     this.drafts,
     this.customerCacheScope,
     required this.offline,
+    this.rejectedDraft,
   });
 
   final ApiClient api;
@@ -74,6 +77,7 @@ class _GstDraftForm extends StatefulWidget {
   final SalesOrderDrafts? drafts;
   final String? customerCacheScope;
   final bool offline;
+  final Json? rejectedDraft;
 
   @override
   State<_GstDraftForm> createState() => _GstDraftFormState();
@@ -82,10 +86,23 @@ class _GstDraftForm extends StatefulWidget {
 class _GstDraftFormState extends State<_GstDraftForm> {
   late final _revision = widget.api.sessionRevision;
   final _operation = const Uuid().v4();
-  final _lines = <Json>[];
+  Json? get _original => widget.rejectedDraft?['payload'] as Json?;
+  late final _lines = [
+    for (final line in (_original?['lines'] as List? ?? const []).cast<Json>())
+      {...line},
+  ];
   final _form = GlobalKey<FormState>();
-  final _dates = <String, String?>{};
-  Json? _customer;
+  late final _dates = <String, String?>{
+    for (final key in _invoiceDates.keys) key: _original?[key] as String?,
+  };
+  late Json? _customer = _original == null
+      ? null
+      : {
+          'id': _original!['customer_id'],
+          'name':
+              widget.rejectedDraft?['customer_name'] ??
+              'Customer #${_original!['customer_id']}',
+        };
   Json? _pending;
   bool _saving = false;
   String? _error;
@@ -103,13 +120,23 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     if (mounted && customer != null) setState(() => _customer = customer);
   }
 
-  Future<void> _addLine() async {
+  Future<void> _editLocalLine([int? index]) async {
     final line = await showDialog<Json>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _InvoiceLineDialog(save: (values) async => {...values}),
+      builder: (_) => _InvoiceLineDialog(
+        line: index == null ? null : _lines[index],
+        save: (values) async => {...values},
+      ),
     );
-    if (mounted && line != null) setState(() => _lines.add(line));
+    if (!mounted || line == null) return;
+    setState(() {
+      if (index == null) {
+        _lines.add(line);
+      } else {
+        _lines[index] = line;
+      }
+    });
   }
 
   Future<void> _saveLocally(SalesOrderDrafts drafts, Json payload) async {
@@ -118,6 +145,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       payload,
       customerName: _customer?['name'] as String?,
       scopeHeaders: widget.scopeHeaders,
+      replaceRejected: widget.rejectedDraft?['operation'] as String?,
     );
     if (mounted && widget.api.sessionRevision == _revision) {
       Navigator.pop(context, {'local': true});
@@ -142,7 +170,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     };
     try {
       final drafts = widget.drafts;
-      if (widget.offline) {
+      if (widget.offline || widget.rejectedDraft != null) {
         if (drafts == null) {
           throw ApiFailure('Local draft storage is unavailable.', 400);
         }
@@ -193,7 +221,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     } catch (error) {
       if (!mounted || widget.api.sessionRevision != _revision) return;
       setState(() {
-        if (widget.offline) _pending = null;
+        if (widget.offline || widget.rejectedDraft != null) _pending = null;
         _error = 'Could not save the draft. $error';
       });
     } finally {
@@ -205,7 +233,11 @@ class _GstDraftFormState extends State<_GstDraftForm> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_saving,
     child: AlertDialog(
-      title: const Text('New GST invoice draft'),
+      title: Text(
+        widget.rejectedDraft == null
+            ? 'New GST invoice draft'
+            : 'Correct GST invoice draft',
+      ),
       scrollable: true,
       content: Form(
         key: _form,
@@ -219,9 +251,12 @@ class _GstDraftFormState extends State<_GstDraftForm> {
             ),
             for (final key in _invoiceDates.keys)
               _invoiceDateField(key, _dates, enabled: _pending == null),
-            for (final line in _lines)
+            if (widget.rejectedDraft?['error'] case final String rejection)
+              Text(rejection),
+            for (final (index, line) in _lines.indexed)
               ListTile(
                 title: Text('${line['description']}'),
+                onTap: _pending == null ? () => _editLocalLine(index) : null,
                 subtitle: Text(
                   '${line['quantity']} × INR ${line['unit_price']}',
                 ),
@@ -234,7 +269,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
                       ),
               ),
             OutlinedButton.icon(
-              onPressed: _pending == null ? _addLine : null,
+              onPressed: _pending == null ? () => _editLocalLine() : null,
               icon: const Icon(Icons.add),
               label: const Text('Add line item'),
             ),
@@ -254,6 +289,8 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           child: Text(
             _saving
                 ? 'Saving…'
+                : widget.rejectedDraft != null
+                ? 'Save corrected draft'
                 : widget.offline
                 ? 'Save draft offline'
                 : _pending == null

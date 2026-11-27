@@ -4,6 +4,7 @@ import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
+import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +12,85 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'api_client_test.dart' show FakeAdapter, MemoryStore;
+import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('GST corrects a rejected draft under a new request ID', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    const url = 'https://example.test/api/v1';
+    const headers = {'X-Suite-Branch': '6'};
+    const payload = {
+      'customer_id': 5,
+      'due_date': '2026-12-15',
+      'lines': [
+        {'description': 'Original line', 'quantity': '2'},
+      ],
+    };
+    final drafts = SalesOrderDrafts.gstInvoices('["$url",5,7]');
+    await drafts.save(
+      'old-operation',
+      payload,
+      scopeHeaders: headers,
+      customerName: 'Saved customer',
+    );
+    final api = ApiClient(
+      baseUrl: url,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          return response({'detail': 'Change the line description'}, 422);
+        }),
+    );
+    await tester.runAsync(() async {
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await drafts.sync(api);
+    });
+    expect((await drafts.entries()).single['status'], 422);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderDraftsPage(
+          api: api,
+          drafts: drafts,
+          correctGstDraft: (context, draft) async {
+            await showGstInvoiceDraftForm(
+              context,
+              api: api,
+              scopeHeaders: headers,
+              drafts: drafts,
+              offline: true,
+              rejectedDraft: draft,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GST invoice'));
+    await tester.pumpAndSettle();
+    expect(find.text('Correct GST invoice draft'), findsOneWidget);
+    expect(find.text('2026-12-15'), findsOneWidget);
+    await tester.tap(find.text('Original line'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Description'),
+      'Corrected line',
+    );
+    await tester.tap(find.text('Save line'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save corrected draft'));
+    await tester.pumpAndSettle();
+    final entry = (await drafts.entries()).single;
+    expect(entry['operation'], isNot('old-operation'));
+    expect(entry['status'], isNull);
+    expect(entry['headers'], headers);
+    expect(entry['payload']['due_date'], '2026-12-15');
+    expect(entry['payload']['lines'].single['description'], 'Corrected line');
+  });
+
   testWidgets('GST starts and stores a draft without a connection', (
     tester,
   ) async {

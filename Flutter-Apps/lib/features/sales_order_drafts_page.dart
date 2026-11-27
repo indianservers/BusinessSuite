@@ -606,11 +606,14 @@ class SalesOrderDraftsPage extends StatefulWidget {
     required this.drafts,
     this.onSynced,
     this.correctPurchaseDraft,
+    this.correctGstDraft,
   });
   final ApiClient api;
   final SalesOrderDrafts drafts;
   final VoidCallback? onSynced;
   final Widget Function(Json draft)? correctPurchaseDraft;
+  final Future<void> Function(BuildContext context, Json draft)?
+  correctGstDraft;
 
   @override
   State<SalesOrderDraftsPage> createState() => _SalesOrderDraftsPageState();
@@ -640,6 +643,10 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
   }
 
   Future<void> _correct(Json draft) async {
+    if (widget.drafts.gst) {
+      await widget.correctGstDraft?.call(context, draft);
+      return;
+    }
     await Navigator.of(context).push<Object?>(
       MaterialPageRoute<Object?>(
         builder: (_) =>
@@ -754,9 +761,10 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
                   ].whereType<String>().join(' · '),
                 ),
                 onTap:
-                    !widget.drafts.gst &&
-                        (!widget.drafts.purchase ||
-                            widget.correctPurchaseDraft != null) &&
+                    (widget.drafts.gst
+                            ? widget.correctGstDraft != null
+                            : !widget.drafts.purchase ||
+                                  widget.correctPurchaseDraft != null) &&
                         row['status'] == 422
                     ? () => _correct(row)
                     : null,

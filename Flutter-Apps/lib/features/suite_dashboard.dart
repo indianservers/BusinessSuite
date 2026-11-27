@@ -2216,6 +2216,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           api: widget.controller.api,
           drafts: drafts,
           onSynced: _refresh,
+          correctGstDraft: widget.canCreateOrderInvoices
+              ? (context, draft) async {
+                  final headers =
+                      (draft['headers'] as Json?)?.cast<String, String>() ??
+                      const <String, String>{};
+                  await showGstInvoiceDraftForm(
+                    context,
+                    api: widget.controller.api,
+                    scopeHeaders: headers,
+                    drafts: drafts,
+                    rejectedDraft: draft,
+                    offline: _offlineOnly || _usedSavedFallback,
+                    customerCacheScope: gstCacheKey(
+                      widget.cachePrefix,
+                      '${GstInvoicePage.listEndpoint}/customer-picker',
+                      headers,
+                    ),
+                  );
+                }
+              : null,
         ),
       ),
     );
