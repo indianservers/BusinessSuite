@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/features/finance_chart_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -8,9 +9,72 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'api_client_test.dart' show FakeAdapter, MemoryStore;
+import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'Finance chart browses ledger groups and searches the shared list',
+    (tester) async {
+      var requests = 0;
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            expect(request.path, '/fam/chart-of-accounts');
+            expect(request.headers['X-Suite-Branch'], '6');
+            requests++;
+            return response({
+              'groups': [
+                {
+                  'id': 1,
+                  'group_name': 'Current assets',
+                  'nature': 'asset',
+                  'system_group': true,
+                },
+                {'id': 2, 'group_name': 'Expenses', 'nature': 'expense'},
+              ],
+              'ledgers': [
+                {
+                  'ledger_group_id': 1,
+                  'ledger_code': 'A001',
+                  'ledger_name': 'Bank account',
+                  'active': true,
+                },
+                {
+                  'ledger_group_id': 2,
+                  'ledger_code': 'E001',
+                  'ledger_name': 'Office supplies',
+                  'active': false,
+                },
+              ],
+            });
+          }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FinanceChartPage(
+            api: api,
+            scopeHeaders: const {'X-Suite-Branch': '6'},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Bank account'), findsOneWidget);
+      expect(find.text('Office supplies'), findsOneWidget);
+      expect(find.text('Inactive'), findsOneWidget);
+      await tester.tap(find.text('Ledger groups (2)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Current assets'));
+      await tester.pumpAndSettle();
+      expect(find.text('Office supplies'), findsNothing);
+      await tester.enterText(find.byType(TextField), 'a001');
+      await tester.pumpAndSettle();
+      expect(find.text('Bank account'), findsOneWidget);
+      expect(requests, 1);
+    },
+  );
+
   testWidgets(
     'Finance loads saved details, bills, and statements without contacting the API',
     (tester) async {
