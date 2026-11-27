@@ -288,6 +288,32 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     }
   }
 
+  Future<void> _addLine() async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final created = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _InvoiceLineDialog(
+        save: (values) async {
+          if (api.sessionRevision != revision) {
+            throw ApiFailure('Your session ended. Sign in again.', 401);
+          }
+          return await api.request(
+                'POST',
+                '$_path/lines',
+                data: {...values, 'source_type': 'manual'},
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+        },
+      ),
+    );
+    if (!mounted || created == null || api.sessionRevision != revision) return;
+    _refresh();
+    await _notifyChanged();
+  }
+
   Future<void> _editDates(Json invoice) async {
     final form = GlobalKey<FormState>();
     final initial = {
@@ -503,6 +529,12 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 ),
             const Divider(),
             Text('Line items', style: Theme.of(context).textTheme.titleMedium),
+            if (editable)
+              OutlinedButton.icon(
+                onPressed: _issuing ? null : _addLine,
+                icon: const Icon(Icons.add),
+                label: const Text('Add line item'),
+              ),
             if (!loading && lines.isEmpty)
               ListTile(
                 title: Text(
@@ -543,8 +575,8 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
 }
 
 class _InvoiceLineDialog extends StatefulWidget {
-  const _InvoiceLineDialog({required this.line, required this.save});
-  final Json line;
+  const _InvoiceLineDialog({this.line, required this.save});
+  final Json? line;
   final Future<Json> Function(Json values) save;
 
   @override
@@ -563,17 +595,18 @@ class _InvoiceLineDialogState extends State<_InvoiceLineDialog> {
   late final _values = {
     for (final key in _fields.keys)
       key:
-          '${widget.line[key] ?? (key == 'description'
+          '${widget.line?[key] ?? (key == 'description'
                   ? ''
                   : key == 'quantity'
                   ? 1
                   : 0)}',
   };
   bool _saving = false;
+  bool _unconfirmed = false;
   String? _error;
 
   Future<void> _submit() async {
-    if (_saving || !_form.currentState!.validate()) return;
+    if (_saving || _unconfirmed || !_form.currentState!.validate()) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -585,7 +618,13 @@ class _InvoiceLineDialogState extends State<_InvoiceLineDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = '$error';
+          _unconfirmed =
+              widget.line == null &&
+              error is ApiFailure &&
+              (error.connectionFailure || (error.status ?? 0) >= 500);
+          _error = _unconfirmed
+              ? 'Save could not be confirmed. Refresh the invoice before adding the line again.'
+              : '$error';
         });
       }
     }
@@ -595,7 +634,7 @@ class _InvoiceLineDialogState extends State<_InvoiceLineDialog> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_saving,
     child: AlertDialog(
-      title: const Text('Edit draft line'),
+      title: Text(widget.line == null ? 'Add draft line' : 'Edit draft line'),
       content: SingleChildScrollView(
         child: Form(
           key: _form,
@@ -639,7 +678,7 @@ class _InvoiceLineDialogState extends State<_InvoiceLineDialog> {
           child: const Text('Close'),
         ),
         FilledButton(
-          onPressed: _saving ? null : _submit,
+          onPressed: _saving || _unconfirmed ? null : _submit,
           child: Text(_saving ? 'Saving…' : 'Save line'),
         ),
       ],

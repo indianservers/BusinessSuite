@@ -3750,6 +3750,72 @@ void main() {
       expect(find.text('Quantity 2'), findsOneWidget);
     },
   );
+  testWidgets('GST adds a manual draft line and reloads server totals', (
+    tester,
+  ) async {
+    Json? line;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch ((request.method, request.path)) {
+            case ('GET', '/srm/invoices/7'):
+              return response({
+                'invoice_number': 'GST-7',
+                'status': 'draft',
+                'currency': 'INR',
+                'total_amount': line == null ? '0.00' : '29.50',
+                'lines': [?line],
+              });
+            case ('POST', '/srm/invoices/7/lines'):
+              expect(request.data, {
+                'description': 'Packing materials',
+                'quantity': '2',
+                'unit_price': '12.50',
+                'discount_amount': '0',
+                'tax_amount': '4.50',
+                'source_type': 'manual',
+              });
+              line = {'id': 4, ...request.data as Json};
+              return response(line!, 201);
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GstInvoicePage(
+          api: api,
+          id: 7,
+          canEdit: true,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final add = find.text('Add line item');
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    for (final (label, value) in [
+      ('Description', 'Packing materials'),
+      ('Quantity', '2'),
+      ('Unit price', '12.50'),
+      ('Tax amount', '4.50'),
+    ]) {
+      final field = find.widgetWithText(TextFormField, label);
+      await tester.ensureVisible(field);
+      await tester.enterText(field, value);
+    }
+    await tester.tap(find.text('Save line'));
+    await tester.pumpAndSettle();
+    expect(find.text('Packing materials'), findsOneWidget);
+    expect(find.text('INR 29.50'), findsOneWidget);
+  });
+
   testWidgets('GST draft date editing sends only the changed date', (
     tester,
   ) async {
