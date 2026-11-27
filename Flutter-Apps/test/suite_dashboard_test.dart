@@ -5117,6 +5117,18 @@ void main() {
                 'supported': false,
                 'limitations': 'Use Sales batch inventory.',
               },
+              if (request.queryParameters['report'] == 'overview') ...{
+                'total_products': 1,
+                'totals_by_currency': [
+                  {
+                    'currency': 'INR',
+                    'stock_value': 350,
+                    'quantity': 7,
+                    'positions': 1,
+                    'negative_positions': 0,
+                  },
+                ],
+              },
               'items': [
                 if (request.queryParameters['report'] == 'reconciliation')
                   {
@@ -5124,6 +5136,22 @@ void main() {
                     'product_id': 11,
                     'warehouse_id': 4,
                     'quantity_difference': 2,
+                  }
+                else if ([
+                  'overview',
+                  'summary',
+                  'valuation',
+                  'aging',
+                  'reorder',
+                  'dead-stock',
+                ].contains(request.queryParameters['report']))
+                  {
+                    'item_name': 'Finance warehouse stock',
+                    'opening_quantity': 7,
+                    'valuation_method': 'fifo',
+                    'age_bucket': '91–180',
+                    'reorder_level': 10,
+                    'last_sale_date': '2026-06-01',
                   }
                 else if (request.queryParameters['report'] != 'expiry')
                   {
@@ -5841,6 +5869,31 @@ void main() {
           expect(calls.last.queryParameters['analysis'], true);
           expect(calls.last.queryParameters['report'], 'expiry');
           await back();
+          for (final (title, slug, detail) in [
+            ('Inventory Overview', 'overview', 'INR · 350'),
+            ('Detailed Stock Summary', 'summary', 'Opening quantity: 7'),
+            ('Stock Valuation by Date', 'valuation', 'Valuation method: fifo'),
+            ('Stock Ageing by Receipt', 'aging', 'Age bucket: 91–180'),
+            ('Low Stock by Warehouse', 'reorder', 'Reorder level: 10'),
+            ('Dead Stock by Warehouse', 'dead-stock', 'Last sale: 2026-06-01'),
+          ]) {
+            await tester.tap(find.byTooltip('Inventory financial reports'));
+            await tester.pumpAndSettle();
+            await open(title);
+            expect(find.text('Finance warehouse stock'), findsOneWidget);
+            expect(find.textContaining(detail), findsOneWidget);
+            expect(calls.last.path, '/fam/inventory/reports');
+            expect(calls.last.queryParameters['analysis'], true);
+            expect(calls.last.queryParameters['report'], slug);
+            if (slug == 'overview') {
+              await open('Inspect valuation');
+              expect(calls.last.path, '/fam/inventory/reports');
+              expect(calls.last.queryParameters['analysis'], true);
+              expect(calls.last.queryParameters['report'], 'valuation');
+              await back();
+            }
+            await back();
+          }
           for (final (title, slug) in [
             ('Stock Ledger', 'ledger'),
             ('Sales Movement', 'sales'),
