@@ -304,10 +304,11 @@ class _NotesPageState extends State<NotesPage> {
         : compared;
   }
 
-  String _previewFor(Map<String, dynamic> note) =>
-      (_pendingFor(note)?['values']['content'] as String?) ??
-      (note['preview'] as String?) ??
-      '';
+  String _previewFor(Map<String, dynamic> note) {
+    final pending = _pendingFor(note)?['values']['content'] as String?;
+    if (pending != null && !pending.startsWith(_richPrefix)) return pending;
+    return note['preview'] as String? ?? '';
+  }
 
   void _open([Map<String, dynamic>? summary]) async {
     final changed = await Navigator.of(context).push<_NoteChange>(

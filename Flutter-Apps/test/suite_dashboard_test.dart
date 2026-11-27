@@ -852,6 +852,8 @@ void main() {
     expect(pending?['values']['favorite'], isTrue);
     expect(pending?['values']['tags'], ['warehouse', 'priority']);
     expect(pending?['values']['content'], content);
+    expect(find.text('Formatted'), findsOneWidget);
+    expect(find.text(content), findsNothing);
   });
 
   test('syncing an archived note evicts its offline copies', () async {
