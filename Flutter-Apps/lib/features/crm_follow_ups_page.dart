@@ -13,13 +13,14 @@ class CrmFollowUpsPage extends StatefulWidget {
     required this.cacheScope,
     required this.offline,
     required this.canEdit,
+    this.canAssign = false,
   });
 
   final ApiClient api;
   final Map<String, String> headers;
   final String? cacheScope;
   final bool offline;
-  final bool canEdit;
+  final bool canEdit, canAssign;
 
   @override
   State<CrmFollowUpsPage> createState() => _CrmFollowUpsPageState();
@@ -37,6 +38,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     'Cancelled',
   ];
   static const _actions = {
+    'assign': 'Reassign',
     'reschedule': 'Reschedule',
     'contact': 'Log contact',
     'comment': 'Add comment',
@@ -131,6 +133,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
         headers: widget.headers,
         revision: revision,
         canEdit: widget.canEdit,
+        canAssign: widget.canAssign,
       ),
     );
     if (mounted && changed == true && revision == widget.api.sessionRevision) {
@@ -269,13 +272,14 @@ class _FollowUpDetail extends StatefulWidget {
     required this.headers,
     required this.revision,
     required this.canEdit,
+    required this.canAssign,
   });
 
   final ApiClient api;
   final String path;
   final Map<String, String> headers;
   final int revision;
-  final bool canEdit;
+  final bool canEdit, canAssign;
 
   @override
   State<_FollowUpDetail> createState() => _FollowUpDetailState();
@@ -284,14 +288,63 @@ class _FollowUpDetail extends StatefulWidget {
 class _FollowUpDetailState extends State<_FollowUpDetail> {
   final _notes = TextEditingController();
   late final _record = _load();
-  String _action = 'comment';
+  late String _action = widget.canEdit ? 'comment' : 'assign';
   DateTime? _newDue;
+  Future<List<Json>>? _assignees;
+  int? _assignee;
   String? _error;
   bool _busy = false;
   bool get _canSave =>
       !_busy &&
       _notes.text.trim().isNotEmpty &&
+      (_action != 'assign' || _assignee != null) &&
       (_action != 'reschedule' || _newDue != null);
+
+  Future<List<Json>> _loadAssignees() async {
+    final result =
+        await widget.api.request(
+              'GET',
+              '/follow-ups/options',
+              scopeHeaders: widget.headers,
+            )
+            as Json;
+    if (widget.revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    return (result['employees'] as List).cast<Json>();
+  }
+
+  Widget _assigneePicker(Json row) => FutureBuilder(
+    future: _assignees,
+    builder: (context, snapshot) {
+      if (_assignees == null || snapshot.hasError) {
+        return OutlinedButton(
+          onPressed: () => setState(() {
+            _assignees = _loadAssignees();
+          }),
+          child: Text(snapshot.hasError ? 'Retry assignees' : 'Load assignees'),
+        );
+      }
+      if (!snapshot.hasData) return const LinearProgressIndicator();
+      final users = snapshot.requireData.where(
+        (user) => user['id'] is int && user['id'] != row['assigned_user_id'],
+      );
+      if (users.isEmpty) return const Text('No other assignees available.');
+      return DropdownButton<int>(
+        value: _assignee,
+        isExpanded: true,
+        hint: const Text('Choose assignee'),
+        onChanged: _busy ? null : (id) => setState(() => _assignee = id),
+        items: [
+          for (final user in users)
+            DropdownMenuItem(
+              value: user['id'] as int,
+              child: Text('${user['name']}', overflow: TextOverflow.ellipsis),
+            ),
+        ],
+      );
+    },
+  );
 
   Future<void> _chooseDue(Json row) async {
     final initial =
@@ -358,6 +411,7 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
         data: {
           'action': _action,
           'notes': notes,
+          if (_action == 'assign') 'assigned_user_id': _assignee,
           if (_action == 'reschedule')
             'due_at': _newDue!.toUtc().toIso8601String(),
         },
@@ -380,7 +434,8 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
     builder: (context, snapshot) {
       final row = snapshot.data;
       final closed = const {'Completed', 'Cancelled'}.contains(row?['status']);
-      final editable = row != null && widget.canEdit;
+      final editable =
+          row != null && (widget.canEdit || (!closed && widget.canAssign));
       return AlertDialog(
         scrollable: true,
         title: Text('${row?['title'] ?? 'Follow-up'}'),
@@ -407,16 +462,24 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
                 value: _action,
                 onChanged: _busy
                     ? null
-                    : (action) => setState(() => _action = action!),
+                    : (action) => setState(() {
+                        _action = action!;
+                        if (_action == 'assign') {
+                          _assignees ??= _loadAssignees();
+                        }
+                      }),
                 items: [
                   for (final entry in _CrmFollowUpsPageState._actions.entries)
-                    if (!closed || entry.key == 'comment')
+                    if (entry.key == 'assign'
+                        ? widget.canAssign && !closed
+                        : widget.canEdit && (!closed || entry.key == 'comment'))
                       DropdownMenuItem(
                         value: entry.key,
                         child: Text(entry.value),
                       ),
                 ],
               ),
+              if (_action == 'assign') _assigneePicker(row),
               if (_action == 'reschedule')
                 OutlinedButton(
                   onPressed: _busy ? null : () => _chooseDue(row),

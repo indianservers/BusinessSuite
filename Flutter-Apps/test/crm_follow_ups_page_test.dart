@@ -7,6 +7,84 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM can reassign with assign permission alone', (tester) async {
+    var assignee = 'Original owner';
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          final row = {
+            'id': 12,
+            'title': 'Renew maintenance',
+            'status': 'Due',
+            'assigned_to': assignee,
+            'assigned_user_id': 3,
+          };
+          switch ((request.method, request.path)) {
+            case ('GET', '/follow-ups'):
+              return response({
+                'items': [row],
+                'total': 1,
+              });
+            case ('GET', '/follow-ups/12'):
+              return response(row);
+            case ('GET', '/follow-ups/options'):
+              return response({
+                'employees': [
+                  {'id': 3, 'name': 'Original owner'},
+                  {'id': 7, 'name': 'New owner'},
+                ],
+              });
+            case ('POST', '/follow-ups/12/actions'):
+              expect(request.data, {
+                'action': 'assign',
+                'notes': 'Handover agreed',
+                'assigned_user_id': 7,
+              });
+              assignee = 'New owner';
+              return response({...row, 'assigned_to': assignee});
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmFollowUpsPage(
+          api: api,
+          headers: const {'X-Suite-Branch': '6'},
+          cacheScope: null,
+          offline: false,
+          canEdit: false,
+          canAssign: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> tap(String label) async {
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Renew maintenance');
+    expect(find.text('Reassign'), findsOneWidget);
+    expect(find.text('Add comment'), findsNothing);
+    await tap('Load assignees');
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    expect(find.text('Original owner'), findsNothing);
+    await tap('New owner');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Notes'),
+      'Handover agreed',
+    );
+    await tester.pumpAndSettle();
+    await tap('Save action');
+    expect(find.text('Due · New owner'), findsOneWidget);
+  });
+
   testWidgets('CRM searches, reschedules, and completes a follow-up', (
     tester,
   ) async {

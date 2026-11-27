@@ -540,6 +540,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               'crm_admin',
               'crm_activities_manage',
             }),
+        canAssignFollowUps:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'assign', const {
+              'crm_manage',
+              'crm_admin',
+              'crm_activities_manage',
+            }),
         canCreateContacts:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'create', const {
@@ -1438,6 +1445,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canEditWarehouses = false,
     this.canCreateLead = false,
     this.canEditFollowUps = false,
+    this.canAssignFollowUps = false,
     this.canCreateContacts = false,
     this.canEditContacts = false,
     this.canMoveDeals = false,
@@ -1470,7 +1478,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canArchiveOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
-  final bool canEditFollowUps;
+  final bool canEditFollowUps, canAssignFollowUps;
   final bool canCreateContacts;
   final bool canEditContacts;
   final bool canMoveDeals;
@@ -2312,6 +2320,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: CrmTaskPage.endpoint,
                   canEditFollowUps: widget.canEditFollowUps,
+                  canAssignFollowUps: widget.canAssignFollowUps,
                   query: const {'sourceModule': 'crm', 'pageSize': 25},
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
@@ -2332,6 +2341,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cacheScope: widget.cachePrefix,
                   offline: _offlineOnly || _usedSavedFallback,
                   canEdit: widget.canEditFollowUps,
+                  canAssign: widget.canAssignFollowUps,
                 ),
               ),
             ),
