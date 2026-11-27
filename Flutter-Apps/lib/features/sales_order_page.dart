@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 
@@ -247,6 +248,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         _order = Future.value(detail);
       });
       widget.onChanged?.call();
+      if (action == 'confirm') {
+        if (widget.cacheScope case final String scope) {
+          await InventoryStockReceipts(scope).invalidateLists();
+        }
+        if (!mounted || revision != widget.api.sessionRevision) return;
+      }
       await _cacheDetails(detail);
     } on ApiFailure catch (error) {
       if (!mounted || revision != widget.api.sessionRevision) return;

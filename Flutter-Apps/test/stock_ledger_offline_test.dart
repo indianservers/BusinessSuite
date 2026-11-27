@@ -1,6 +1,6 @@
 import 'package:business_suite_mobile/core/api_client.dart';
-import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/inventory_finance_report_page.dart';
+import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,6 +46,7 @@ void main() {
           return 0;
         case 'update':
           final values = (call.arguments as Map)['arguments'] as List;
+          if (values.length == 2) return 0;
           expect(values, [
             1,
             'ledger-test:',
@@ -53,8 +54,10 @@ void main() {
             'ledger-test:',
             ':/srm/inventory/reports:',
           ]);
-          for (final row in snapshots.values) {
-            row['invalidated'] = 1;
+          for (final entry in snapshots.entries) {
+            if (entry.key.contains(':/srm/inventory/reports:')) {
+              entry.value['invalidated'] = 1;
+            }
           }
           return snapshots.length;
         default:
@@ -71,6 +74,14 @@ void main() {
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/sales-orders/24') {
+            return response({'id': 24, 'status': 'approved', 'lines': []});
+          }
+          if (request.path == '/srm/sales-orders/24/confirm') {
+            expect(request.method, 'POST');
+            return response({'id': 24, 'status': 'confirmed'});
+          }
+          expect(request.path, '/srm/inventory/reports');
           requests++;
           final warehouse = request.queryParameters['warehouse_id'] ?? 'all';
           return response({
@@ -120,9 +131,25 @@ void main() {
     await tester.tap(find.byTooltip('Refresh report'));
     await tester.pumpAndSettle();
     expect(requests, 3);
-    await SuiteReadCache.invalidateInventoryReports('ledger-test');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderPage(
+          api: api,
+          summary: const {'id': 24},
+          offline: false,
+          cacheScope: 'ledger-test',
+          canEdit: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm sales order'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirm sales order'));
+    await tester.pumpAndSettle();
+    await open(false);
     await warehouse('6');
-    expect(requests, 4);
+    expect(requests, 5);
     await open(true);
     expect(find.text('Movements for all'), findsOneWidget);
     await warehouse('6');
@@ -131,6 +158,6 @@ void main() {
     await warehouse('7');
     expect(find.text('No saved report.'), findsOneWidget);
     expect(find.text('Movements for 6'), findsNothing);
-    expect(requests, 4);
+    expect(requests, 5);
   });
 }
