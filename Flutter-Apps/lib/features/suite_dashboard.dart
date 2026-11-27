@@ -21,6 +21,7 @@ import 'crm_guided_selling_form.dart';
 import 'crm_pipeline_page.dart';
 import 'inventory_batch_page.dart';
 import 'inventory_finance_report_page.dart';
+import 'inventory_procurement_page.dart';
 import 'inventory_tracking_form.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
@@ -1544,6 +1545,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   ];
   bool get _batchTracking => widget.path == InventoryBatchPage.batches;
   bool get _serialTracking => widget.path == InventoryBatchPage.serials;
+  ProcurementRecord? get _procurement => switch (widget.path) {
+    '/srm/procurement/purchase-orders' => ProcurementRecord.order,
+    '/srm/procurement/grn' => ProcurementRecord.receipt,
+    _ => null,
+  };
   bool get _cachePagedRecords =>
       _isCrm ||
       _crmContacts ||
@@ -1554,7 +1560,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmQuoteApprovals ||
       _crmCpq ||
       _crmGuidedSelling ||
-      _batchTracking;
+      _batchTracking ||
+      _procurement == ProcurementRecord.order;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cachePagedRecords || _isEmployees;
   bool get _searchOnServer =>
@@ -1706,7 +1713,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             })
           else ...{
             if (_hasPages) 'page': page,
-            if (_batchTracking) 'per_page': 25,
+            if (_batchTracking || _procurement == ProcurementRecord.order)
+              'per_page': 25,
             if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
           },
         },
@@ -1824,6 +1832,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmGuidedSelling) 'active',
               if (_batchTracking) ...InventoryBatchPage.fields.keys,
               if (_serialTracking) ...InventoryBatchPage.serialFields.keys,
+              if (_procurement case final ProcurementRecord record) ...[
+                record.number,
+                ...record.fields.keys,
+              ],
               'order_number',
               'currency',
               'subtotal',
@@ -2462,6 +2474,27 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           onPressed: _refresh,
         ),
         if (_inventory)
+          PopupMenuButton<ProcurementRecord>(
+            tooltip: 'Procurement',
+            icon: const Icon(Icons.receipt_long_outlined),
+            onSelected: (kind) => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: kind.title,
+                  controller: widget.controller,
+                  path: kind.path,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+            itemBuilder: (_) => [
+              for (final kind in ProcurementRecord.values)
+                PopupMenuItem(value: kind, child: Text(kind.title)),
+            ],
+          ),
+        if (_inventory)
           IconButton(
             tooltip: 'Batches & Serials',
             icon: const Icon(Icons.qr_code_2),
@@ -2799,6 +2832,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       'serial_number',
                                       'reference_number',
                                     ],
+                                    if (_procurement
+                                        case final ProcurementRecord
+                                            record) ...[
+                                      record.number,
+                                      'vendor_name',
+                                      'reference_number',
+                                    ],
                                     if (_crmQuoteApprovals) ...[
                                       'quote_id',
                                       'reason',
@@ -3071,10 +3111,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['quote_number'] ??
                             item['batch_number'] ??
                             item['serial_number'] ??
+                            item[_procurement?.number] ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_procurement != null) ...[
+                            item['vendor_name'],
+                            if (item['expected_date'] != null)
+                              "Expected ${item['expected_date']}",
+                            item['receipt_date'],
+                            if (item['total_amount'] != null)
+                              "Total ${item['total_amount']}",
+                          ],
                           if (_batchTracking) ...[
                             if (item['expiry_date'] != null)
                               "Expires ${item['expiry_date']}",
@@ -3135,6 +3184,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        final procurement = _procurement;
+                        if (procurement != null && item['id'] is int) {
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => InventoryProcurementPage(
+                                  api: widget.controller.api,
+                                  kind: procurement,
+                                  summary: item,
+                                  scopeHeaders: widget.scopeHeaders,
+                                  cacheScope: widget.cachePrefix,
+                                  offline: _offlineOnly || _usedSavedFallback,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         if (_batchTracking && item['id'] is int) {
                           return ListTile(
                             title: Text('$label'),

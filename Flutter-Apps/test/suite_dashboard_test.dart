@@ -4344,6 +4344,44 @@ void main() {
                 },
               ],
             }),
+            '/srm/procurement/purchase-orders' => response({
+              'items': [
+                {
+                  'id': 72,
+                  'po_number': 'PO-72',
+                  'vendor_name': 'Example supplier',
+                },
+              ],
+              'total': 1,
+              'per_page': 25,
+            }),
+            '/srm/procurement/purchase-orders/72' => response({
+              'po_number': 'PO-72',
+              'vendor_name': 'Example supplier',
+              'lines': [
+                {
+                  'description': 'Printer paper',
+                  'quantity': 10,
+                  'received_quantity': 8,
+                },
+              ],
+            }),
+            '/srm/procurement/grn' => response({
+              'items': [
+                {'id': 80, 'grn_number': 'GRN-80', 'purchase_order_id': 72},
+              ],
+            }),
+            '/srm/procurement/grn/80' => response({
+              'grn_number': 'GRN-80',
+              'purchase_order_id': 72,
+              'lines': [
+                {
+                  'description': 'Printer paper',
+                  'accepted_quantity': 8,
+                  'rejected_quantity': 2,
+                },
+              ],
+            }),
             '/srm/inventory/batches' => response({
               'items': [
                 {
@@ -4662,6 +4700,24 @@ void main() {
           expect(calls.any((r) => r.path == '/srm/inventory/items'), isTrue);
           await open('Sample product');
           expect(find.text('STOCK-1'), findsOneWidget);
+          await back();
+          await tester.tap(find.byTooltip('Procurement'));
+          await tester.pumpAndSettle();
+          await open('Purchase orders');
+          await open('PO-72');
+          expect(find.text('Printer paper'), findsOneWidget);
+          expect(find.textContaining('Received: 8'), findsOneWidget);
+          await back();
+          await back();
+          await tester.tap(find.byTooltip('Procurement'));
+          await tester.pumpAndSettle();
+          await open('Goods receipts');
+          await open('GRN-80');
+          expect(find.textContaining('Accepted: 8'), findsOneWidget);
+          await open('Open purchase order');
+          expect(find.text('PO-72'), findsOneWidget);
+          await back();
+          await back();
           await back();
           await tester.tap(find.byTooltip('Batches & Serials'));
           await tester.pumpAndSettle();
