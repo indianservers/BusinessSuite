@@ -3399,6 +3399,25 @@ void main() {
                 {'name': 'Customer representative'},
               ],
             }),
+            '/crm/quotations' => response({
+              'items': [
+                {'id': 44, 'quote_number': 'QT-44', 'status': 'Draft'},
+              ],
+              'pages': 1,
+            }),
+            '/crm/quotations/44' => response({
+              'quote_number': 'QT-44',
+              'currency': 'INR',
+              'grand_total': 1500,
+              'lines': [
+                {
+                  'name': 'Annual support',
+                  'quantity': 1,
+                  'unit_price': 1500,
+                  'line_total': 1500,
+                },
+              ],
+            }),
             '/crm/deal-workspace/query' => response({
               'items': [
                 {
@@ -3860,6 +3879,13 @@ void main() {
           await tester.tap(find.byTooltip('Deals'));
           await tester.pumpAndSettle();
           expect(find.text('Sample CRM deal'), findsOneWidget);
+          await tester.tap(find.byTooltip('Quotations'));
+          await tester.pumpAndSettle();
+          await open('QT-44');
+          expect(find.text('Annual support'), findsOneWidget);
+          expect(find.text('1500 INR'), findsNWidgets(2));
+          await back();
+          await back();
           await tester.tap(find.text('Next'));
           await tester.pumpAndSettle();
           await open('Next deal');

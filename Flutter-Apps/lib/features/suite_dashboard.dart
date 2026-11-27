@@ -17,6 +17,7 @@ import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
 import 'crm_customer_page.dart';
+import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
 import 'crm_deal_page.dart';
 import 'crm_new_lead_page.dart';
@@ -1447,8 +1448,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _crmDeals => widget.path == CrmDealPage.endpoint;
   bool get _crmCustomers => widget.path == CrmCustomerPage.endpoint;
   bool get _crmTasks => widget.path == CrmTaskPage.endpoint;
+  bool get _crmQuotations => widget.path == CrmQuotationPage.endpoint;
   bool get _cacheCrmPages =>
-      _isCrm || _crmContacts || _crmDeals || _crmCustomers || _crmTasks;
+      _isCrm ||
+      _crmContacts ||
+      _crmDeals ||
+      _crmCustomers ||
+      _crmTasks ||
+      _crmQuotations;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1711,6 +1718,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmDeals) ...CrmDealPage.summaryFields,
               if (_crmCustomers) ...CrmCustomerPage.fields.keys,
               if (_crmTasks) ...['due_date', 'updated_at'],
+              if (_crmQuotations) ...CrmQuotationPage.fields,
               'order_number',
               'currency',
               'subtotal',
@@ -2015,6 +2023,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 await _refreshCrmRecords();
               }
             },
+          ),
+        if (_crmDeals)
+          IconButton(
+            tooltip: 'Quotations',
+            icon: const Icon(LucideIcons.fileText),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Quotations',
+                  controller: widget.controller,
+                  path: CrmQuotationPage.endpoint,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
           ),
         if (_crmDeals &&
             widget.canCreateDeals &&
@@ -2415,6 +2440,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       'phone',
                                     ],
                                     if (_crmDeals) 'stage_name',
+                                    if (_crmQuotations) 'quote_number',
                                   ]
                                   .map((key) => item[key] ?? '')
                                   .followedBy([
@@ -2557,6 +2583,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     cached
                                         ? 'Search saved tasks'
                                         : 'Search tasks',
+                                  CrmQuotationPage.endpoint =>
+                                    cached
+                                        ? 'Search saved quotations'
+                                        : 'Search quotations',
                                   '/srm/inventory/items' ||
                                   _reorderPath ||
                                   _stockSummaryPath => 'Search products',
@@ -2675,10 +2705,18 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['full_name'] ??
                             item['order_number'] ??
                             item['invoice_number'] ??
+                            item['quote_number'] ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmQuotations) ...[
+                            if ((item['grand_total'] ?? item['total_amount']) !=
+                                null)
+                              "${item['grand_total'] ?? item['total_amount']} ${item['currency'] ?? ''}",
+                            if (item['expiry_date'] != null)
+                              "Expires ${item['expiry_date']}",
+                          ],
                           if (_crmTasks && item['due_date'] != null)
                             "Due ${item['due_date']}",
                           if (_crmCustomers) ...[
@@ -2818,6 +2856,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       _crmDeals ||
                                       _crmCustomers ||
                                       _crmTasks ||
+                                      _crmQuotations ||
                                       widget.path ==
                                           FinancePartyPage.endpoint) &&
                                   item['id'] is int
@@ -2827,6 +2866,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? _EmployeeDetailsPage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                          )
+                                        : _crmQuotations
+                                        ? CrmQuotationPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            scopeHeaders: widget.scopeHeaders,
                                           )
                                         : _crmTasks
                                         ? CrmTaskPage(
