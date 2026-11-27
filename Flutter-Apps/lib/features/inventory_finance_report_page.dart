@@ -394,6 +394,7 @@ class _InventoryFinanceReportPageState
         }
       },
       project: (data) => {
+        '_saved_at': DateTime.now().toUtc().toIso8601String(),
         if (_analysis) 'total': data['total'],
         if (_analysis) 'as_of': data['as_of'],
         if (_analysis) 'warnings': data['warnings'],
@@ -668,6 +669,15 @@ class _InventoryFinanceReportPageState
                   if (!done) const LinearProgressIndicator(),
                   if (done && !snapshot.hasError && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
+                  if (!done && data != null)
+                    const Text('Refreshing saved report…'),
+                  if (!done || snapshot.data?.live != true)
+                    if (DateTime.tryParse('${data?['_saved_at']}')
+                        case final DateTime saved)
+                      Text(
+                        'Saved ${MaterialLocalizations.of(context).formatShortDate(saved.toLocal())} '
+                        '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(saved.toLocal()))}',
+                      ),
                   if (_analysis)
                     Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,

@@ -193,6 +193,7 @@ void main() {
     expect(find.text('Movements for all'), findsOneWidget);
     await warehouse('6');
     expect(find.text('Saved report'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^Saved .+\d')), findsOneWidget);
     expect(find.text('Movements for 6'), findsOneWidget);
     await warehouse('7');
     expect(find.text('No saved report.'), findsOneWidget);
