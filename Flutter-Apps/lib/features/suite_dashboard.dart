@@ -490,7 +490,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           listenable: controller,
           builder: (_, _) => controller.user == null
               ? const SizedBox.shrink()
-              : WorkspacePage(controller: controller),
+              : WorkspacePage(
+                  controller: controller,
+                  notesCacheScope: _localScope(access),
+                ),
         ),
       );
       final workspace = controller.selected;
