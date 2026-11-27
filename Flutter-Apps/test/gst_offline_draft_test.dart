@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
@@ -102,8 +103,7 @@ void main() {
   ) async {
     const url = 'https://example.test/api/v1';
     const scope = '["$url",5,7]';
-    const headers = {'X-Suite-Branch': '6'};
-    final picker = gstCacheKey(scope, '/srm/invoices/customer-picker', headers);
+    const headers = {'X-Suite-Branch': '6', 'X-Suite-Organization': '7'};
     const channel = MethodChannel('com.tekartik.sqflite');
     databaseFactory = databaseFactorySqflitePlugin;
     FlutterSecureStorage.setMockInitialValues({});
@@ -145,6 +145,29 @@ void main() {
         }),
     );
     final drafts = SalesOrderDrafts.gstInvoices(scope);
+    final branchStore = InventoryOfflineCreates(scope);
+    api.dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.path, '/branches/context');
+      expect(request.headers['X-Suite-Organization'], '7');
+      return response({
+        'branches': [
+          {
+            'id': 1,
+            'name': 'Head office',
+            'is_active': true,
+            'can_write': true,
+          },
+          {'id': 6, 'name': 'Retail', 'is_active': true, 'can_write': true},
+        ],
+      }, 200);
+    });
+    await tester.runAsync(() async {
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await branchStore.writableBranches(api);
+    });
+    api.dio.httpClientAdapter = FakeAdapter((_) async {
+      fail('Offline draft should not call the server');
+    });
     Json? result;
     await tester.pumpWidget(
       MaterialApp(
@@ -155,9 +178,10 @@ void main() {
                 result = await showGstInvoiceDraftForm(
                   context,
                   api: api,
-                  scopeHeaders: headers,
+                  scopeHeaders: const {},
                   drafts: drafts,
-                  customerCacheScope: picker,
+                  branchStore: branchStore,
+                  customerCacheScope: scope,
                   offline: true,
                 );
               },
@@ -175,6 +199,11 @@ void main() {
     }
 
     await tap('Open draft');
+    final chooser = find.widgetWithText(OutlinedButton, 'Choose customer');
+    expect(tester.widget<OutlinedButton>(chooser).onPressed, isNull);
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tap('Retail');
     await tap('Choose customer');
     await tap('Saved customer');
     await tap('Add line item');
@@ -201,6 +230,7 @@ void main() {
               api: api,
               scopeHeaders: headers,
               drafts: drafts,
+              branchStore: branchStore,
               offline: true,
               savedDraft: draft,
             );
@@ -227,6 +257,8 @@ void main() {
     final operation = edited['operation'] as String;
     api.dio.httpClientAdapter = FakeAdapter((request) async {
       expect(request.data['request_id'], operation);
+      expect(request.headers, containsPair('X-Suite-Branch', '6'));
+      expect(request.headers, containsPair('X-Suite-Organization', '7'));
       throw DioException(
         requestOptions: request,
         type: DioExceptionType.connectionError,

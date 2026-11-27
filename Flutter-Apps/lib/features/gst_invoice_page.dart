@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
+import '../core/inventory_offline_creates.dart';
 import '../core/models.dart';
 import '../core/sales_order_drafts.dart';
 import '../core/suite_pdf.dart';
@@ -46,6 +47,7 @@ Future<Json?> showGstInvoiceDraftForm(
   required ApiClient api,
   required Map<String, String> scopeHeaders,
   SalesOrderDrafts? drafts,
+  InventoryOfflineCreates? branchStore,
   String? customerCacheScope,
   bool offline = false,
   Json? savedDraft,
@@ -56,6 +58,7 @@ Future<Json?> showGstInvoiceDraftForm(
     api: api,
     scopeHeaders: scopeHeaders,
     drafts: drafts,
+    branchStore: branchStore,
     customerCacheScope: customerCacheScope,
     offline: offline,
     savedDraft: savedDraft,
@@ -67,6 +70,7 @@ class _GstDraftForm extends StatefulWidget {
     required this.api,
     required this.scopeHeaders,
     this.drafts,
+    this.branchStore,
     this.customerCacheScope,
     required this.offline,
     this.savedDraft,
@@ -75,6 +79,7 @@ class _GstDraftForm extends StatefulWidget {
   final ApiClient api;
   final Map<String, String> scopeHeaders;
   final SalesOrderDrafts? drafts;
+  final InventoryOfflineCreates? branchStore;
   final String? customerCacheScope;
   final bool offline;
   final Json? savedDraft;
@@ -85,6 +90,17 @@ class _GstDraftForm extends StatefulWidget {
 
 class _GstDraftFormState extends State<_GstDraftForm> {
   late final _revision = widget.api.sessionRevision;
+  late final _branches = widget.branchStore?.writableBranches(
+    widget.api,
+    offline: widget.offline,
+  );
+  late String? _branch = widget.scopeHeaders['X-Suite-Branch'];
+  Map<String, String> get _headers => {
+    ...widget.scopeHeaders,
+    'X-Suite-Organization': ?widget.branchStore?.organizationId,
+    'X-Suite-Branch': ?_branch,
+  };
+  bool _branchReady = false;
   final _operation = const Uuid().v4();
   Json? get _original => widget.savedDraft?['payload'] as Json?;
   late final _lines = [
@@ -107,14 +123,56 @@ class _GstDraftFormState extends State<_GstDraftForm> {
   bool _saving = false;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    final branches = _branches;
+    if (branches == null) {
+      _branchReady = true;
+      return;
+    }
+    try {
+      final choices = await branches;
+      if (!mounted || widget.api.sessionRevision != _revision) return;
+      setState(() {
+        if (!choices.any((branch) => '${branch['id']}' == _branch)) {
+          _branch = choices.length == 1 ? '${choices.single['id']}' : null;
+          _customer = null;
+        }
+        _branchReady = true;
+      });
+    } catch (error) {
+      if (mounted && widget.api.sessionRevision == _revision) {
+        setState(() {
+          _error = error is ApiFailure
+              ? error.message
+              : 'Could not load writable branches.';
+        });
+      }
+    }
+  }
+
+  bool get _canChooseCustomer =>
+      _branchReady && (widget.branchStore == null || _branch != null);
+
   Future<void> _chooseCustomer() async {
     final customer = await showDialog<Json>(
       context: context,
       builder: (_) => SalesRecordPicker(
         api: widget.api,
         offline: widget.offline,
-        scopeHeaders: widget.scopeHeaders,
-        purchaseCacheScope: widget.customerCacheScope,
+        scopeHeaders: _headers,
+        purchaseCacheScope: widget.branchStore == null
+            ? widget.customerCacheScope
+            : gstCacheKey(
+                widget.customerCacheScope,
+                'customers-by-branch',
+                _headers,
+              ),
       ),
     );
     if (mounted && customer != null) setState(() => _customer = customer);
@@ -150,7 +208,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       _operation,
       payload,
       customerName: _customer?['name'] as String?,
-      scopeHeaders: widget.scopeHeaders,
+      scopeHeaders: _headers,
       replaceRejected:
           SalesOrderDrafts.gstDraftNeedsCorrection(previous?['status'])
           ? previousId
@@ -193,19 +251,22 @@ class _GstDraftFormState extends State<_GstDraftForm> {
               'POST',
               '${GstInvoicePage.listEndpoint}/manual',
               data: payload,
-              scopeHeaders: widget.scopeHeaders,
+              scopeHeaders: _headers,
             )
           : await drafts.submit(
               widget.api,
               _operation,
               payload,
-              scopeHeaders: widget.scopeHeaders,
+              scopeHeaders: _headers,
             );
       if (!mounted || widget.api.sessionRevision != _revision) return;
       if (result is! Json || result['id'] is! int) {
         throw ApiFailure('Draft confirmation is unavailable.', 503);
       }
-      Navigator.pop(context, result);
+      Navigator.pop(context, {
+        ...result,
+        if (widget.branchStore != null) 'draft_scope_headers': _headers,
+      });
     } on ApiFailure catch (error) {
       if (!mounted || widget.api.sessionRevision != _revision) return;
       if (widget.drafts case final SalesOrderDrafts drafts
@@ -260,8 +321,46 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_branches case final branches?)
+              FutureBuilder<List<Json>>(
+                future: branches,
+                builder: (context, snapshot) {
+                  final choices = snapshot.data ?? const <Json>[];
+                  return DropdownButton<String>(
+                    isExpanded: true,
+                    hint: Text(
+                      snapshot.hasError
+                          ? 'Writable branches unavailable'
+                          : !snapshot.hasData
+                          ? 'Loading writable branches…'
+                          : choices.isEmpty
+                          ? 'No writable branches'
+                          : 'Choose invoice branch',
+                    ),
+                    value: _branchReady ? _branch : null,
+                    items: [
+                      for (final branch in choices)
+                        DropdownMenuItem(
+                          value: '${branch['id']}',
+                          child: Text('${branch['name']}'),
+                        ),
+                    ],
+                    onChanged: _pending != null || !_branchReady
+                        ? null
+                        : (branch) {
+                            if (branch == _branch) return;
+                            setState(() {
+                              _branch = branch;
+                              _customer = null;
+                            });
+                          },
+                  );
+                },
+              ),
             OutlinedButton(
-              onPressed: _pending == null ? _chooseCustomer : null,
+              onPressed: _pending == null && _canChooseCustomer
+                  ? _chooseCustomer
+                  : null,
               child: Text('${_customer?['name'] ?? 'Choose customer'}'),
             ),
             for (final key in _invoiceDates.keys)
@@ -298,7 +397,11 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           child: const Text('Close'),
         ),
         FilledButton(
-          onPressed: _saving || _customer == null || _lines.isEmpty
+          onPressed:
+              _saving ||
+                  !_canChooseCustomer ||
+                  _customer == null ||
+                  _lines.isEmpty
               ? null
               : _save,
           child: Text(

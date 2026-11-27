@@ -12,6 +12,7 @@ class InventoryOfflineCreates {
       _key = 'inventory_creates_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}';
   final String _key, _company;
+  String get organizationId => _company;
   final String _scope;
   final Future<void> Function(String)? invalidate;
   static const itemsEndpoint = '/srm/inventory/items';

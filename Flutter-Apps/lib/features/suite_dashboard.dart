@@ -2254,6 +2254,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           invalidate: SuiteReadCache.invalidate,
         );
 
+  InventoryOfflineCreates? get _gstBranches => widget.cachePrefix == null
+      ? null
+      : InventoryOfflineCreates(widget.cachePrefix!);
+
   void _openGstDrafts() {
     final drafts = _gstDrafts;
     if (drafts == null) return;
@@ -2273,13 +2277,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     api: widget.controller.api,
                     scopeHeaders: headers,
                     drafts: drafts,
+                    branchStore: _gstBranches,
                     savedDraft: draft,
                     offline: _offlineOnly || _usedSavedFallback,
-                    customerCacheScope: gstCacheKey(
-                      widget.cachePrefix,
-                      '${GstInvoicePage.listEndpoint}/customer-picker',
-                      headers,
-                    ),
+                    customerCacheScope: widget.cachePrefix,
                   );
                 }
               : null,
@@ -3136,12 +3137,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 api: api,
                 scopeHeaders: widget.scopeHeaders,
                 drafts: _gstDrafts,
+                branchStore: _gstBranches,
                 offline: _offlineOnly || _usedSavedFallback,
-                customerCacheScope: gstCacheKey(
-                  widget.cachePrefix,
-                  '${GstInvoicePage.listEndpoint}/customer-picker',
-                  widget.scopeHeaders,
-                ),
+                customerCacheScope: widget.cachePrefix,
               );
               if (!context.mounted ||
                   invoice == null ||
@@ -3160,7 +3158,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     id: invoice['id'] as int,
                     summary: invoice,
                     cacheScope: widget.cachePrefix,
-                    scopeHeaders: widget.scopeHeaders,
+                    scopeHeaders:
+                        invoice['draft_scope_headers']
+                            as Map<String, String>? ??
+                        widget.scopeHeaders,
                     onChanged: _refresh,
                     canEdit: true,
                     canIssue: widget.canIssueInvoices,
