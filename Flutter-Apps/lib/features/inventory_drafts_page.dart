@@ -367,19 +367,20 @@ class _InventoryDraftsPageState extends State<InventoryDraftsPage> {
                   ListTile(
                     title: Text('${entry['product']['name']}'),
                     subtitle: SelectableText(
-                      '${entry['product']['code']} · ${entry['error'] ?? (entry['branch'] == null ? 'Choose a destination branch' : 'Awaiting sync')}',
+                      '${entry['product']['code']} · ${entry['product_id'] != null ? 'Product edit · ' : ''}${entry['error'] ?? (entry['branch'] == null ? 'Choose a destination branch' : 'Awaiting sync')}',
                     ),
                     trailing: entry['error'] == null && entry['branch'] != null
                         ? null
                         : Wrap(
                             children: [
-                              IconButton(
-                                tooltip: 'Edit draft',
-                                icon: const Icon(Icons.edit_outlined),
-                                onPressed: _busy || _editingOperation != null
-                                    ? null
-                                    : () => _edit(entry),
-                              ),
+                              if (entry['product_id'] == null)
+                                IconButton(
+                                  tooltip: 'Edit draft',
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: _busy || _editingOperation != null
+                                      ? null
+                                      : () => _edit(entry),
+                                ),
                               IconButton(
                                 tooltip: 'Discard draft',
                                 icon: const Icon(Icons.delete_outline),

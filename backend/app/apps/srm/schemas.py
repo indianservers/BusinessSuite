@@ -188,6 +188,7 @@ class SRMProductCreate(BaseModel):
 
 
 class SRMProductUpdate(BaseModel):
+    expected_updated_at: datetime | None = None
     category_id: int | None = None
     default_warehouse_id: int | None = None
     item_name: str | None = None

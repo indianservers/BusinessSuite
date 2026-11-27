@@ -413,6 +413,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'companyName': access['companyName'],
             'canCreateLead': _canCreateLead(access),
             'canCreateOrder': _canCreateOrder(access),
+            'canEditInventoryProducts': _canWriteSales(access, 'edit'),
             'canCreateInvoice': _canCreateInvoice(access),
             'grants': {
               for (final key in [
@@ -495,7 +496,11 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
     if (!_allowed(access, 'srm')) return false;
     final controller = widget.controller;
     if (controller.offline) {
-      return action == 'create' && access['canCreateOrder'] == true;
+      return switch (action) {
+        'create' => access['canCreateOrder'] == true,
+        'edit' => access['canEditInventoryProducts'] == true,
+        _ => false,
+      };
     }
     final grant = (access['grants'] as Json?)?['srm'] as Json?;
     const permissions = {'srm_manage', 'srm_admin'};
@@ -697,6 +702,8 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
+        canEditInventoryProducts:
+            app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
         canArchiveOrders:
             app.title == 'Sales & POS' && _canWriteSales(access, 'delete'),
         canCreateOrderInvoices:
@@ -1606,6 +1613,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canExportSalesDocuments = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
+    this.canEditInventoryProducts = false,
     this.canArchiveOrders = false,
     this.canEditWarehouses = false,
     this.canCreateLead = false,
@@ -1646,6 +1654,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canExportSalesDocuments;
   final bool canIssueInvoices;
   final bool canEditOrders;
+  final bool canEditInventoryProducts;
   final bool canArchiveOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
@@ -3374,6 +3383,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canViewFinanceInventory: widget.canViewFinanceInventory,
                   canEditOrders:
                       widget.canEditOrders && widget.canEditWarehouses,
+                  canEditInventoryProducts: widget.canEditInventoryProducts,
                   canArchiveOrders: widget.canArchiveOrders,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
@@ -4259,6 +4269,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             canRecordStock:
                                                 _inventory &&
                                                 widget.canCreateOrder,
+                                            canEditProduct:
+                                                _inventory &&
+                                                widget.canEditInventoryProducts,
                                             onStockChanged: _refreshStockLists,
                                             offline:
                                                 _offlineOnly ||
@@ -4409,6 +4422,7 @@ class InventoryProductPage extends StatefulWidget {
     this.cacheScope,
     this.scopeHeaders = const {},
     this.canRecordStock = false,
+    this.canEditProduct = false,
     this.onStockChanged,
   });
   final ApiClient api;
@@ -4417,6 +4431,7 @@ class InventoryProductPage extends StatefulWidget {
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool canRecordStock;
+  final bool canEditProduct;
   final ValueChanged<Set<int>>? onStockChanged;
 
   @override
@@ -4425,6 +4440,18 @@ class InventoryProductPage extends StatefulWidget {
 
 class _InventoryProductPageState extends State<InventoryProductPage> {
   Json? _saved;
+  late final _editorQueue = widget.canEditProduct && widget.cacheScope != null
+      ? InventoryOfflineCreates(
+          widget.cacheScope!,
+          invalidate: SuiteReadCache.invalidate,
+        )
+      : null;
+  late var _savedEdit = _readSavedEdit();
+  bool _savingEdit = false;
+
+  Future<Json?> _readSavedEdit() async => (await _editorQueue?.entries())
+      ?.where((row) => row['product_id'] == widget.summary['id'])
+      .firstOrNull;
   late bool _offline = widget.offline;
   late Future<Json?> _product = _load();
 
@@ -4438,6 +4465,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     'hsn_code': 'HSN code',
     'sales_rate': 'Sales price',
     'gst_rate': 'GST rate (%)',
+    'description': 'Description',
   };
 
   Future<Json?> _load({bool reconnect = false}) async {
@@ -4456,6 +4484,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
           if (!reconnect &&
               !_offline &&
               !widget.canRecordStock &&
+              !widget.canEditProduct &&
               saved != null &&
               snapshot != null &&
               !snapshot.invalidated) {
@@ -4486,7 +4515,12 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
         try {
           await SuiteReadCache.write(key, [
             {
-              for (final field in ['item_name', 'name', ..._fields.keys])
+              for (final field in [
+                'item_name',
+                'name',
+                'updated_at',
+                ..._fields.keys,
+              ])
                 field: data[field],
               'balances': [
                 for (final row
@@ -4540,7 +4574,108 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
 
   void _refresh() => setState(() {
     _product = _load(reconnect: true);
+    _savedEdit = _readSavedEdit();
   });
+
+  Future<void> _editProduct(Json product, {required bool offline}) async {
+    final queue = _editorQueue!;
+    final revision = widget.api.sessionRevision;
+    if (_savingEdit) return;
+    setState(() => _savingEdit = true);
+    try {
+      final branches = await queue.writableBranches(
+        widget.api,
+        offline: offline,
+      );
+      if (!mounted || widget.api.sessionRevision != revision) return;
+      final selected = int.tryParse(
+        widget.scopeHeaders['X-Suite-Branch'] ?? '',
+      );
+      final branch = branches.any((row) => row['id'] == selected)
+          ? selected
+          : branches.length == 1
+          ? branches.single['id'] as int
+          : await showDialog<int>(
+              context: context,
+              builder: (context) => SimpleDialog(
+                title: const Text('Choose a writable branch'),
+                children: [
+                  for (final row in branches)
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, row['id']),
+                      child: Text('${row['name']}'),
+                    ),
+                  if (branches.isEmpty)
+                    const ListTile(
+                      title: Text('No writable branches available'),
+                    ),
+                ],
+              ),
+            );
+      if (!mounted ||
+          branch == null ||
+          widget.api.sessionRevision != revision) {
+        return;
+      }
+      final changes = await showDialog<Json>(
+        context: context,
+        builder: (_) =>
+            _InventoryProductEditDialog(product: product, offline: offline),
+      );
+      if (!mounted ||
+          changes == null ||
+          widget.api.sessionRevision != revision) {
+        return;
+      }
+      await queue.enqueueEdit(
+        productId: widget.summary['id'] as int,
+        name: '${product['item_name'] ?? product['name']}',
+        sku: '${product['sku'] ?? ''}',
+        branchId: branch,
+        changes: {...changes, 'expected_updated_at': product['updated_at']},
+      );
+      if (!offline && widget.api.sessionRevision == revision) {
+        await queue.sync(widget.api, onlyProduct: widget.summary['id'] as int);
+      }
+      if (!mounted || widget.api.sessionRevision != revision) return;
+      if (offline) {
+        setState(() {
+          _savedEdit = _readSavedEdit();
+        });
+      } else {
+        _refresh();
+      }
+    } catch (error) {
+      if (mounted && widget.api.sessionRevision == revision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _savingEdit = false);
+    }
+  }
+
+  Future<void> _syncProductEdit() async {
+    if (_savingEdit) return;
+    setState(() => _savingEdit = true);
+    try {
+      await _editorQueue!.sync(
+        widget.api,
+        onlyProduct: widget.summary['id'] as int,
+        reportTemporaryFailure: true,
+      );
+      if (mounted) _refresh();
+    } on ApiFailure catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _savingEdit = false);
+    }
+  }
 
   Future<void> _recordStock() async {
     final id = widget.summary['id'];
@@ -4602,6 +4737,58 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (pending) const LinearProgressIndicator(),
+            if (_editorQueue != null && !pending)
+              FutureBuilder<Json?>(
+                future: _savedEdit,
+                builder: (context, edit) {
+                  if (edit.connectionState != ConnectionState.done ||
+                      edit.hasError) {
+                    return const SizedBox.shrink();
+                  }
+                  if (edit.data case final entry?) {
+                    final changes = entry['changes'] as Json;
+                    final rejected = entry['error'] as String?;
+                    return ListTile(
+                      title: Text(
+                        rejected == null
+                            ? 'Product edit saved · awaiting sync'
+                            : 'Saved product edit needs review',
+                      ),
+                      subtitle: Text(
+                        rejected ??
+                            [
+                              if (changes['item_name'] case final String name)
+                                'Name: $name',
+                              if (changes['description']
+                                  case final String notes)
+                                'Description: $notes',
+                              if (changes['reorder_level']
+                                  case final String level)
+                                'Reorder level: $level',
+                            ].join('\n'),
+                      ),
+                      trailing: rejected == null
+                          ? TextButton(
+                              onPressed: _savingEdit ? null : _syncProductEdit,
+                              child: const Text('Sync now'),
+                            )
+                          : null,
+                    );
+                  }
+                  if (details == null || !details.containsKey('updated_at')) {
+                    return const SizedBox.shrink();
+                  }
+                  return OutlinedButton(
+                    onPressed: _savingEdit
+                        ? null
+                        : () => _editProduct(
+                            details,
+                            offline: snapshot.data == null,
+                          ),
+                    child: const Text('Edit product details'),
+                  );
+                },
+              ),
             if (widget.canRecordStock &&
                 !pending &&
                 (snapshot.data != null ||
@@ -4675,5 +4862,87 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
         );
       },
     ),
+  );
+}
+
+class _InventoryProductEditDialog extends StatefulWidget {
+  const _InventoryProductEditDialog({
+    required this.product,
+    required this.offline,
+  });
+
+  final Json product;
+  final bool offline;
+
+  @override
+  State<_InventoryProductEditDialog> createState() =>
+      _InventoryProductEditDialogState();
+}
+
+class _InventoryProductEditDialogState
+    extends State<_InventoryProductEditDialog> {
+  final _form = GlobalKey<FormState>();
+  final _changes = <String, dynamic>{};
+
+  void _track(String field, String value) {
+    final text = value.trim();
+    if (text == '${widget.product[field] ?? ''}') {
+      _changes.remove(field);
+    } else {
+      _changes[field] = text;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Edit product details'),
+    scrollable: true,
+    content: Form(
+      key: _form,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            initialValue: '${widget.product['item_name'] ?? ''}',
+            maxLength: 220,
+            decoration: const InputDecoration(labelText: 'Product name'),
+            validator: (value) =>
+                (value ?? '').trim().isEmpty ? 'Enter a product name' : null,
+            onChanged: (value) => _track('item_name', value),
+          ),
+          TextFormField(
+            initialValue: '${widget.product['description'] ?? ''}',
+            maxLength: 4000,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'Description'),
+            onChanged: (value) => _track('description', value),
+          ),
+          TextFormField(
+            initialValue: '${widget.product['reorder_level'] ?? 0}',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'Reorder level'),
+            validator: (value) =>
+                RegExp(r'^\d{1,11}(\.\d{1,3})?$').hasMatch(value?.trim() ?? '')
+                ? null
+                : 'Enter a nonnegative amount with up to 3 decimal places',
+            onChanged: (value) => _track('reorder_level', value),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (_form.currentState!.validate()) {
+            Navigator.pop(context, _changes.isEmpty ? null : _changes);
+          }
+        },
+        child: Text(widget.offline ? 'Save edit offline' : 'Save changes'),
+      ),
+    ],
   );
 }

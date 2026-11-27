@@ -141,28 +141,62 @@ class InventoryOfflineCreates {
     await _storage.write(key: _key, value: jsonEncode(pending));
   });
 
-  Future<void> sync(ApiClient api, {bool reportTemporaryFailure = false}) {
+  Future<void> enqueueEdit({
+    required int productId,
+    required String name,
+    required String sku,
+    required int branchId,
+    required Json changes,
+  }) => _serialized(() async {
+    final pending = await entries();
+    if (pending.any((entry) => entry['product_id'] == productId)) {
+      throw StateError('This product already has a saved edit.');
+    }
+    pending.add({
+      'operation': const Uuid().v4(),
+      'product_id': productId,
+      'product': {'name': name, 'code': sku},
+      'changes': changes,
+      'branch': branchId,
+    });
+    await _storage.write(key: _key, value: jsonEncode(pending));
+  });
+
+  Future<void> sync(
+    ApiClient api, {
+    bool reportTemporaryFailure = false,
+    int? onlyProduct,
+  }) {
     final revision = api.sessionRevision;
     return _serialized(() async {
       final pending = await entries();
       for (final entry in pending.toList()) {
         if (!api.hasSession || revision != api.sessionRevision) return;
         final branch = entry['branch'];
+        final productId = entry['product_id'];
+        if (onlyProduct != null && productId != onlyProduct) continue;
         if (entry['error'] != null || branch is! int) continue;
         try {
           await api.request(
-            'POST',
-            '/catalog/items',
-            query: {'source': 'srm'},
+            productId == null ? 'POST' : 'PUT',
+            productId == null ? '/catalog/items' : '$itemsEndpoint/$productId',
+            query: productId == null ? {'source': 'srm'} : null,
             scopeHeaders: {
               'X-Suite-Organization': _company,
               'X-Suite-Branch': '$branch',
-              'X-Offline-Operation': entry['operation'] as String,
+              if (productId == null)
+                'X-Offline-Operation': entry['operation'] as String,
             },
-            data: entry['product'],
+            data: productId == null ? entry['product'] : entry['changes'],
           );
           try {
             await invalidate?.call('$_scope:$itemsEndpoint');
+            if (productId != null) {
+              await invalidate?.call('$_scope:$itemsEndpoint/$productId:');
+              await invalidate?.call(
+                '$_scope:$itemsEndpoint/$productId:$branch',
+              );
+            }
           } catch (_) {
             // The server accepted the draft even when local reads are unavailable.
           }

@@ -108,6 +108,37 @@ void main() {
       expect(await drafts.entries(), isEmpty);
     },
   );
+  test('inventory retains a stale offline product edit for review', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    final drafts = InventoryOfflineCreates('["server",1,8]');
+    const changes = {
+      'description': 'Saved offline',
+      'expected_updated_at': '2026-11-28T02:00:00Z',
+    };
+    await drafts.enqueueEdit(
+      productId: 314,
+      name: 'QA product',
+      sku: 'QA',
+      branchId: 3,
+      changes: changes,
+    );
+    dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.method, 'PUT');
+      expect(request.path, '/srm/inventory/items/314');
+      expect(request.headers['X-Suite-Branch'], '3');
+      expect(request.headers['X-Suite-Organization'], '8');
+      expect(request.data, changes);
+      return response({'detail': 'Product changed'}, 409);
+    });
+    await drafts.sync(api);
+    final saved = (await drafts.entries()).single;
+    expect(saved['changes'], changes);
+    expect(saved['error'], contains('Product changed'));
+  });
   test(
     'restores the saved suite only for a disconnected signed-in session',
     () async {

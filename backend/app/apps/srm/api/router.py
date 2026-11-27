@@ -774,8 +774,11 @@ def _product_payload(product: SRMProduct) -> dict:
     return data
 
 
-def _product_or_404(db: Session, org_id: int | None, product_id: int) -> SRMProduct:
-    product = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.id == product_id, SRMProduct.deleted_at.is_(None)).first()
+def _product_or_404(db: Session, org_id: int | None, product_id: int, *, lock: bool = False) -> SRMProduct:
+    query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.id == product_id, SRMProduct.deleted_at.is_(None))
+    if lock:
+        query = query.populate_existing().with_for_update(of=SRMProduct)
+    product = query.first()
     if not product:
         raise HTTPException(status_code=404, detail="SRM product not found")
     return product
@@ -1635,12 +1638,14 @@ def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user
 @router.put("/inventory/items/{product_id}")
 def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     patch = data.model_dump(exclude_unset=True)
+    check_version = "expected_updated_at" in patch
+    expected_updated_at = patch.pop("expected_updated_at", None)
     classification = {'product_type', 'track_inventory', 'batch_tracking', 'expiry_tracking', 'serial_tracking'}
     if classification.intersection(patch):
         from app.apps.srm.services.commercial import lock_tenant
         lock_tenant(db, current_user)
     org_id = _org(current_user)
-    product = _product_or_404(db, org_id, product_id)
+    product = _product_or_404(db, org_id, product_id, lock=check_version)
     from app.shared.catalog_branches import is_available, selected_branch
     if not is_available(product, selected_branch(current_user)):
         raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
@@ -1649,6 +1654,8 @@ def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = De
     kind = "service" if product.product_type == "service" else "product"
     detail = metadata(db, kind, product.id)
     workspace_access(db, current_user, detail.workspace_id if detail else None, True)
+    if check_version and product.updated_at != expected_updated_at:
+        raise HTTPException(409, "Product changed since it was saved. Refresh before editing.")
     if any(key in patch and patch[key] != getattr(product, key) for key in classification):
         _require_quantity_only_inventory(db, org_id, product)
     if data.product_type is not None and (data.product_type == "service") != (kind == "service") and detail:
