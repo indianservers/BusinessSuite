@@ -29,31 +29,42 @@ const _movementFields = {
 };
 
 enum InventoryFinanceReport {
-  stockLedger('Stock Ledger', 'ledger', _movementFields, movementReport: true),
+  stockLedger('Stock Ledger', 'ledger', _movementFields, analysisReport: true),
   salesMovements(
     'Sales Movement',
     'sales',
     _movementFields,
-    movementReport: true,
+    analysisReport: true,
   ),
   purchaseMovements(
     'Purchase Movements',
     'purchases',
     _movementFields,
-    movementReport: true,
+    analysisReport: true,
   ),
   stockAdjustments(
     'Stock Adjustments',
     'adjustments',
     _movementFields,
-    movementReport: true,
+    analysisReport: true,
   ),
   stockTransfers(
     'Stock Transfers',
     'transfers',
     _movementFields,
-    movementReport: true,
+    analysisReport: true,
   ),
+  inventoryReconciliation('Inventory Reconciliation', 'reconciliation', {
+    'issue_type': 'Issue',
+    'sku': 'SKU',
+    'expected_quantity': 'Expected quantity',
+    'actual_quantity': 'Actual quantity',
+    'quantity_difference': 'Quantity difference',
+    'expected_value': 'Expected value',
+    'actual_value': 'Actual value',
+    'value_difference': 'Value difference',
+    'investigation': 'Investigation',
+  }, analysisReport: true),
   grossMargin('Gross Margin', 'gross-margin', {
     'sku': 'SKU',
     'revenue_status': 'Revenue attribution',
@@ -161,22 +172,23 @@ enum InventoryFinanceReport {
     this.slug,
     this.fields, {
     this.reconciliation = false,
-    this.movementReport = false,
+    this.analysisReport = false,
     this.metrics = const {},
   });
   final String title, slug;
   final Map<String, String> fields;
   final Map<String, String> metrics;
   final bool reconciliation;
-  final bool movementReport;
+  final bool analysisReport;
 
   String get endpoint => switch (this) {
-    _ when movementReport => '/srm/inventory/reports',
+    _ when analysisReport => '/srm/inventory/reports',
     stockAudit => '/fam/inventory/audit',
     _ =>
       '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug',
   };
   String get labelField => switch (this) {
+    inventoryReconciliation => 'item_name',
     grossMargin => 'item_name',
     stockLedger ||
     salesMovements ||
@@ -204,7 +216,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
     this.initialFilters = const {},
     this.initialSearch = '',
     this.movementId,
-    this.financeMovement = false,
+    this.financeAnalysis = false,
   });
 
   final ApiClient api;
@@ -215,7 +227,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
   final Map<String, String> initialFilters;
   final String initialSearch;
   final int? movementId;
-  final bool financeMovement;
+  final bool financeAnalysis;
 
   @override
   State<InventoryFinanceReportPage> createState() =>
@@ -232,8 +244,8 @@ class _InventoryFinanceReportPageState
   late Map<String, String> _filters = widget.initialFilters;
   late bool _offline = widget.offline;
   bool _exporting = false;
-  bool get _ledger => widget.report.movementReport;
-  String get _endpoint => _ledger && widget.financeMovement
+  bool get _analysis => widget.report.analysisReport;
+  String get _endpoint => _analysis && widget.financeAnalysis
       ? '/fam/inventory/reports'
       : widget.report.endpoint;
   late var _report = _load(offline: widget.offline);
@@ -241,9 +253,9 @@ class _InventoryFinanceReportPageState
   Iterable<Json> _rows(Json? data) =>
       (data?['items'] as List? ?? const []).whereType<Json>();
 
-  Json get _ledgerQuery => {
+  Json get _analysisQuery => {
     'report': widget.report.slug,
-    if (widget.financeMovement) 'analysis': true,
+    if (widget.financeAnalysis) 'analysis': true,
     'page': _page,
     'per_page': _pageSize,
     if (_search.isNotEmpty) 'search': _search,
@@ -263,23 +275,23 @@ class _InventoryFinanceReportPageState
     return loadCrmDetail(
       api: widget.api,
       path: _endpoint,
-      scope: scope == null || !_ledger
+      scope: scope == null || !_analysis
           ? scope
           : _filters.isEmpty && _pageSize == 25
           ? ledgerScope
           : '$ledgerScope:$_pageSize:${Uri.encodeComponent(jsonEncode(_filters))}',
       headers: widget.scopeHeaders,
       offline: offline,
-      query: _ledger ? _ledgerQuery : const {},
+      query: _analysis ? _analysisQuery : const {},
       onCached: (saved) {
         if (mounted && request == _request) {
           setState(() => _cached = saved);
         }
       },
       project: (data) => {
-        if (_ledger) 'total': data['total'],
-        if (_ledger) 'as_of': data['as_of'],
-        if (_ledger) 'warnings': data['warnings'],
+        if (_analysis) 'total': data['total'],
+        if (_analysis) 'as_of': data['as_of'],
+        if (_analysis) 'warnings': data['warnings'],
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -290,7 +302,12 @@ class _InventoryFinanceReportPageState
               for (final key in [
                 widget.report.labelField,
                 ...widget.report.fields.keys,
-                if (_ledger) 'movement_id',
+                if (_analysis) 'movement_id',
+                if (widget.report ==
+                    InventoryFinanceReport.inventoryReconciliation) ...[
+                  'product_id',
+                  'warehouse_id',
+                ],
               ])
                 key: row[key],
             },
@@ -305,7 +322,7 @@ class _InventoryFinanceReportPageState
     final revision = api.sessionRevision;
     final path = _endpoint;
     final headers = widget.scopeHeaders;
-    final query = {..._ledgerQuery, 'export_format': format};
+    final query = {..._analysisQuery, 'export_format': format};
     setState(() => _exporting = true);
     try {
       final bytes = format == 'pdf'
@@ -314,7 +331,7 @@ class _InventoryFinanceReportPageState
       if (!mounted || revision != api.sessionRevision) return;
       final saved = await FilePicker.saveFile(
         fileName:
-            'inventory-${widget.financeMovement ? 'fam' : 'srm'}-${widget.report.slug}.$format',
+            'inventory-${widget.financeAnalysis ? 'fam' : 'srm'}-${widget.report.slug}.$format',
         bytes: bytes,
         mimeType: format == 'pdf'
             ? 'application/pdf'
@@ -365,7 +382,13 @@ class _InventoryFinanceReportPageState
     return Uint8List.fromList(data);
   }
 
-  void _openMovement(int id) {
+  void _openLedger({int? movementId, int? productId, Object? warehouseId}) {
+    final filters = {..._filters};
+    if (productId != null) {
+      filters.remove('transaction_type');
+      filters['product_id'] = '$productId';
+      if (warehouseId is int) filters['warehouse_id'] = '$warehouseId';
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => InventoryFinanceReportPage(
@@ -374,10 +397,10 @@ class _InventoryFinanceReportPageState
           scopeHeaders: widget.scopeHeaders,
           cacheScope: widget.cacheScope,
           offline: _offline,
-          initialFilters: _filters,
+          initialFilters: filters,
           initialSearch: _search,
-          movementId: id,
-          financeMovement: widget.financeMovement,
+          movementId: movementId,
+          financeAnalysis: widget.financeAnalysis,
         ),
       ),
     );
@@ -454,7 +477,7 @@ class _InventoryFinanceReportPageState
           }),
           icon: const Icon(Icons.refresh),
         ),
-        if (_ledger)
+        if (_analysis)
           PopupMenuButton<String>(
             tooltip: 'Export stock ledger',
             enabled: !_offline && !_exporting,
@@ -465,7 +488,7 @@ class _InventoryFinanceReportPageState
               PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
             ],
           ),
-        if (_ledger)
+        if (_analysis)
           IconButton(
             tooltip: 'Stock ledger filters',
             onPressed: _editFilters,
@@ -491,7 +514,7 @@ class _InventoryFinanceReportPageState
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_ledger)
+                  if (_analysis)
                     TextFormField(
                       initialValue: _search,
                       maxLength: 160,
@@ -507,7 +530,7 @@ class _InventoryFinanceReportPageState
                   if (!done) const LinearProgressIndicator(),
                   if (done && !snapshot.hasError && snapshot.data?.live != true)
                     Text(data == null ? 'No saved report.' : 'Saved report'),
-                  if (_ledger)
+                  if (_analysis)
                     Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
@@ -548,10 +571,10 @@ class _InventoryFinanceReportPageState
                     ),
                   if (data != null && rows.isEmpty && widget.report.hasRows)
                     const Text('No records.'),
-                  if (_ledger && data?['as_of'] is String)
+                  if (_analysis && data?['as_of'] is String)
                     Text('Posted movements · As of ${data!['as_of']}'),
                   if (data?['warnings'] case final List warnings)
-                    if (_ledger && warnings.whereType<String>().isNotEmpty)
+                    if (_analysis && warnings.whereType<String>().isNotEmpty)
                       ExpansionTile(
                         title: const Text('Calculation basis and limitations'),
                         children: [
@@ -576,14 +599,26 @@ class _InventoryFinanceReportPageState
             }
             final row = rows[index - 1];
             final movement = row['movement_id'];
+            final product = row['product_id'];
             return Card(
               child: ListTile(
                 trailing:
-                    _ledger && widget.movementId == null && movement is int
+                    _analysis && widget.movementId == null && movement is int
                     ? IconButton(
                         tooltip: 'View source movement',
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _openMovement(movement),
+                        onPressed: () => _openLedger(movementId: movement),
+                      )
+                    : widget.report ==
+                              InventoryFinanceReport.inventoryReconciliation &&
+                          product is int
+                    ? IconButton(
+                        tooltip: 'View item ledger',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _openLedger(
+                          productId: product,
+                          warehouseId: row['warehouse_id'],
+                        ),
                       )
                     : null,
                 title: Text("${row[widget.report.labelField] ?? 'Record'}"),

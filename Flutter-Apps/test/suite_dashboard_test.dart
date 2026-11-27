@@ -5114,10 +5114,18 @@ void main() {
             '/fam/inventory/reports' => response({
               'total': 1,
               'items': [
-                {
-                  'movement_number': 'Finance stock movement',
-                  'movement_id': 19,
-                },
+                if (request.queryParameters['report'] == 'reconciliation')
+                  {
+                    'item_name': 'Finance variance',
+                    'product_id': 11,
+                    'warehouse_id': 4,
+                    'quantity_difference': 2,
+                  }
+                else
+                  {
+                    'movement_number': 'Finance stock movement',
+                    'movement_id': 19,
+                  },
               ],
             }),
             '/fam/inventory/reports/gross-margin' => response({
@@ -5784,11 +5792,19 @@ void main() {
             ('Purchase Movements', 'purchases'),
             ('Stock Adjustments', 'adjustments'),
             ('Stock Transfers', 'transfers'),
+            ('Inventory Reconciliation', 'reconciliation'),
           ]) {
             await tester.tap(find.byTooltip('Inventory financial reports'));
             await tester.pumpAndSettle();
             await open(title);
-            expect(find.text('Finance stock movement'), findsOneWidget);
+            expect(
+              find.text(
+                slug == 'reconciliation'
+                    ? 'Finance variance'
+                    : 'Finance stock movement',
+              ),
+              findsOneWidget,
+            );
             expect(calls.last.path, '/fam/inventory/reports');
             expect(calls.last.queryParameters['analysis'], true);
             expect(calls.last.queryParameters['report'], slug);
@@ -5799,6 +5815,19 @@ void main() {
               expect(calls.last.queryParameters['analysis'], true);
               expect(calls.last.queryParameters['report'], 'ledger');
               expect(calls.last.queryParameters['movement_id'], 19);
+              await back();
+            }
+            if (slug == 'reconciliation') {
+              expect(
+                find.textContaining('Quantity difference: 2'),
+                findsOneWidget,
+              );
+              await tester.tap(find.byTooltip('View item ledger'));
+              await tester.pumpAndSettle();
+              expect(find.text('Finance stock movement'), findsOneWidget);
+              expect(calls.last.queryParameters['report'], 'ledger');
+              expect(calls.last.queryParameters['product_id'], '11');
+              expect(calls.last.queryParameters['warehouse_id'], '4');
               await back();
             }
             await back();

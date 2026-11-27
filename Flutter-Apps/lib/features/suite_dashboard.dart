@@ -3024,7 +3024,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             },
             itemBuilder: (_) => [
               for (final report in InventoryFinanceReport.values)
-                if (report.movementReport &&
+                if (report.analysisReport &&
                     report != InventoryFinanceReport.stockLedger)
                   PopupMenuItem(value: report, child: Text(report.title)),
               for (final report
@@ -3077,7 +3077,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 builder: (_) => InventoryFinanceReportPage(
                   api: widget.controller.api,
                   report: report,
-                  financeMovement: report.movementReport,
+                  financeAnalysis: report.analysisReport,
                   scopeHeaders: widget.scopeHeaders,
                   cacheScope: widget.cachePrefix,
                   offline: _offlineOnly || _usedSavedFallback,
@@ -3086,7 +3086,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ),
             itemBuilder: (_) => [
               for (final report in InventoryFinanceReport.values)
-                if (!report.movementReport ||
+                if (!report.analysisReport ||
                     widget.path == FinancePartyPage.endpoint)
                   PopupMenuItem(value: report, child: Text(report.title)),
             ],
