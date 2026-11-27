@@ -10,6 +10,8 @@ class CrmContactPage extends StatefulWidget {
     required this.summary,
     required this.offline,
     required this.scopeHeaders,
+    this.canEdit = false,
+    this.onSaved,
   });
 
   static const endpoint = '/crm/contacts';
@@ -26,6 +28,8 @@ class CrmContactPage extends StatefulWidget {
   final Json summary;
   final bool offline;
   final Map<String, String> scopeHeaders;
+  final bool canEdit;
+  final VoidCallback? onSaved;
 
   @override
   State<CrmContactPage> createState() => _CrmContactPageState();
@@ -57,7 +61,25 @@ class _CrmContactPageState extends State<CrmContactPage> {
     }
   }
 
-  void _refresh() => setState(() => _record = _load());
+  void _refresh() => setState(() {
+    _record = _load();
+  });
+
+  Future<void> _edit(Json contact) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => _ContactEditPage(
+          api: widget.api,
+          contact: contact,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (mounted && changed == true) {
+      widget.onSaved?.call();
+      _refresh();
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -99,6 +121,16 @@ class _CrmContactPageState extends State<CrmContactPage> {
               '${data['full_name'] ?? 'Contact'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.canEdit &&
+                snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: () => _edit(data),
+                  child: const Text('Edit contact'),
+                ),
+              ),
             for (final field in CrmContactPage.summaryFields.entries)
               if (data[field.key] case final String value when value.isNotEmpty)
                 ListTile(title: Text(field.value), subtitle: Text(value)),
@@ -112,6 +144,111 @@ class _CrmContactPageState extends State<CrmContactPage> {
           ],
         );
       },
+    ),
+  );
+}
+
+class _ContactEditPage extends StatefulWidget {
+  const _ContactEditPage({
+    required this.api,
+    required this.contact,
+    required this.scopeHeaders,
+  });
+
+  final ApiClient api;
+  final Json contact;
+  final Map<String, String> scopeHeaders;
+
+  @override
+  State<_ContactEditPage> createState() => _ContactEditPageState();
+}
+
+class _ContactEditPageState extends State<_ContactEditPage> {
+  static const _fields = {
+    'first_name': ('First name', 100),
+    'last_name': ('Last name', 100),
+    'company_name': ('Company', 180),
+    'job_title': ('Job title', 120),
+    'email': ('Email', 150),
+    'phone': ('Phone', 40),
+  };
+  final _form = GlobalKey<FormState>();
+  final _changes = <String, dynamic>{};
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _save() async {
+    if (_saving || _form.currentState?.validate() != true) return;
+    _changes.clear();
+    _form.currentState!.save();
+    if (_changes.isEmpty) {
+      Navigator.pop(context, false);
+      return;
+    }
+    if (_changes.containsKey('first_name') ||
+        _changes.containsKey('last_name')) {
+      final names = {...widget.contact, ..._changes};
+      _changes['full_name'] = [
+        names['first_name'],
+        names['last_name'],
+      ].whereType<String>().where((name) => name.isNotEmpty).join(' ');
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final revision = widget.api.sessionRevision;
+    try {
+      await widget.api.request(
+        'PATCH',
+        '${CrmContactPage.endpoint}/${widget.contact['id']}',
+        scopeHeaders: widget.scopeHeaders,
+        data: _changes,
+      );
+      if (mounted && revision == widget.api.sessionRevision) {
+        Navigator.pop(context, true);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Edit contact')),
+    body: Form(
+      key: _form,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            for (final field in _fields.entries)
+              TextFormField(
+                initialValue: widget.contact[field.key] as String?,
+                enabled: !_saving,
+                maxLength: field.value.$2,
+                decoration: InputDecoration(labelText: field.value.$1),
+                validator: (value) =>
+                    field.key == 'first_name' && (value ?? '').trim().isEmpty
+                    ? 'Enter a first name'
+                    : null,
+                onSaved: (value) {
+                  final text = value?.trim() ?? '';
+                  if (text != (widget.contact[field.key] as String? ?? '')) {
+                    _changes[field.key] = text.isEmpty ? null : text;
+                  }
+                },
+              ),
+            if (_error case final error?) Text(error),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Saving…' : 'Save changes'),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }

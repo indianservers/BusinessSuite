@@ -418,6 +418,19 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : controller.user?.permissions.any(permissions.contains) == true);
   }
 
+  bool _canEditContacts(Json access) {
+    if (!_allowed(access, 'crm') || widget.controller.offline) return false;
+    final user = widget.controller.user;
+    if (user?.isSuperuser == true) return true;
+    const permissions = {'crm_contacts_manage', 'crm_manage', 'crm_admin'};
+    if (access['managed'] != true) {
+      return user?.permissions.any(permissions.contains) == true;
+    }
+    final grant = (access['grants'] as Json?)?['crm'] as Json?;
+    return (grant?['actions'] as List?)?.contains('edit') == true &&
+        (grant?['permissions'] as List?)?.any(permissions.contains) == true;
+  }
+
   bool _canCreateOrder(Json access) => _canWriteSales(access, 'create');
 
   bool _canWriteSales(Json access, String action) {
@@ -482,6 +495,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : const {},
         cachePrefix: cache,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
+        canEditContacts: app.grant == 'crm' && _canEditContacts(access),
         canCreateOrder: app.title == 'Sales & POS' && _canCreateOrder(access),
         canEditWarehouses:
             app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
@@ -1291,6 +1305,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canEditOrders = false,
     this.canEditWarehouses = false,
     this.canCreateLead = false,
+    this.canEditContacts = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
@@ -1307,6 +1322,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canEditOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
+  final bool canEditContacts;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
@@ -1726,6 +1742,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (mounted && session == api.sessionRevision) _refresh();
   }
 
+  Future<void> _refreshContacts() async {
+    if (_cacheKey case final key?) {
+      try {
+        await SuiteReadCache.clearPages(key);
+      } catch (_) {}
+    }
+    if (mounted) _refresh();
+  }
+
   void _refresh() {
     _searchDebounce?.cancel();
     if (_searchOnServer && _serverSearch != _term) {
@@ -1823,6 +1848,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Contacts',
                   controller: widget.controller,
                   path: CrmContactPage.endpoint,
+                  canEditContacts: widget.canEditContacts,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2573,6 +2599,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
+                                            canEdit: widget.canEditContacts,
+                                            onSaved: _refreshContacts,
                                           )
                                         : widget.path == CrmLeadPage.endpoint
                                         ? CrmLeadPage(

@@ -8,6 +8,7 @@ import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
@@ -34,6 +35,58 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Contact edit submits only changed fields and refreshes', (
+    tester,
+  ) async {
+    final record = <String, dynamic>{
+      'id': 81,
+      'first_name': 'Asha',
+      'last_name': 'Rao',
+      'full_name': 'Asha Rao',
+      'job_title': 'Coordinator',
+    };
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/crm/contacts/81');
+          if (request.method == 'PATCH') {
+            writes.add(request);
+            record.addAll(request.data as Map<String, dynamic>);
+          }
+          return response(record);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmContactPage(
+          api: api,
+          summary: const {'id': 81},
+          offline: false,
+          canEdit: true,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit contact'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'First name'),
+      'Anya',
+    );
+    final save = find.text('Save changes');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(writes.single.headers['X-Suite-Organization'], '7');
+    expect(writes.single.data, {'first_name': 'Anya', 'full_name': 'Anya Rao'});
+    expect(find.text('Anya Rao'), findsOneWidget);
+    expect(find.text('Coordinator'), findsOneWidget);
+  });
+
   testWidgets('Warehouse edit preserves fields and submits a scoped update', (
     tester,
   ) async {
