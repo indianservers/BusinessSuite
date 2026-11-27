@@ -278,6 +278,9 @@ class _InventoryFinanceReportPageState
       final saved = await FilePicker.saveFile(
         fileName: 'inventory-srm-ledger.$format',
         bytes: bytes,
+        mimeType: format == 'pdf'
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
       if (mounted && saved != null && revision == api.sessionRevision) {
         ScaffoldMessenger.of(context).showSnackBar(

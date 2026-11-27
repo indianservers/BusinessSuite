@@ -6,6 +6,7 @@ import 'package:business_suite_mobile/features/finance_vouchers_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/inventory_finance_report_page.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,10 +14,37 @@ import 'package:sqflite/sqflite.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
+class _LedgerFilePicker extends FilePickerPlatform {
+  final files = <({String name, String mimeType, List<int> bytes})>[];
+
+  @override
+  Future<Uri?> saveFile({
+    required String fileName,
+    required Uint8List bytes,
+    required String mimeType,
+    String? dialogTitle,
+    String? initialDirectory,
+    Function(FilePickerStatus)? onFileSaving,
+    WindowsOptions windowsOptions = const WindowsOptions(),
+    LinuxOptions linuxOptions = const LinuxOptions(),
+    WebOptions webOptions = const WebOptions(),
+  }) async {
+    files.add((name: fileName, mimeType: mimeType, bytes: bytes));
+    return Uri.file('/exports/$fileName');
+  }
+}
+
 void main() {
   testWidgets('Stock Ledger pages and searches the shared inventory report', (
     tester,
   ) async {
+    final picker = _LedgerFilePicker();
+    final previous = FilePickerPlatform.instance;
+    FilePickerPlatform.instance = picker;
+    addTearDown(() => FilePickerPlatform.instance = previous);
+    const xlsx = [0x50, 0x4b, 3, 4, 5];
+    const pdf = '%PDF-1.7';
+    var rejectSpreadsheet = true;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -31,12 +59,15 @@ void main() {
           final movement = request.queryParameters['movement_id'];
           final format = request.queryParameters['export_format'];
           if (format != null) {
-            expect(format, 'xlsx');
+            expect(format, anyOf('xlsx', 'pdf'));
             expect(search, 'cable');
             expect(warehouse, '6');
             expect(request.queryParameters['start_date'], '2026-11-01');
             expect(request.responseType, ResponseType.bytes);
-            return ResponseBody.fromString('Not an export', 200);
+            if (format == 'pdf') return ResponseBody.fromString(pdf, 200);
+            return rejectSpreadsheet
+                ? ResponseBody.fromString('Not an export', 200)
+                : ResponseBody.fromBytes(xlsx, 200);
           }
           if (movement != null) {
             expect(movement, 81);
@@ -114,6 +145,21 @@ void main() {
       find.textContaining('The server did not return a spreadsheet.'),
       findsOneWidget,
     );
+    expect(picker.files, isEmpty);
+    rejectSpreadsheet = false;
+    for (final label in ['Export Excel', 'Export PDF']) {
+      await tester.tap(find.byTooltip('Export stock ledger'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+    expect(picker.files, hasLength(2));
+    expect(picker.files.first.name, 'inventory-srm-ledger.xlsx');
+    expect(picker.files.first.mimeType, endsWith('spreadsheetml.sheet'));
+    expect(picker.files.first.bytes, xlsx);
+    expect(picker.files.last.name, 'inventory-srm-ledger.pdf');
+    expect(picker.files.last.mimeType, 'application/pdf');
+    expect(picker.files.last.bytes, pdf.codeUnits);
     await tester.tap(find.byTooltip('View source movement'));
     await tester.pumpAndSettle();
     expect(find.text('Stock Movement'), findsOneWidget);
