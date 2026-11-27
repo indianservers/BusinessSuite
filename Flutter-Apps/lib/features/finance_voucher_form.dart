@@ -8,20 +8,32 @@ class FinanceVoucherForm extends StatefulWidget {
     super.key,
     required this.api,
     required this.headers,
+    this.draft,
   });
 
   final ApiClient api;
   final Map<String, String> headers;
+  final Json? draft;
 
   @override
   State<FinanceVoucherForm> createState() => _FinanceVoucherFormState();
 }
 
 class _Entry {
-  _Entry({this.credit = false});
+  _Entry({this.credit = false}) : original = const {};
 
+  _Entry.fromJson(this.original) {
+    ledger = original['ledger_id'] as int?;
+    final creditAmount = '${original['credit_amount'] ?? 0}';
+    credit = (num.tryParse(creditAmount) ?? 0) > 0;
+    amount = credit ? creditAmount : '${original['debit_amount'] ?? 0}';
+    costCenter = original['cost_center_id']?.toString() ?? '';
+    narration = original['narration'] as String? ?? '';
+  }
+
+  final Json original;
   int? ledger;
-  bool credit;
+  late bool credit;
   String amount = '';
   String costCenter = '';
   String narration = '';
@@ -30,13 +42,20 @@ class _Entry {
 class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
   static final _amountPattern = RegExp(r'^\d{1,12}(?:\.\d{1,2})?$');
   final _form = GlobalKey<FormState>();
-  final _lines = [_Entry(), _Entry(credit: true)];
+  late final _lines = widget.draft == null
+      ? [_Entry(), _Entry(credit: true)]
+      : (widget.draft!['lines'] as List)
+            .cast<Json>()
+            .map(_Entry.fromJson)
+            .toList();
   late final _revision = widget.api.sessionRevision;
   late var _options = _load();
-  DateTime _date = DateUtils.dateOnly(DateTime.now());
-  int? _type;
-  String _reference = '';
-  String _narration = '';
+  late DateTime _date =
+      DateTime.tryParse('${widget.draft?['voucher_date']}') ??
+      DateUtils.dateOnly(DateTime.now());
+  late int? _type = widget.draft?['voucher_type_id'] as int?;
+  late String _reference = widget.draft?['reference_number'] as String? ?? '';
+  late String _narration = widget.draft?['narration'] as String? ?? '';
   String? _error;
   bool _saving = false;
   bool _unconfirmed = false;
@@ -84,13 +103,23 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
       _error = null;
     });
     try {
+      final draft = widget.draft;
+      final date = _date.toIso8601String().split('T').first;
       final result = await widget.api.request(
-        'POST',
-        '/fam/vouchers',
+        draft == null ? 'POST' : 'PUT',
+        draft == null ? '/fam/vouchers' : '/fam/vouchers/${draft['id']}',
         scopeHeaders: widget.headers,
         data: {
           'voucher_type_id': _type,
-          'voucher_date': _date.toIso8601String().split('T').first,
+          'voucher_date': date,
+          if (draft != null) ...{
+            'branch_id': draft['branch_id'],
+            'reference_date': draft['reference_date'],
+            if (date == draft['voucher_date']) ...{
+              'financial_year_id': draft['financial_year_id'],
+              'accounting_period_id': draft['accounting_period_id'],
+            },
+          },
           if (_reference.isNotEmpty) 'reference_number': _reference,
           if (_narration.isNotEmpty) 'narration': _narration,
           'lines': [
@@ -99,6 +128,8 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                 'ledger_id': line.ledger,
                 'debit_amount': line.credit ? '0' : line.amount,
                 'credit_amount': line.credit ? line.amount : '0',
+                for (final key in ['branch_id', 'party_id', 'tax_component_id'])
+                  if (line.original[key] != null) key: line.original[key],
                 if (line.costCenter.isNotEmpty)
                   'cost_center_id': int.parse(line.costCenter),
                 if (line.narration.isNotEmpty) 'narration': line.narration,
@@ -131,7 +162,9 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
     required int? selected,
     required ValueChanged<int?> onChanged,
   }) => DropdownButtonFormField<int>(
-    initialValue: selected,
+    initialValue: options.any((option) => option['id'] == selected)
+        ? selected
+        : null,
     isExpanded: true,
     decoration: InputDecoration(labelText: label),
     items: [
@@ -162,7 +195,11 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_saving,
     child: Scaffold(
-      appBar: AppBar(title: const Text('New voucher')),
+      appBar: AppBar(
+        title: Text(
+          widget.draft == null ? 'New voucher' : 'Edit voucher draft',
+        ),
+      ),
       body: FutureBuilder(
         future: _options,
         builder: (context, snapshot) {
@@ -202,6 +239,7 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                     ),
                   ),
                   TextFormField(
+                    initialValue: _reference,
                     enabled: !_saving,
                     decoration: const InputDecoration(
                       labelText: 'Reference number',
@@ -209,6 +247,7 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                     onChanged: (value) => _reference = value.trim(),
                   ),
                   TextFormField(
+                    initialValue: _narration,
                     enabled: !_saving,
                     decoration: const InputDecoration(labelText: 'Narration'),
                     onChanged: (value) => _narration = value.trim(),
@@ -254,6 +293,7 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                             ),
                             TextFormField(
                               enabled: !_saving,
+                              initialValue: line.costCenter,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
                                 labelText: 'Cost center ${index + 1}',
@@ -270,6 +310,7 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                             ),
                             TextFormField(
                               enabled: !_saving,
+                              initialValue: line.narration,
                               decoration: InputDecoration(
                                 labelText: 'Line narration ${index + 1}',
                               ),

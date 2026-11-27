@@ -18,13 +18,14 @@ class FinanceVouchersPage extends StatefulWidget {
     this.canCancel = false,
     this.canReverse = false,
     this.canCreate = false,
+    this.canEdit = false,
   });
 
   final ApiClient api;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool offline;
-  final bool canPost, canCancel, canReverse, canCreate;
+  final bool canPost, canCancel, canReverse, canCreate, canEdit;
 
   @override
   State<FinanceVouchersPage> createState() => _FinanceVouchersPageState();
@@ -109,6 +110,55 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
     var detail = loadDetail(offline: offline);
     var busy = false;
     String? error;
+    Future<void> refresh(BuildContext context, StateSetter update) async {
+      if (widget.api.sessionRevision != revision) return;
+      if (widget.cacheScope case final String scope) {
+        final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+        for (final path in [_path, '$_path/$id']) {
+          final key = '$scope:$path:$branch';
+          try {
+            await flushCrmDetailWrite(key);
+            await SuiteReadCache.clear(key);
+          } catch (_) {}
+        }
+      }
+      if (!mounted || widget.api.sessionRevision != revision) return;
+      setState(() {
+        _register = _load(offline: false);
+      });
+      if (context.mounted) {
+        update(() {
+          detail = loadDetail(offline: false);
+        });
+      }
+    }
+
+    Future<void> edit(
+      BuildContext context,
+      StateSetter update,
+      Json draft,
+    ) async {
+      if (busy || widget.api.sessionRevision != revision) return;
+      update(() {
+        busy = true;
+        error = null;
+      });
+      try {
+        await Navigator.of(context).push<Json>(
+          MaterialPageRoute(
+            builder: (_) => FinanceVoucherForm(
+              api: widget.api,
+              headers: widget.scopeHeaders,
+              draft: draft,
+            ),
+          ),
+        );
+        if (context.mounted) await refresh(context, update);
+      } finally {
+        if (context.mounted) update(() => busy = false);
+      }
+    }
+
     Future<void> change(
       BuildContext context,
       StateSetter update,
@@ -183,27 +233,7 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
           data: cancelling ? {'reason': reason} : null,
           scopeHeaders: widget.scopeHeaders,
         );
-        if (widget.api.sessionRevision != revision) return;
-        if (widget.cacheScope case final String scope) {
-          final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
-          for (final path in [_path, '$_path/$id']) {
-            final key = '$scope:$path:$branch';
-            try {
-              await flushCrmDetailWrite(key);
-              await SuiteReadCache.clear(key);
-            } catch (_) {}
-          }
-        }
-        if (mounted) {
-          setState(() {
-            _register = _load(offline: false);
-          });
-        }
-        if (context.mounted) {
-          update(() {
-            detail = loadDetail(offline: false);
-          });
-        }
+        if (context.mounted) await refresh(context, update);
       } on ApiFailure catch (failure) {
         if (!context.mounted || widget.api.sessionRevision != revision) return;
         update(() {
@@ -283,6 +313,19 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
                                 'voucher_number': 'Voucher #$linked',
                               }, !result.live),
                         trailing: const Icon(LucideIcons.chevronRight),
+                      ),
+                    if (widget.canEdit &&
+                        result.live &&
+                        data['status'] == 'draft' &&
+                        data['voucher_type_id'] is int &&
+                        data['lines'] is List)
+                      ListTile(
+                        title: OutlinedButton(
+                          onPressed: busy
+                              ? null
+                              : () => edit(context, update, data),
+                          child: const Text('Edit draft'),
+                        ),
                       ),
                     if (widget.canPost &&
                         result.live &&

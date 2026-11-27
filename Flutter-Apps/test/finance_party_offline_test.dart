@@ -13,11 +13,16 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Finance creates a voucher draft with active ledger choices', (
+  testWidgets('Finance creates and edits a voucher draft with active ledgers', (
     tester,
   ) async {
     var created = false;
-    const voucher = {'id': 7, 'voucher_number': 'V-007', 'status': 'draft'};
+    var edited = false;
+    final voucher = <String, dynamic>{
+      'id': 7,
+      'voucher_number': 'V-007',
+      'status': 'draft',
+    };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -63,7 +68,22 @@ void main() {
                 ],
               });
               created = true;
+              voucher.addAll(request.data as Map<String, dynamic>);
+              voucher['branch_id'] = 6;
+              voucher['financial_year_id'] = 4;
+              voucher['accounting_period_id'] = 5;
+              (voucher['lines'][0] as Map<String, dynamic>)['party_id'] = 12;
               return response(voucher, 201);
+            case ('PUT', '/fam/vouchers/7'):
+              final payload = request.data as Map<String, dynamic>;
+              expect(payload['reference_number'], 'REF-7');
+              expect(payload['branch_id'], 6);
+              expect(payload['financial_year_id'], 4);
+              expect(payload['accounting_period_id'], 5);
+              expect(payload['lines'], voucher['lines']);
+              edited = true;
+              voucher.addAll(payload);
+              return response(voucher);
             case ('GET', '/fam/vouchers/7'):
               return response(voucher);
             default:
@@ -76,6 +96,7 @@ void main() {
         home: FinanceVouchersPage(
           api: api,
           canCreate: true,
+          canEdit: true,
           scopeHeaders: const {'X-Suite-Branch': '6'},
         ),
       ),
@@ -116,6 +137,15 @@ void main() {
     await tap(find.text('Save voucher draft'));
     expect(created, isTrue);
     expect(find.text('V-007'), findsOneWidget);
+    await tap(find.text('Edit draft'));
+    expect(find.text('Bank deposit'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reference number'),
+      'REF-7',
+    );
+    await tap(find.text('Save voucher draft'));
+    expect(edited, isTrue);
+    expect(find.text('REF-7'), findsOneWidget);
   });
 
   testWidgets('Finance confirms posting, reversal, and cancellation', (
