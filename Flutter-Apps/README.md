@@ -1,6 +1,12 @@
-# BusinessSuite mobile — KaryaFlow PMS
+# BusinessSuite mobile
 
-Latest build: `build/releases/KaryaFlow-PMS-0.2.1-arm64.apk`.
+The native Flutter launcher opens Appointments, Power Apps, AI HRMS,
+VyaparaCRM, KaryaFlow PMS, Sales & POS, and Finance & Accounting according to
+the signed-in user's grants. It uses the same backend and account as the web
+suite. Inventory and GST Billing are available from Sales & POS.
+
+The Android debug build is written to `build/app/outputs/flutter-apk/app-debug.apk`.
+The older PMS-only release is `build/releases/KaryaFlow-PMS-0.2.1-arm64.apk`.
 The [full PMS device audit](qa/full-pms/REPORT.md) is incomplete because the phone
 disconnected. It lists all 316 requested items, verified flows, remaining native
 UI/deployment/permission gaps, and the prepared super-admin guard patch.
@@ -31,16 +37,21 @@ and every request sends a unique `X-Request-ID`; error references are retained.
 - Workspace people, private invitation tokens, invitation acceptance/revocation,
   member role changes and removal using existing PMS APIs.
 
-No demo records, production credentials, separate database, or backend changes
-are included. HRMS attendance/leave are deferred: PMS is the first module as
-requested. Version 0.2 adds epics, components, releases, milestones, sprints,
+Version 0.2 added PMS epics, components, releases, milestones, sprints,
 risks, comments, checklists, subtasks, tags, time logs, saved filters, teams,
 documents, reports, approvals and commercial forms through existing endpoints.
 Native timer and chat screens support messages, replies and file attachments.
 File picking, downloads and sharing use native platform dialogs.
 Version 0.2.1 adds native board/list and month/week/day/agenda planner views.
-Gantt/roadmap/report endpoints still use structured data views;
-full web visualization parity, push, offline writes and SSO remain future work.
+Gantt, roadmap, and report endpoints still use structured data views.
+
+## Offline use
+
+The app caches scoped CRM, sales, inventory, GST Billing, and finance views
+locally. Supported offline writes include CRM lead drafts and edits, inventory
+product drafts, sales-order drafts, and eligible personal Notes changes.
+Pending writes use the shared backend when connectivity returns. Full web
+feature parity, push notifications, and SSO are still open.
 
 ## Toolchain
 
@@ -236,4 +247,31 @@ The ignored test configuration requires `API_BASE_URL`, `QA_ADMIN_EMAIL`,
 build the distributable APK. Evidence and remaining validation limits are in
 [qa/pms-v2/REPORT.md](qa/pms-v2/REPORT.md). Contract inventory is in
 [qa/pms-coverage.json](qa/pms-coverage.json).
+
+### Notes round trip on Android and web
+
+From the repository root, start the isolated Notes backend with a disposable
+database. Keep it running until both tests finish so Android can refresh after
+Playwright exits.
+
+```powershell
+./backend/venv/Scripts/python.exe ./backend/scripts/serve_notes_qa.py
+```
+
+From the repository's `frontend` directory, start Playwright with a unique run
+identifier. It starts the local web app and reuses the isolated backend.
+
+```powershell
+$env:NOTES_BROWSER_RUN = 'notes-roundtrip-001'
+./node_modules/.bin/playwright.cmd test --config playwright.notes.config.ts --grep 'opens a native Android note'
+```
+
+From `Flutter-Apps`, use the same run identifier and forward device port
+1559 with ADB. The Android test saves a note, waits for the browser to change
+its title, then checks that the changed title appears when Notes is reopened.
+
+```powershell
+adb -s YOUR_ADB_SERIAL reverse tcp:1559 tcp:1559
+./scripts/flutter.ps1 test integration_test/suite_offline_details_test.dart -d YOUR_ADB_SERIAL --plain-name 'Android Notes sees edits' --dart-define=ALLOW_INSECURE_HTTP=true --dart-define=NOTES_QA_API_URL=http://127.0.0.1:1559/api/v1 --dart-define=NOTES_BROWSER_RUN=notes-roundtrip-001
+```
 

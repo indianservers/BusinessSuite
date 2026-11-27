@@ -25,6 +25,95 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  const notesQaUrl = String.fromEnvironment('NOTES_QA_API_URL');
+  const browserRun = String.fromEnvironment('NOTES_BROWSER_RUN');
+  testWidgets('Android Notes sees edits from another authenticated session', (
+    tester,
+  ) async {
+    expect(Uri.parse(notesQaUrl).host, anyOf('127.0.0.1', '10.0.2.2'));
+    const path = '/project-management/notes';
+    final mobile = ApiClient(baseUrl: notesQaUrl, store: MemoryStore());
+    final other = ApiClient(baseUrl: notesQaUrl, store: MemoryStore());
+    for (final api in [mobile, other]) {
+      await api.acceptTokens(
+        await api.login('notes-admin@example.com', 'NotesQA@123'),
+      );
+    }
+    final title = browserRun.isEmpty
+        ? 'Android QA ${DateTime.now().microsecondsSinceEpoch}'
+        : 'Android browser QA $browserRun';
+    const body = 'Created from native Notes';
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: mobile)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New note'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), title);
+    await tester.enterText(find.widgetWithText(TextField, 'Note'), body);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('New note'),
+      findsOneWidget,
+      reason: 'The editor should close after saving.',
+    );
+    final results =
+        await other.request('GET', path, query: {'q': title}) as List;
+    expect(
+      results,
+      hasLength(1),
+      reason: 'The note should exist on the shared backend.',
+    );
+    final note = results.whereType<Json>().single;
+    final notePath = '$path/${note['id']}';
+    final created = await other.request('GET', notePath) as Json;
+    expect(created['content'], body);
+    if (browserRun.isNotEmpty) {
+      final expectedTitle = '$title edited on web';
+      final deadline = DateTime.now().add(const Duration(minutes: 3));
+      var webTitle = '';
+      while (DateTime.now().isBefore(deadline)) {
+        final current = await other.request('GET', notePath) as Json;
+        webTitle = current['title'] as String? ?? '';
+        if (webTitle == expectedTitle) break;
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(webTitle, expectedTitle);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(key: UniqueKey(), api: mobile),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, title);
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      expect(find.widgetWithText(ListTile, expectedTitle), findsOneWidget);
+      return;
+    }
+    const updatedBody = 'Updated in a second session';
+    await other.request(
+      'PUT',
+      notePath,
+      data: {
+        for (final key in [
+          'version',
+          'title',
+          'tags',
+          'project_id',
+          'folder_id',
+          'task_id',
+          'archived',
+          'pinned',
+          'favorite',
+        ])
+          key: created[key],
+        'content': updatedBody,
+      },
+    );
+    await tester.tap(find.byTooltip('Refresh notes'));
+    await tester.pumpAndSettle();
+    expect(find.text(updatedBody), findsOneWidget);
+  }, skip: notesQaUrl.isEmpty);
+
   testWidgets('Android Sales keeps products viewed in the picker offline', (
     tester,
   ) async {
@@ -306,19 +395,25 @@ void main() {
     tester,
   ) async {
     final scope = 'crm-pages-${DateTime.now().microsecondsSinceEpoch}';
-    await SuiteReadCache.writePage(scope, 2, [
-      {'id': 2, 'first_name': 'Older duplicate', 'version': 1},
-      {'id': 1, 'first_name': 'Saved from page two'},
+    final neighboringScope = '$scope:page;2';
+    await SuiteReadCache.write(neighboringScope, [
+      {'id': 99, 'first_name': 'Lead from a different scope'},
     ]);
     await SuiteReadCache.writePage(scope, 1, [
       {'id': 3, 'first_name': 'Newest lead'},
       {'id': 2, 'first_name': 'Current duplicate', 'version': 2},
+    ]);
+    await SuiteReadCache.writePage(scope, 2, [
+      {'id': 2, 'first_name': 'Older duplicate', 'version': 1},
+      {'id': 1, 'first_name': 'Saved from page two'},
     ]);
     final rows = await SuiteReadCache.readPages(scope);
     expect(rows?.map((row) => row['id']), [3, 2, 1]);
     expect(rows?[1]['version'], 2);
     await SuiteReadCache.clearPages(scope);
     expect(await SuiteReadCache.readPages(scope), isNull);
+    expect((await SuiteReadCache.read(neighboringScope))?.single['id'], 99);
+    await SuiteReadCache.clear(neighboringScope);
   });
 
   testWidgets(
@@ -341,6 +436,9 @@ void main() {
               },
             }),
             '/notifications/unread-count' => response({'unread': 0}),
+            '/access/launcher-preferences' => response({
+              'favorites': ['fam'],
+            }),
             '/fam/parties' => response({
               'items': [
                 {
@@ -385,6 +483,14 @@ void main() {
           findsOneWidget,
           reason: 'offline=$offline, requests=$requests',
         );
+        final favorites = find.text('Favorites (1)');
+        while (favorites.evaluate().isEmpty &&
+            DateTime.now().isBefore(deadline)) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(favorites, findsOneWidget, reason: 'offline=$offline');
+        await tester.tap(favorites);
+        await tester.pumpAndSettle();
         await tester.ensureVisible(finance);
         await tester.tap(finance);
         await tester.pumpAndSettle();
@@ -522,7 +628,12 @@ void main() {
           if (request.method == 'GET') {
             expectSync(request.path, '/project-management/notes');
             return response([
-              {'id': 10, 'title': 'Android offline note', 'preview': 'QA body'},
+              if (operations.length == 2)
+                {
+                  'id': 10,
+                  'title': 'Android offline note',
+                  'preview': 'QA body',
+                },
             ]);
           }
           expectSync(request.path, '/project-management/notes/offline-create');
@@ -584,8 +695,16 @@ void main() {
       await reopened.sync(api);
       expect(await reopened.creations(), hasLength(1));
       await tester.tap(find.byTooltip('Refresh notes'));
-      await waitFor(find.text('QA body'));
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      final pendingBadge = find.text('Saved · Awaiting sync');
+      while (((await reopened.creations()).isNotEmpty ||
+              pendingBadge.evaluate().isNotEmpty) &&
+          DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(await reopened.creations(), isEmpty);
+      await waitFor(find.text('QA body'));
+      expect(pendingBadge, findsNothing);
       expect(operations, hasLength(2));
       expect(operations.first, isNotNull);
       expect(operations.first, operations.last);

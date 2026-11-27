@@ -13,6 +13,33 @@ async function create(page:Page,headers:Record<string,string>,title:string,extra
 async function open(page:Page,id:number){await page.goto(`/pms/notes?note=${id}`);await expect(page.getByRole("textbox",{name:"Note content",exact:true})).toBeVisible();}
 async function saved(page:Page,id:number,title?:string){await expect.poll(async()=>{const raw=await page.evaluate(()=>JSON.parse(sessionStorage.getItem("hrms-auth")!).state.accessToken);const data=await(await page.request.get(base+`/notes/${id}`,{headers:{Authorization:`Bearer ${raw}`}})).json();return title?data.title:data.content;}).toContain(title||"suite-richtext");}
 
+test("opens a native Android note and edits its title in the browser", async ({ page }) => {
+  const run = process.env.NOTES_BROWSER_RUN;
+  test.skip(!run, "Requires a matching Android Notes integration run");
+  test.setTimeout(480_000);
+  const headers = await login(page);
+  const title = `Android browser QA ${run}`;
+  let noteId: number | undefined;
+  await expect.poll(async () => {
+    const response = await page.request.get(base + "/notes", { headers, params: { q: title } });
+    if (!response.ok()) return undefined;
+    const notes = await response.json() as Array<{ id: number; title: string }>;
+    noteId = notes.find(note => note.title === title)?.id;
+    return noteId;
+  }, { timeout: 420_000, intervals: [1000, 2000] }).toBeDefined();
+  // This flow verifies the saved record after refresh. Use polling to avoid
+  // the Windows development proxy's WebSocket disconnect race.
+  await page.route("**/api/v1/project-management/realtime/config", route =>
+    route.fulfill({ json: { transport: "database", pollIntervalMs: 3000 } }),
+  );
+  await open(page, noteId!);
+  await expect(page.getByRole("textbox", { name: "Note content", exact: true }))
+    .toContainText("Created from native Notes");
+  const edited = title + " edited on web";
+  await page.getByRole("textbox", { name: "Note title", exact: true }).fill(edited);
+  await saved(page, noteId!, edited);
+});
+
 test("three-panel workspace loads real projects, tasks and legacy notes",async({page},info)=>{
   await page.setViewportSize({width:1680,height:1050});const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));await login(page);await page.goto("/pms/notes?note=1");
   await expect(page.getByRole("textbox",{name:"Note title",exact:true})).toHaveValue("API Documentation");
