@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
@@ -31,6 +33,53 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android shows a saved CRM contact while refresh is pending', (
+    tester,
+  ) async {
+    const path = '/crm/contacts/33';
+    final scope = 'crm-cache-first-${DateTime.now().microsecondsSinceEpoch}';
+    await SuiteReadCache.write('$scope:$path:', [
+      {'full_name': 'Saved contact from SQLite'},
+    ]);
+    final responseReady = Completer<void>();
+    addTearDown(() {
+      if (!responseReady.isCompleted) responseReady.complete();
+    });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, path);
+          await responseReady.future;
+          return response({'id': 33, 'full_name': 'Live contact from API'});
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmContactPage(
+          api: api,
+          summary: const {'id': 33, 'full_name': 'List summary'},
+          offline: false,
+          scopeHeaders: const {},
+          cacheScope: scope,
+          canEdit: true,
+        ),
+      ),
+    );
+    final saved = find.text('Saved contact from SQLite');
+    final deadline = DateTime.now().add(const Duration(seconds: 15));
+    while (saved.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(saved, findsOneWidget);
+    expect(find.text('Edit contact'), findsNothing);
+    responseReady.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Live contact from API'), findsOneWidget);
+    expect(find.text('Edit contact'), findsOneWidget);
+  });
 
   testWidgets('Android saves and syncs a CRM task status from offline', (
     tester,
@@ -139,6 +188,7 @@ void main() {
     );
     await waitFor(find.text('Done'));
     expect(find.text('Waiting to sync'), findsNothing);
+    expect(requests, hasLength(1));
   });
 
   testWidgets(

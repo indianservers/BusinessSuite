@@ -59,7 +59,7 @@ void main() {
       await queue.enqueueTaskStatus(21, 'Done', '2026-11-27T09:00:00Z', '');
       final rejected = queue.taskUpdates(21).first;
       await queue.sync(api);
-      expect(await rejected, isFalse);
+      expect((await rejected).synced, isFalse);
       expect(
         (await queue.pendingTask(21))?['error'],
         contains('This task changed'),
@@ -97,7 +97,9 @@ void main() {
       final reopened = CrmOfflineEdits(scope);
       final confirmed = reopened.taskUpdates(21).first;
       await reopened.sync(api);
-      expect(await confirmed, isTrue);
+      final result = await confirmed;
+      expect(result.synced, isTrue);
+      expect(result.record?['status'], 'Done');
       expect(await reopened.pendingTask(21), isNull);
       expect(requests, hasLength(2));
       final receipt = requests.first.headers['X-Offline-Operation'];

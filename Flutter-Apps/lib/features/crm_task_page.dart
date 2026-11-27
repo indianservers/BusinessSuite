@@ -43,7 +43,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   bool _saving = false;
   String? _error;
   Json? _pending;
-  StreamSubscription<bool>? _taskUpdates;
+  StreamSubscription<({bool synced, Json? record})>? _taskUpdates;
   bool _readingPending = true;
   late final CrmOfflineEdits? _queue = widget.cacheScope == null
       ? null
@@ -59,6 +59,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
     'Cancelled',
   ];
   Json? _cachedDetails;
+  Json? _displayedDetails;
   late Future<({Json? record, bool live})> _task = _load(
     offline: widget.offline,
   );
@@ -94,14 +95,26 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   void initState() {
     super.initState();
     _readPending();
-    _taskUpdates = _queue?.taskUpdates(_id).listen((synced) {
+    _taskUpdates = _queue?.taskUpdates(_id).listen((result) async {
       if (!mounted || _saving) return;
-      if (synced) {
-        widget.onChanged?.call();
-        _refresh();
-      } else {
-        _readPending();
+      if (!result.synced) {
+        await _readPending();
+        return;
       }
+      final confirmed = result.record;
+      if (confirmed == null) {
+        _refresh();
+        return;
+      }
+      setState(() {
+        _pending = null;
+        _error = null;
+        _task = Future.value((
+          record: {...widget.summary, ...?_displayedDetails, ...confirmed},
+          live: true,
+        ));
+      });
+      widget.onChanged?.call();
     });
   }
 
@@ -205,6 +218,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
       future: _task,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          _displayedDetails = null;
           return Center(
             child: TextButton(
               onPressed: _refresh,
@@ -213,6 +227,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
           );
         }
         final data = snapshot.data?.record ?? _cachedDetails ?? widget.summary;
+        _displayedDetails = data;
         final live = snapshot.data?.live == true;
         return ListView(
           padding: const EdgeInsets.all(16),

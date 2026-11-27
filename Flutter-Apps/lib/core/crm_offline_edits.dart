@@ -36,11 +36,14 @@ class CrmOfflineEdits {
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
   static final _taskUpdates =
-      StreamController<({String key, int id, bool synced})>.broadcast();
+      StreamController<
+        ({String key, int id, ({bool synced, Json? record}) result})
+      >.broadcast();
 
-  Stream<bool> taskUpdates(int id) => _taskUpdates.stream
+  Stream<({bool synced, Json? record})> taskUpdates(int id) => _taskUpdates
+      .stream
       .where((update) => update.key == _key && update.id == id)
-      .map((update) => update.synced);
+      .map((update) => update.result);
 
   Future<Json> _read() async {
     final raw = await _storage.read(key: _key);
@@ -205,7 +208,7 @@ class CrmOfflineEdits {
           _taskUpdates.add((
             key: _key,
             id: taskId,
-            synced: !rows.containsKey(id),
+            result: (synced: !rows.containsKey(id), record: confirmedTask),
           ));
         }
         if (creating &&
