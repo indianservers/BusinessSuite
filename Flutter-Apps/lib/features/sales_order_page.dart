@@ -107,11 +107,23 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     final revision = widget.api.sessionRevision;
     if (key != null) {
       try {
-        final rows = await SuiteReadCache.read(key);
+        final snapshot = await SuiteReadCache.snapshot(key);
         if (mounted &&
             revision == widget.api.sessionRevision &&
-            rows?.length == 1) {
-          setState(() => _saved = rows!.single);
+            snapshot != null &&
+            snapshot.rows.length == 1) {
+          final saved = snapshot.rows.single;
+          setState(() => _saved = saved);
+          if (!reconnect &&
+              !_offline &&
+              !widget.canEdit &&
+              widget.invoiceBuilder == null &&
+              !snapshot.invalidated) {
+            final age = DateTime.now().difference(snapshot.savedAt);
+            if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
+              return saved;
+            }
+          }
         }
       } catch (_) {
         // Cached detail is optional when local storage is unavailable.

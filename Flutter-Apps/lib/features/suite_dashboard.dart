@@ -33,8 +33,6 @@ import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 
-const _snapshotReuseWindow = Duration(seconds: 15);
-
 typedef _App = ({
   String key,
   String grant,
@@ -1450,7 +1448,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
               !age.isNegative &&
-              age < _snapshotReuseWindow) {
+              age < SuiteReadCache.reuseWindow) {
             return cached.rows;
           }
         }
@@ -2493,7 +2491,9 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               snapshot != null &&
               !snapshot.invalidated) {
             final age = DateTime.now().difference(snapshot.savedAt);
-            if (!age.isNegative && age < _snapshotReuseWindow) return saved;
+            if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
+              return saved;
+            }
           }
         }
       } catch (_) {

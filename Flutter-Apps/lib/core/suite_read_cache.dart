@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'models.dart';
 
 class SuiteReadCache {
+  static const reuseWindow = Duration(seconds: 15);
   static Future<Database>? _opening;
 
   static Future<Database> _open() => _opening ??= _create();
