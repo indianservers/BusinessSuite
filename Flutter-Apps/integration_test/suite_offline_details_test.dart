@@ -24,6 +24,7 @@ import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
+import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
@@ -36,6 +37,71 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets(
+    'Android GST retries a saved invoice draft with its original request ID',
+    (tester) async {
+      const base = 'https://example.test/api/v1';
+      final id = DateTime.now().microsecondsSinceEpoch;
+      final drafts = SalesOrderDrafts.gstInvoices('["$base",$id,7]');
+      const branch = {'X-Suite-Branch': '6'};
+      const operation = 'android-gst-draft';
+      const payload = {
+        'customer_id': 5,
+        'lines': [
+          {'description': 'Saved GST test item', 'quantity': '2'},
+        ],
+      };
+      await drafts.save(
+        operation,
+        payload,
+        scopeHeaders: branch,
+        customerName: 'Android QA customer',
+      );
+      final attempts = <RequestOptions>[];
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            attempts.add(request);
+            expect(request.path, '/srm/invoices/manual');
+            expect(request.method, 'POST');
+            expect(request.headers['X-Suite-Organization'], '7');
+            expect(request.headers['X-Suite-Branch'], '6');
+            expect(request.data, {...payload, 'request_id': operation});
+            if (attempts.length == 1) {
+              throw DioException(
+                requestOptions: request,
+                type: DioExceptionType.connectionError,
+              );
+            }
+            return response({'id': 24, 'status': 'draft'}, 201);
+          }),
+      );
+      await api.acceptTokens({
+        'access_token': 'device-qa',
+        'refresh_token': 'device-qa',
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SalesOrderDraftsPage(api: api, drafts: drafts),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Awaiting sync'), findsOneWidget);
+      await tester.tap(find.text('Sync GST drafts').hitTestable());
+      await tester.pumpAndSettle();
+      expect(attempts, hasLength(1));
+      expect((await drafts.entries()).single['operation'], operation);
+      await tester.tap(find.text('Sync GST drafts').hitTestable());
+      await tester.pumpAndSettle();
+      expect(attempts, hasLength(2));
+      expect(find.text('No saved GST drafts'), findsOneWidget);
+      expect(await drafts.entries(), isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('Android creates and syncs a purchase draft from saved choices', (
     tester,
