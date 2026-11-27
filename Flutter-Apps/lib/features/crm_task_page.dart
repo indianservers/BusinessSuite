@@ -122,7 +122,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   Future<void> _discardRejected() async {
     try {
       await _queue?.discardTask(_id);
-      await _readPending();
+      if (mounted) _refresh();
     } catch (_) {
       if (mounted) {
         setState(() => _error = 'Could not clear the rejected change.');

@@ -38,6 +38,40 @@ import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   test(
+    'A rejected queued task stays available for review without retrying',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      const base = 'https://example.test/api/v1';
+      final queue = CrmOfflineEdits('["$base",4,7]');
+      var sends = 0;
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            sends++;
+            return response({
+              'detail': 'This task changed on the server.',
+            }, 409);
+          }),
+      );
+      await api.acceptTokens({'access_token': 'test', 'refresh_token': 'test'});
+      await queue.enqueueTaskStatus(21, 'Done', '2026-11-27T09:00:00Z', '');
+      final rejected = queue.taskUpdates(21).first;
+      await queue.sync(api);
+      expect(await rejected, isFalse);
+      expect(
+        (await queue.pendingTask(21))?['error'],
+        contains('This task changed'),
+      );
+      await queue.sync(api);
+      expect(sends, 1);
+      await queue.discardTask(21);
+      expect(await queue.pendingTask(21), isNull);
+    },
+  );
+
+  test(
     'Queued task status retries with its original receipt and version',
     () async {
       FlutterSecureStorage.setMockInitialValues({});
