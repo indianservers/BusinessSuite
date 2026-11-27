@@ -529,7 +529,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,
-        rosterCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
+        employeeCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
         canCreateTimesheets: canCreateTimesheets,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
         canCreateContacts:
@@ -1419,7 +1419,7 @@ class _SuiteRecords extends StatefulWidget {
     this.query = const {},
     this.scopeHeaders = const {},
     this.cachePrefix,
-    this.rosterCacheScope,
+    this.employeeCacheScope,
     this.canCreateTimesheets = false,
     this.showInventory = false,
     this.canViewFinanceInventory = false,
@@ -1451,7 +1451,7 @@ class _SuiteRecords extends StatefulWidget {
   final Map<String, dynamic> query;
   final Map<String, String> scopeHeaders;
   final String? cachePrefix;
-  final String? rosterCacheScope;
+  final String? employeeCacheScope;
   final bool canCreateTimesheets;
   final bool showInventory;
   final bool canViewFinanceInventory;
@@ -2096,7 +2096,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         MyRosterPage(
           api: api,
           employeeId: employee,
-          cacheScope: widget.rosterCacheScope,
+          cacheScope: widget.employeeCacheScope,
           offline: _offlineOnly,
         ),
       ),
@@ -2108,6 +2108,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           api: api,
           employeeId: employee,
           canCreate: widget.canCreateTimesheets,
+          cacheScope: widget.employeeCacheScope,
+          offline: _offlineOnly,
         ),
       ),
     ];

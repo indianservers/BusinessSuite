@@ -1,13 +1,111 @@
+import 'dart:convert';
+
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/features/my_timesheets_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Saved timesheets open without API requests or edit actions', (
+    tester,
+  ) async {
+    const scope = '["https://example.test/api/v1",5,7]';
+    const sqlite = MethodChannel('com.tekartik.sqflite');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    databaseFactory = databaseFactorySqflitePlugin;
+    final reads = <String>[];
+    messenger.setMockMethodCallHandler(sqlite, (call) async {
+      switch (call.method) {
+        case 'getDatabasesPath':
+          return '/test';
+        case 'openDatabase':
+          return {'id': 1};
+        case 'query':
+          final args = call.arguments as Map;
+          final sql = args['sql'] as String;
+          if (sql.toUpperCase().contains('USER_VERSION')) {
+            return [
+              {'user_version': 3},
+            ];
+          }
+          final key = (args['arguments'] as List).first as String;
+          reads.add(key);
+          return [
+            {
+              'saved_at': DateTime.now().millisecondsSinceEpoch,
+              'rows': jsonEncode([
+                {
+                  'projects': [
+                    {'id': 2, 'name': 'Warehouse rollout'},
+                  ],
+                  'sheets': [
+                    {
+                      'id': 12,
+                      'project_id': 2,
+                      'period_start': '2026-11-23',
+                      'period_end': '2026-11-29',
+                      'status': 'Draft',
+                      'total_hours': '8',
+                      'entries': [
+                        {
+                          'task_name': 'Counted inventory',
+                          'work_date': '2026-11-27',
+                          'is_billable': true,
+                          'hours': '8',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ]),
+            },
+          ];
+        case 'execute':
+          return null;
+        default:
+          fail('Unexpected SQLite method: ${call.method}');
+      }
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(sqlite, null);
+      databaseFactory = null;
+    });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((_) async {
+          fail('Offline timesheets should read SQLite without an API request');
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyTimesheetsPage(
+          api: api,
+          employeeId: 27,
+          canCreate: true,
+          cacheScope: scope,
+          offline: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reads, ['$scope:my-timesheets:27']);
+    expect(find.text('Saved timesheets'), findsOneWidget);
+    await tester.tap(find.text('Warehouse rollout'));
+    await tester.pumpAndSettle();
+    expect(find.text('Counted inventory'), findsOneWidget);
+    expect(find.text('New timesheet'), findsNothing);
+    expect(find.text('Add entry'), findsNothing);
+    expect(find.text('Submit'), findsNothing);
+  });
+
   testWidgets('Employee creates a timesheet, logs work, and submits it', (
     tester,
   ) async {

@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class MyTimesheetsPage extends StatefulWidget {
   const MyTimesheetsPage({
@@ -10,43 +11,120 @@ class MyTimesheetsPage extends StatefulWidget {
     required this.api,
     required this.employeeId,
     required this.canCreate,
+    this.cacheScope,
+    this.offline = false,
   });
 
   final ApiClient api;
   final int? employeeId;
   final bool canCreate;
+  final String? cacheScope;
+  final bool offline;
 
   @override
   State<MyTimesheetsPage> createState() => _MyTimesheetsPageState();
 }
 
 class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
-  late var _data = _load();
+  late var _data = _load(offline: widget.offline);
   bool _busy = false;
   int? _selected;
 
   String _date(DateTime value) => value.toIso8601String().split('T').first;
 
-  Future<({List<Json> projects, List<Json> sheets})> _load() async {
+  Future<({List<Json> projects, List<Json> sheets, bool saved})> _load({
+    bool offline = false,
+  }) async {
     final api = widget.api;
     final revision = api.sessionRevision;
     final employee = widget.employeeId;
-    if (employee == null) return (projects: <Json>[], sheets: <Json>[]);
-    final results = await Future.wait([
-      api.request('GET', '/timesheets/projects'),
-      api.request('GET', '/timesheets/', query: {'employee_id': employee}),
-    ]);
-    if (revision != api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
+    if (employee == null) {
+      return (projects: <Json>[], sheets: <Json>[], saved: false);
+    }
+    final key = widget.cacheScope == null
+        ? null
+        : '${widget.cacheScope}:my-timesheets:$employee';
+    void checkSession() {
+      if (revision != api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+    }
+
+    if (!offline) {
+      try {
+        final results = await Future.wait([
+          api.request('GET', '/timesheets/projects'),
+          api.request('GET', '/timesheets/', query: {'employee_id': employee}),
+        ]);
+        checkSession();
+        final projects = (results[0] as List).cast<Json>();
+        final sheets = (results[1] as List)
+            .cast<Json>()
+            .where((sheet) => sheet['employee_id'] == employee)
+            .toList();
+        if (key != null) {
+          final usedProjects = sheets
+              .map((sheet) => sheet['project_id'])
+              .toSet();
+          try {
+            await SuiteReadCache.write(key, [
+              {
+                'projects': [
+                  for (final project in projects)
+                    if (usedProjects.contains(project['id']))
+                      {'id': project['id'], 'name': project['name']},
+                ],
+                'sheets': [for (final sheet in sheets) _savedSheet(sheet)],
+              },
+            ]);
+          } catch (_) {}
+        }
+        checkSession();
+        return (projects: projects, sheets: sheets, saved: false);
+      } on ApiFailure catch (error) {
+        if (key != null && const {401, 403, 404}.contains(error.status)) {
+          try {
+            await SuiteReadCache.clear(key);
+          } catch (_) {}
+        }
+        if (!error.connectionFailure && (error.status ?? 0) < 500) rethrow;
+      }
+    }
+    Json? cached;
+    if (key != null) {
+      try {
+        cached = (await SuiteReadCache.read(key))?.firstOrNull;
+      } catch (_) {}
+    }
+    checkSession();
+    if (cached == null) {
+      throw ApiFailure('Connect to load your timesheets.');
     }
     return (
-      projects: (results[0] as List).cast<Json>(),
-      sheets: (results[1] as List)
-          .cast<Json>()
-          .where((sheet) => sheet['employee_id'] == employee)
-          .toList(),
+      projects: (cached['projects'] as List).cast<Json>(),
+      sheets: (cached['sheets'] as List).cast<Json>(),
+      saved: true,
     );
   }
+
+  Json _savedSheet(Json sheet) => {
+    for (final key in [
+      'id',
+      'project_id',
+      'period_start',
+      'period_end',
+      'status',
+      'total_hours',
+    ])
+      key: sheet[key],
+    'entries': [
+      for (final entry in (sheet['entries'] as List? ?? const []).cast<Json>())
+        {
+          for (final key in ['task_name', 'work_date', 'is_billable', 'hours'])
+            key: entry[key],
+        },
+    ],
+  };
 
   Future<void> _save(String method, String path, {Json? data}) async {
     final api = widget.api;
@@ -236,7 +314,11 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
     await _save('POST', '/timesheets/${sheet['id']}/entries', data: data);
   }
 
-  Widget _sheet(Json sheet, Map<Object?, Object?> names) {
+  Widget _sheet(
+    Json sheet,
+    Map<Object?, Object?> names, {
+    required bool canEdit,
+  }) {
     final entries = (sheet['entries'] as List? ?? const []).cast<Json>();
     final draft = sheet['status'] == 'Draft';
     final project = sheet['project_id'];
@@ -257,7 +339,7 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
               ),
               trailing: Text('${entry['hours']} h'),
             ),
-          if (draft && widget.canCreate)
+          if (draft && canEdit)
             Wrap(
               spacing: 8,
               children: [
@@ -306,6 +388,7 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
                 return Center(child: Text('${snapshot.error}'));
               }
               final data = snapshot.requireData;
+              final canEdit = widget.canCreate && !data.saved;
               final names = {
                 for (final project in data.projects)
                   project['id']: project['name'],
@@ -316,7 +399,9 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
               return ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
-                  if (widget.canCreate)
+                  if (data.saved)
+                    const ListTile(title: Text('Saved timesheets')),
+                  if (canEdit)
                     FilledButton.icon(
                       icon: const Icon(LucideIcons.plus),
                       onPressed: _busy || active.isEmpty
@@ -324,13 +409,14 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
                           : () => _create(active),
                       label: const Text('New timesheet'),
                     ),
-                  if (widget.canCreate && active.isEmpty)
+                  if (canEdit && active.isEmpty)
                     const ListTile(
                       title: Text('No active projects available.'),
                     ),
                   if (data.sheets.isEmpty)
                     const ListTile(title: Text('No timesheets yet.')),
-                  for (final sheet in data.sheets) _sheet(sheet, names),
+                  for (final sheet in data.sheets)
+                    _sheet(sheet, names, canEdit: canEdit),
                 ],
               );
             },
