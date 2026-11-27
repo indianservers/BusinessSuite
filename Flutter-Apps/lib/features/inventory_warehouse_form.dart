@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/models.dart';
 
 class InventoryWarehouseForm extends StatefulWidget {
   const InventoryWarehouseForm({
     super.key,
     required this.api,
     required this.scopeHeaders,
+    this.warehouse,
   });
 
   static const endpoint = '/srm/inventory/warehouses';
   final ApiClient api;
   final Map<String, String> scopeHeaders;
+  final Json? warehouse;
 
   @override
   State<InventoryWarehouseForm> createState() => _InventoryWarehouseFormState();
@@ -34,6 +37,8 @@ class _InventoryWarehouseFormState extends State<InventoryWarehouseForm> {
   bool _saving = false;
   String? _error;
 
+  int? get _warehouseId => widget.warehouse?['id'] as int?;
+
   Future<void> _save() async {
     if (_saving || _form.currentState?.validate() != true) return;
     _form.currentState!.save();
@@ -44,8 +49,10 @@ class _InventoryWarehouseFormState extends State<InventoryWarehouseForm> {
     });
     try {
       await widget.api.request(
-        'POST',
-        InventoryWarehouseForm.endpoint,
+        _warehouseId == null ? 'POST' : 'PUT',
+        _warehouseId == null
+            ? InventoryWarehouseForm.endpoint
+            : '${InventoryWarehouseForm.endpoint}/$_warehouseId',
         scopeHeaders: widget.scopeHeaders,
         data: _values,
       );
@@ -61,7 +68,9 @@ class _InventoryWarehouseFormState extends State<InventoryWarehouseForm> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New warehouse')),
+    appBar: AppBar(
+      title: Text(_warehouseId == null ? 'New warehouse' : 'Edit warehouse'),
+    ),
     body: Form(
       key: _form,
       child: ListView(
@@ -71,6 +80,7 @@ class _InventoryWarehouseFormState extends State<InventoryWarehouseForm> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: TextFormField(
+                initialValue: widget.warehouse?[field.key]?.toString(),
                 enabled: !_saving,
                 decoration: InputDecoration(
                   labelText: field.label,
@@ -95,7 +105,13 @@ class _InventoryWarehouseFormState extends State<InventoryWarehouseForm> {
           if (_error case final error?) Text(error),
           FilledButton(
             onPressed: _saving ? null : _save,
-            child: Text(_saving ? 'Saving…' : 'Create warehouse'),
+            child: Text(
+              _saving
+                  ? 'Saving…'
+                  : _warehouseId == null
+                  ? 'Create warehouse'
+                  : 'Save changes',
+            ),
           ),
         ],
       ),

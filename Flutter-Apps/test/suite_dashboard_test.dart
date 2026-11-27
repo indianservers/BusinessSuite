@@ -34,6 +34,54 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Warehouse edit preserves fields and submits a scoped update', (
+    tester,
+  ) async {
+    final requests = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          return response({'id': 4});
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryWarehouseForm(
+          api: api,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+          warehouse: const {
+            'id': 4,
+            'warehouse_code': 'MAIN',
+            'warehouse_name': 'Main warehouse',
+            'branch': 'Main branch',
+            'address': 'Existing address',
+          },
+        ),
+      ),
+    );
+    expect(find.text('Main warehouse'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Warehouse name'),
+      'Central warehouse',
+    );
+    final save = find.text('Save changes');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(requests.single.method, 'PUT');
+    expect(requests.single.path, '/srm/inventory/warehouses/4');
+    expect(requests.single.headers['X-Suite-Organization'], '7');
+    expect(requests.single.data, {
+      'warehouse_code': 'MAIN',
+      'warehouse_name': 'Central warehouse',
+      'branch': 'Main branch',
+      'address': 'Existing address',
+    });
+  });
+
   testWidgets('Warehouse creation posts to scoped inventory API', (
     tester,
   ) async {

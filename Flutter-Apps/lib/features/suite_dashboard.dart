@@ -417,15 +417,19 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : controller.user?.permissions.any(permissions.contains) == true);
   }
 
-  bool _canCreateOrder(Json access) {
+  bool _canCreateOrder(Json access) => _canWriteSales(access, 'create');
+
+  bool _canWriteSales(Json access, String action) {
     if (!_allowed(access, 'srm')) return false;
     final controller = widget.controller;
-    if (controller.offline) return access['canCreateOrder'] == true;
+    if (controller.offline) {
+      return action == 'create' && access['canCreateOrder'] == true;
+    }
     final grant = (access['grants'] as Json?)?['srm'] as Json?;
     const permissions = {'srm_manage', 'srm_admin'};
     return controller.user?.isSuperuser == true ||
         (access['managed'] == true
-            ? (grant?['actions'] as List?)?.contains('create') == true &&
+            ? (grant?['actions'] as List?)?.contains(action) == true &&
                   (grant?['permissions'] as List?)?.any(permissions.contains) ==
                       true
             : controller.user?.permissions.any(permissions.contains) == true);
@@ -478,6 +482,8 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         cachePrefix: cache,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
         canCreateOrder: app.title == 'Sales & POS' && _canCreateOrder(access),
+        canEditWarehouses:
+            app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
         canCreateOrderInvoices:
@@ -1282,6 +1288,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canExportInvoices = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
+    this.canEditWarehouses = false,
     this.canCreateLead = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
@@ -1297,6 +1304,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canExportInvoices;
   final bool canIssueInvoices;
   final bool canEditOrders;
+  final bool canEditWarehouses;
   final bool canCreateLead;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
@@ -1636,6 +1644,29 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     return records;
   }
 
+  Future<void> _openWarehouseForm([Json? warehouse]) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => InventoryWarehouseForm(
+          api: widget.controller.api,
+          scopeHeaders: widget.scopeHeaders,
+          warehouse: warehouse,
+        ),
+      ),
+    );
+    if (!mounted || changed != true) return;
+    _refresh();
+    if (widget.cachePrefix case final scope?) {
+      final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+      try {
+        await SuiteReadCache.clear('$scope:$_warehousesPath:$branch');
+        await SuiteReadCache.invalidate('$scope:$_warehouseStockPath');
+      } catch (_) {
+        // The warehouse list can refresh directly from the API.
+      }
+    }
+  }
+
   Future<void> _refreshStockLists() async {
     final scope = widget.cachePrefix;
     final api = widget.controller.api;
@@ -1826,6 +1857,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   canCreateOrder: widget.canCreateOrder,
+                  canEditWarehouses: widget.canEditWarehouses,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
                 ),
               ),
@@ -1854,17 +1886,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           IconButton(
             tooltip: 'New warehouse',
             icon: const Icon(LucideIcons.plus),
-            onPressed: () async {
-              final created = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => InventoryWarehouseForm(
-                    api: widget.controller.api,
-                    scopeHeaders: widget.scopeHeaders,
-                  ),
-                ),
-              );
-              if (mounted && created == true) _refresh();
-            },
+            onPressed: _openWarehouseForm,
           ),
         if (_warehouses)
           IconButton(
@@ -1936,6 +1958,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   canCreateOrder: widget.canCreateOrder,
+                  canEditWarehouses: widget.canEditWarehouses,
                   offlineOnly: _offlineOnly,
                 ),
               ),
@@ -2276,6 +2299,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        if (_warehouses) {
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            trailing:
+                                widget.canEditWarehouses &&
+                                    !_offlineOnly &&
+                                    !_usedSavedFallback &&
+                                    item['id'] is int
+                                ? IconButton(
+                                    tooltip: 'Edit $label',
+                                    icon: const Icon(LucideIcons.pencil),
+                                    onPressed: () => _openWarehouseForm(item),
+                                  )
+                                : null,
+                          );
+                        }
                         if (_warehouseStock) {
                           final currency = item['currency'] ?? '';
                           return ListTile(
