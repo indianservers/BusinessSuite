@@ -2088,7 +2088,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final api = widget.controller.api;
     final employee = widget.controller.user?.employeeId;
     final services = <(String, IconData, Widget)>[
-      ('My Attendance', LucideIcons.clock, MyAttendancePage(api: api)),
+      (
+        'My Attendance',
+        LucideIcons.clock,
+        MyAttendancePage(
+          api: api,
+          cacheScope: widget.employeeCacheScope,
+          offline: _offlineOnly,
+        ),
+      ),
       ('My Leave', LucideIcons.calendarDays, MyLeavePage(api: api)),
       (
         'My Roster',
