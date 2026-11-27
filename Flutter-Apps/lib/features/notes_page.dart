@@ -9,6 +9,93 @@ import '../core/notes_offline_cache.dart';
 const _notesPath = '/project-management/notes';
 const _richPrefix = '<!--suite-richtext:v1-->';
 
+class _NoteHistory extends StatefulWidget {
+  const _NoteHistory({
+    required this.api,
+    required this.noteId,
+    required this.canRestore,
+  });
+
+  final ApiClient api;
+  final int noteId;
+  final bool canRestore;
+
+  @override
+  State<_NoteHistory> createState() => _NoteHistoryState();
+}
+
+class _NoteHistoryState extends State<_NoteHistory> {
+  String get _path => '$_notesPath/${widget.noteId}/revisions';
+  late final _versions = widget.api.request('GET', _path);
+  Future<dynamic>? _preview;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Version history')),
+    body: FutureBuilder(
+      future: _preview ?? _versions,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('${snapshot.error}'));
+        }
+        final data = snapshot.data;
+        if (data is List) {
+          return ListView(
+            children: [
+              if (data.isEmpty)
+                const ListTile(title: Text('No saved versions')),
+              for (final revision in data.whereType<Map<String, dynamic>>())
+                ListTile(
+                  title: Text(
+                    'Version ${revision['version']} · ${revision['title']}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => setState(() {
+                    _preview = widget.api.request(
+                      'GET',
+                      '$_path/${revision['version']}',
+                    );
+                  }),
+                ),
+            ],
+          );
+        }
+        if (data is! Map<String, dynamic>) {
+          return const Center(child: Text('Version unavailable'));
+        }
+        final content = data['content'] as String? ?? '';
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            TextButton(
+              onPressed: () => setState(() => _preview = null),
+              child: const Text('All versions'),
+            ),
+            Text(
+              '${data['title']}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              content.startsWith(_richPrefix)
+                  ? 'Formatted content can be restored from this version.'
+                  : content,
+            ),
+            if (widget.canRestore)
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context, data),
+                child: const Text('Use this version'),
+              ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
 class NotesPage extends StatefulWidget {
   const NotesPage({
     super.key,
@@ -398,11 +485,41 @@ class _NoteEditorState extends State<_NoteEditor> {
   bool _saving = false;
   bool _dirty = false;
   final _flagEdits = <String, bool>{};
+  String? _restoredContent;
   bool _savedView = false;
   Map<String, dynamic>? _pending;
 
-  bool get _rich =>
-      (_note?['content'] as String? ?? '').startsWith(_richPrefix);
+  bool get _rich => (_restoredContent ?? _note?['content'] as String? ?? '')
+      .startsWith(_richPrefix);
+
+  Future<void> _openHistory() async {
+    final noteId = _note?['id'];
+    if (noteId is! int) return;
+    final session = widget.api.sessionRevision;
+    final revision = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => _NoteHistory(
+          api: widget.api,
+          noteId: noteId,
+          canRestore: _editable && !_dirty,
+        ),
+      ),
+    );
+    if (!mounted ||
+        widget.api.sessionRevision != session ||
+        revision == null ||
+        !_editable ||
+        _dirty) {
+      return;
+    }
+    setState(() {
+      _restoredContent = revision['content'] as String? ?? '';
+      _title.text = revision['title'] as String? ?? '';
+      _body.text = _rich ? '' : _restoredContent!;
+      _dirty = true;
+    });
+  }
+
   bool get _editable {
     if (_loading || _pending != null) return false;
     if (_savedView) {
@@ -532,7 +649,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     try {
       final values = <String, dynamic>{
         'title': _title.text,
-        'content': _rich ? note!['content'] : _body.text,
+        'content': _rich ? _restoredContent ?? note!['content'] : _body.text,
         if (tags != null) 'tags': tags,
         if (note != null)
           for (final key in [
@@ -731,6 +848,12 @@ class _NoteEditorState extends State<_NoteEditor> {
                   : () => _load(reconnect: true),
               icon: const Icon(Icons.refresh),
             ),
+          if (_note?['can_edit'] == true && !_offline && !_savedView)
+            IconButton(
+              tooltip: 'Version history',
+              onPressed: _loading || _saving ? null : _openHistory,
+              icon: const Icon(Icons.history),
+            ),
           TextButton(
             onPressed: _editable && _dirty && !_saving ? _save : null,
             child: Text(_saving ? 'Saving…' : 'Save'),
@@ -811,10 +934,12 @@ class _NoteEditorState extends State<_NoteEditor> {
               decoration: const InputDecoration(labelText: 'Title'),
             ),
             if (_rich)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
-                  'Formatted note preview. Edit the full document on the web.',
+                  _restoredContent == null
+                      ? 'Formatted note preview. Edit the full document on the web.'
+                      : 'Formatted version ready to save.',
                 ),
               ),
             TextField(

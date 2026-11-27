@@ -642,6 +642,65 @@ void main() {
     }
   });
 
+  testWidgets('Notes restores history as a new version', (tester) async {
+    const path = '/project-management/notes';
+    const note = {
+      'id': 12,
+      'version': 4,
+      'title': 'Current note',
+      'content': 'Current text',
+      'can_edit': true,
+      'tags': ['retained'],
+    };
+    const oldBody = '<!--suite-richtext:v1--><p>Previous text</p>';
+    var didSave = false;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'PUT') {
+            expect(request.path, '$path/12');
+            expect(request.data['version'], 4);
+            expect(request.data['title'], 'Previous note');
+            expect(request.data['content'], oldBody);
+            expect(request.data['tags'], ['retained']);
+            didSave = true;
+            return response({...note, 'version': 5});
+          }
+          return switch (request.path) {
+            '$path/12' => response(note),
+            '$path/12/revisions' => response([
+              {'version': 2, 'title': 'Previous note'},
+            ]),
+            '$path/12/revisions/2' => response({
+              'title': 'Previous note',
+              'content': oldBody,
+            }),
+            _ => response([note]),
+          };
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Current note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Version history'));
+    await tester.pumpAndSettle();
+    for (final label in ['Version 2 · Previous note', 'Use this version']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+    expect(didSave, isFalse);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(didSave, isTrue);
+  });
+
   testWidgets('Notes filters saved personal notes offline', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     final cache = NotesOfflineCache('["https://example.test/api/v1",19,7]');
