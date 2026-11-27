@@ -14,6 +14,8 @@ from app.db.base import Base
 from app.core.deps import get_db
 from app.core.security import get_password_hash, pwd_context
 from app.models.user import User, Role
+from app.models.company import Branch, Company
+from app.access.models import AccessMembership
 from app.apps.project_management.models import PMSWorkspace,PMSWorkspaceMember,PMSProject,PMSTask,PMSNote,PMSNoteRevision,PMSNoteFolder
 from app.api.v1.auth import router as auth_router
 from app.apps.project_management.api.router import router as pms_router
@@ -22,11 +24,15 @@ Base.metadata.create_all(engine)
 Session=sessionmaker(bind=engine)
 pwd_context.update(bcrypt__rounds=4)
 with Session() as db:
+    company = Company(id=1, name="Notes QA Company", email="office@example.com", is_active=True)
+    company.branches.append(Branch(name="Notes QA Branch", code="QA", organization_id=1))
+    db.add(company)
     owner=User(email="notes-admin@example.com",hashed_password=get_password_hash("NotesQA@123"),is_active=True,is_superuser=True)
     role=Role(name="pms_team_member",is_system=True);db.add(role);db.flush()
     reader=User(role_id=role.id,email="notes-reader@example.com",hashed_password=get_password_hash("NotesQA@123"),is_active=True)
     db.add_all([owner,reader]);db.flush()
-    workspace=PMSWorkspace(name="Notes QA Workspace");db.add(workspace);db.flush()
+    db.add_all([AccessMembership(user_id=user.id,company_id=1) for user in (owner,reader)])
+    workspace=PMSWorkspace(name="Notes QA Workspace",organization_id=1);db.add(workspace);db.flush()
     db.add_all([PMSWorkspaceMember(workspace_id=workspace.id,user_id=owner.id,role="Owner"),PMSWorkspaceMember(workspace_id=workspace.id,user_id=reader.id,role="Member")])
     project=PMSProject(name="Website Development",project_key="WEB",workspace_id=workspace.id,organization_id=1,manager_user_id=owner.id)
     mobile=PMSProject(name="Mobile Application",project_key="MOB",workspace_id=workspace.id,organization_id=1,manager_user_id=owner.id)
