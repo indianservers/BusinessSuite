@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
+import 'package:business_suite_mobile/core/crm_detail_snapshot.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
 import 'package:business_suite_mobile/core/inventory_stock_receipts.dart';
@@ -110,6 +111,14 @@ void main() {
     gate.complete();
     await waitFor('Refreshed pipeline deal');
     expect(find.byTooltip('Move Refreshed pipeline deal'), findsOneWidget);
+    await Future.wait(
+      cached.keys.map((path) => flushCrmDetailWrite('$scope:$path:')),
+    );
+    final saved = await SuiteReadCache.read('$scope:$deals:');
+    expect(
+      (saved?.single['items'] as List).single['name'],
+      'Refreshed pipeline deal',
+    );
   });
 
   testWidgets('Android shows a saved CRM contact while refresh is pending', (

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -6,7 +7,10 @@ import 'models.dart';
 
 class SuiteReadCache {
   static const reuseWindow = Duration(seconds: 15);
+  static const _retention = Duration(days: 1);
+  static const _pruneInterval = Duration(hours: 1);
   static Future<Database>? _opening;
+  static DateTime? _lastPrune;
 
   static Future<Database> _open() => _opening ??= _create();
 
@@ -50,7 +54,7 @@ class SuiteReadCache {
       where: 'scope = ? AND saved_at >= ?',
       whereArgs: [
         scope,
-        DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+        DateTime.now().subtract(_retention).millisecondsSinceEpoch,
       ],
       limit: 1,
     );
@@ -70,20 +74,23 @@ class SuiteReadCache {
   }) async {
     final db = await _open();
     final now = DateTime.now();
-    await db.transaction((tx) async {
-      await tx.delete(
-        'snapshots',
-        where: 'saved_at < ?',
-        whereArgs: [
-          now.subtract(const Duration(days: 1)).millisecondsSinceEpoch,
-        ],
-      );
-      if (retainRecent != null) {
+    final cutoff = now.subtract(_retention).millisecondsSinceEpoch;
+    Future<int> save(DatabaseExecutor executor, List<Json> snapshot) =>
+        executor.insert('snapshots', {
+          'scope': scope,
+          'saved_at': now.millisecondsSinceEpoch,
+          'rows': jsonEncode(snapshot),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+    if (retainRecent == null) {
+      await save(db, rows);
+    } else {
+      await db.transaction((tx) async {
         final older = await tx.query(
           'snapshots',
           columns: ['rows'],
-          where: 'scope = ?',
-          whereArgs: [scope],
+          where: 'scope = ? AND saved_at >= ?',
+          whereArgs: [scope, cutoff],
         );
         final previous = older.isEmpty
             ? const <Json>[]
@@ -92,14 +99,21 @@ class SuiteReadCache {
         for (final row in [...rows, ...previous]) {
           if (row['id'] case final int id) unique.putIfAbsent(id, () => row);
         }
-        rows = unique.values.take(retainRecent).toList();
-      }
-      await tx.insert('snapshots', {
-        'scope': scope,
-        'saved_at': now.millisecondsSinceEpoch,
-        'rows': jsonEncode(rows),
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
-    });
+        await save(tx, unique.values.take(retainRecent).toList());
+      });
+    }
+    if (_lastPrune == null || now.difference(_lastPrune!) >= _pruneInterval) {
+      _lastPrune = now;
+      unawaited(_prune(db, cutoff));
+    }
+  }
+
+  static Future<void> _prune(Database db, int cutoff) async {
+    try {
+      await db.delete('snapshots', where: 'saved_at < ?', whereArgs: [cutoff]);
+    } catch (_) {
+      // Reads still enforce retention if background cleanup fails.
+    }
   }
 
   static Future<void> clear(String scope) async => (await _open()).delete(
@@ -175,7 +189,7 @@ class SuiteReadCache {
       where: '($_pageScopeFilter) AND saved_at >= ?',
       whereArgs: [
         ..._pageScopeArgs(scope),
-        DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+        DateTime.now().subtract(_retention).millisecondsSinceEpoch,
       ],
       orderBy: 'saved_at DESC',
     );
