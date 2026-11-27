@@ -5518,6 +5518,8 @@ void main() {
                   'reconciliation',
                   'aging',
                   'expiry',
+                  'reorder',
+                  'dead-stock',
                 ].contains(request.queryParameters['report']))
                   {
                     'item_name': 'Warehouse report stock',
@@ -5527,6 +5529,8 @@ void main() {
                     'quantity_difference': 2,
                     'age_bucket': '31–60',
                     'batch_number': 'Batch-3',
+                    'reorder_level': 12,
+                    'last_sale_date': '2026-08-01',
                   }
                 else
                   {'movement_number': 'Filtered stock movement'},
@@ -6046,6 +6050,8 @@ void main() {
             ('Detailed Stock Summary', 'summary', 'Opening quantity: 8'),
             ('Stock Ageing by Receipt', 'aging', 'Age bucket: 31–60'),
             ('Expiry & Batches', 'expiry', 'Batch number: Batch-3'),
+            ('Low Stock by Warehouse', 'reorder', 'Reorder level: 12'),
+            ('Dead Stock by Warehouse', 'dead-stock', 'Last sale: 2026-08-01'),
             (
               'Stock Valuation by Date',
               'valuation',

@@ -98,6 +98,23 @@ enum InventoryFinanceReport {
     'age_days': 'Age in days',
     'age_bucket': 'Age bucket',
   }, analysisReport: true),
+  lowStock('Low Stock by Warehouse', 'reorder', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'quantity': 'Physical quantity',
+    'available_quantity': 'Available quantity',
+    'reserved_quantity': 'Reserved quantity',
+    'reorder_level': 'Reorder level',
+    'min_stock': 'Minimum stock',
+  }, analysisReport: true),
+  deadStock('Dead Stock by Warehouse', 'dead-stock', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'quantity': 'Quantity',
+    'stock_value': 'Stock value',
+    'currency': 'Currency',
+    'last_sale_date': 'Last sale',
+  }, analysisReport: true),
   stockExpiry('Expiry & Batches', 'expiry', {
     'sku': 'SKU',
     'batch_number': 'Batch number',
@@ -247,6 +264,8 @@ enum InventoryFinanceReport {
     stockSummary ||
     historicalValuation ||
     stockAgeing ||
+    lowStock ||
+    deadStock ||
     stockExpiry => 'item_name',
     grossMargin => 'item_name',
     stockLedger ||
