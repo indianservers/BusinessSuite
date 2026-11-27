@@ -133,6 +133,8 @@ void main() {
     await drafts.save('rejected-operation', {
       'vendor_id': 22,
       'vendor_name': 'Saved supplier',
+      'expected_date': '2026-12-02',
+      'notes': 'Original delivery instructions',
       'lines': [
         {
           'product_id': 3,
@@ -186,10 +188,14 @@ void main() {
     expect(find.text('Correct purchase order draft'), findsOneWidget);
     expect(find.text('Product #3'), findsOneWidget);
     expect(find.text('Saved warehouse'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Order quantity'),
-      '1',
-    );
+    expect(find.text('Expected date · 2026-12-02'), findsOneWidget);
+    final notes = find.widgetWithText(TextFormField, 'Notes');
+    expect(find.text('Original delivery instructions'), findsOneWidget);
+    await tester.ensureVisible(notes);
+    await tester.enterText(notes, 'Deliver to receiving');
+    final quantity = find.widgetWithText(TextFormField, 'Order quantity');
+    await tester.ensureVisible(quantity);
+    await tester.enterText(quantity, '1');
     final save = find.text('Save corrected draft');
     await tester.ensureVisible(save);
     await tester.tap(save);
@@ -198,6 +204,8 @@ void main() {
     final entry = (await drafts.entries()).single;
     expect(entry['operation'], isNot('rejected-operation'));
     expect(entry['branch'], '6');
+    expect(entry['payload']['expected_date'], '2026-12-02');
+    expect(entry['payload']['notes'], 'Deliver to receiving');
     expect(entry['payload']['lines'], [
       {
         'product_id': 3,

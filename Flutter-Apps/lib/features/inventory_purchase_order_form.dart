@@ -49,6 +49,10 @@ class _InventoryPurchaseOrderFormState
     extends State<InventoryPurchaseOrderForm> {
   final _form = GlobalKey<FormState>();
   Json? get _savedPayload => widget.rejectedDraft?['payload'] as Json?;
+  late final _details = <String, String>{
+    for (final key in ['order_date', 'expected_date', 'notes'])
+      if (_savedPayload?[key] case final String value) key: value,
+  };
   late final _lines = [
     for (final line
         in (_savedPayload?['lines'] as List? ?? const []).whereType<Json>())
@@ -124,6 +128,37 @@ class _InventoryPurchaseOrderFormState
         'Draft confirmation is unavailable. Check Purchase orders before reopening this form.';
   });
 
+  Future<void> _chooseDate(String key, String label) async {
+    final selected = await showDatePicker(
+      context: context,
+      helpText: label,
+      initialDate: DateTime.tryParse(_details[key] ?? '') ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _details[key] = selected.toIso8601String().split('T').first);
+  }
+
+  Widget _dateField(String key, String label) => Row(
+    children: [
+      Expanded(
+        child: OutlinedButton(
+          onPressed: _saving ? null : () => _chooseDate(key, label),
+          child: Text([label, ?_details[key]].join(' · ')),
+        ),
+      ),
+      if (_details.containsKey(key))
+        IconButton(
+          tooltip: 'Clear ${label.toLowerCase()}',
+          icon: const Icon(Icons.clear),
+          onPressed: _saving
+              ? null
+              : () => setState(() => _details.remove(key)),
+        ),
+    ],
+  );
+
   Future<void> _save() async {
     if (_saving || _uncertain || !_form.currentState!.validate()) return;
     if (_vendor == null) {
@@ -153,6 +188,8 @@ class _InventoryPurchaseOrderFormState
     final payload = {
       'vendor_id': _vendor!['id'],
       'vendor_name': _vendor!['name'],
+      for (final detail in _details.entries)
+        if (detail.value.isNotEmpty) detail.key: detail.value,
       'lines': [
         for (final line in _lines)
           {
@@ -328,6 +365,16 @@ class _InventoryPurchaseOrderFormState
                         }),
                   icon: const Icon(Icons.add),
                   label: const Text('Add item'),
+                ),
+                _dateField('order_date', 'Order date'),
+                _dateField('expected_date', 'Expected date'),
+                TextFormField(
+                  initialValue: _details['notes'],
+                  decoration: const InputDecoration(labelText: 'Notes'),
+                  minLines: 2,
+                  maxLines: 4,
+                  enabled: !_saving,
+                  onChanged: (value) => _details['notes'] = value.trim(),
                 ),
               ],
               if (_error case final String error) Text(error),
