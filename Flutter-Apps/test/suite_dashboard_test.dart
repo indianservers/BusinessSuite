@@ -28,6 +28,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
@@ -2787,6 +2788,33 @@ void main() {
       await tester.pumpWidget(BusinessSuiteApp(controller: controller));
       await tester.pumpAndSettle();
       expect(find.text('Your applications (7)'), findsOneWidget);
+      for (final (title, caption, icon) in const [
+        ('Appointments', 'Bookings & schedule', LucideIcons.calendarDays),
+        ('Power Apps', 'Build & automate', LucideIcons.zap),
+        ('AI HRMS', 'People & payroll', LucideIcons.users),
+        ('VyaparaCRM', 'Leads & customers', LucideIcons.users),
+        ('KaryaFlow PMS', 'Projects & tasks', LucideIcons.listChecks),
+        ('Sales & POS', 'Sales & inventory', LucideIcons.shoppingCart),
+        (
+          'Finance & Accounting',
+          'Accounts & ledgers',
+          LucideIcons.chartNoAxesColumnIncreasing,
+        ),
+      ]) {
+        final card = find.ancestor(
+          of: find.text(title),
+          matching: find.byType(Card),
+        );
+        expect(card, findsOneWidget);
+        expect(
+          find.descendant(of: card, matching: find.text(caption)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.byIcon(icon)),
+          findsOneWidget,
+        );
+      }
 
       Future<void> open(String label) async {
         final target = find.text(label).last;
