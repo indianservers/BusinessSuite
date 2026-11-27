@@ -1027,10 +1027,13 @@ void main() {
       expect(saved['values']['full_name'], 'Android field lead');
       expect(submitted, isEmpty);
       await tester.tap(find.byTooltip('Lead drafts'));
-      await waitFor(find.text('Android field lead'));
-      expect(find.text('Awaiting sync'), findsOneWidget);
+      await waitFor(find.text('Awaiting sync').hitTestable());
+      expect(
+        find.widgetWithText(ListTile, 'Android field lead').hitTestable(),
+        findsOneWidget,
+      );
       connected = true;
-      await tester.tap(find.byTooltip('Sync lead drafts'));
+      await tester.tap(find.text('Sync lead drafts').hitTestable());
       await waitFor(find.text('No saved lead drafts'));
       expect(submitted, hasLength(1));
       expect(submitted.single.data, {
@@ -1042,6 +1045,7 @@ void main() {
       );
       expect(await queue.creations(), isEmpty);
       await tester.pageBack();
+      await tester.pumpAndSettle();
       await waitFor(find.text('Android field lead'));
       await tester.pumpWidget(const SizedBox.shrink());
     },

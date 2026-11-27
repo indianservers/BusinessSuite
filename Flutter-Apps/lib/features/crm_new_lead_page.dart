@@ -115,13 +115,6 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Lead drafts'),
-      actions: [
-        IconButton(
-          tooltip: 'Sync lead drafts',
-          onPressed: _busy ? null : _sync,
-          icon: const Icon(Icons.sync),
-        ),
-      ],
     ),
     body: FutureBuilder<List<Map<String, dynamic>>>(
       future: _drafts,
@@ -136,6 +129,14 @@ class _CrmLeadDraftsPageState extends State<CrmLeadDraftsPage> {
         }
         return ListView(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: FilledButton.icon(
+                onPressed: _sync,
+                icon: const Icon(Icons.sync),
+                label: const Text('Sync lead drafts'),
+              ),
+            ),
             for (final draft in drafts)
               ListTile(
                 title: Text('${draft['values']['full_name']}'),
