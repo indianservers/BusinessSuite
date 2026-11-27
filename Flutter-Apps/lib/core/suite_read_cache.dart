@@ -13,16 +13,20 @@ class SuiteReadCache {
     try {
       return await openDatabase(
         '${await getDatabasesPath()}/business_suite_read_cache.db',
-        version: 2,
-        onCreate: (db, _) => db.execute(
-          'CREATE TABLE snapshots (scope TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, rows TEXT NOT NULL, invalidated INTEGER NOT NULL DEFAULT 0)',
-        ),
+        version: 3,
+        onCreate: (db, _) async {
+          await db.execute(
+            'CREATE TABLE snapshots (scope TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, rows TEXT NOT NULL, invalidated INTEGER NOT NULL DEFAULT 0)',
+          );
+          await db.execute(_createExpiryIndex);
+        },
         onUpgrade: (db, oldVersion, _) async {
           if (oldVersion < 2) {
             await db.execute(
               'ALTER TABLE snapshots ADD COLUMN invalidated INTEGER NOT NULL DEFAULT 0',
             );
           }
+          if (oldVersion < 3) await db.execute(_createExpiryIndex);
         },
       );
     } catch (_) {
@@ -30,6 +34,9 @@ class SuiteReadCache {
       rethrow;
     }
   }
+
+  static const _createExpiryIndex =
+      'CREATE INDEX snapshots_saved_at_idx ON snapshots(saved_at)';
 
   static Future<List<Json>?> read(String scope) async {
     return (await snapshot(scope))?.rows;
