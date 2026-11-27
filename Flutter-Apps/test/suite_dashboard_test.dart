@@ -2987,6 +2987,26 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/crm/contacts' => response({
+              'items': [
+                {
+                  'id': 81,
+                  'full_name': 'Sample CRM contact',
+                  'company_name': 'Example business',
+                  'email': 'sample@example.test',
+                },
+              ],
+              'total': 1,
+              'per_page': 25,
+            }),
+            '/crm/contacts/81' => response({
+              'id': 81,
+              'full_name': 'Sample CRM contact',
+              'job_title': 'Coordinator',
+              'timeline': [
+                {'title': 'Requested a quote', 'occurredAt': '2026-11-26'},
+              ],
+            }),
             '/srm/inventory/reports/stock-aging' ||
             '/srm/inventory/reports/dead-stock' ||
             '/srm/inventory/reports/fast-slow-moving' => response({
@@ -3323,6 +3343,26 @@ void main() {
           expect(find.text('1 items have no currency'), findsOneWidget);
           await back();
           await back();
+          await back();
+          await back();
+        }
+        if (entry.key == 'VyaparaCRM') {
+          await tester.tap(find.byTooltip('Contacts'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextField), 'sample');
+          await tester.pump(const Duration(milliseconds: 350));
+          await tester.pumpAndSettle();
+          expect(
+            calls.any(
+              (r) =>
+                  r.path == '/crm/contacts' &&
+                  r.queryParameters['search'] == 'sample',
+            ),
+            isTrue,
+          );
+          await open('Sample CRM contact');
+          expect(find.text('Coordinator'), findsOneWidget);
+          expect(find.text('Requested a quote'), findsOneWidget);
           await back();
           await back();
         }

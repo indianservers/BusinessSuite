@@ -15,6 +15,7 @@ import '../core/sales_order_drafts.dart';
 import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
+import 'crm_contact_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_order_drafts_page.dart';
@@ -1389,8 +1390,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
+  bool get _crmContacts => widget.path == CrmContactPage.endpoint;
+  bool get _cacheCrmPages => _isCrm || _crmContacts;
   bool get _isEmployees => widget.path == '/employees/';
-  bool get _hasPages => _isCrm || _isEmployees;
+  bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
       _hasPages || _inventory || widget.path == '/srm/sales-orders';
   late bool _offlineOnly = widget.offlineOnly;
@@ -1449,8 +1452,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     _usedSavedFallback = false;
     final page = _page;
     final searchTerm = _serverSearch;
-    Future<void> loadSavedLeadPages() async {
-      if (!_isCrm || cacheKey == null) return;
+    Future<void> loadSavedCrmPages() async {
+      if (!_cacheCrmPages || cacheKey == null) return;
       try {
         final saved = await SuiteReadCache.readPages(cacheKey);
         if (mounted &&
@@ -1497,7 +1500,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
     if (_offlineOnly && !reconnect) {
-      await loadSavedLeadPages();
+      await loadSavedCrmPages();
       if (api.sessionRevision != revision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
@@ -1543,7 +1546,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           setState(() => _cached = null);
         }
         try {
-          if (_isCrm) {
+          if (_cacheCrmPages) {
             await SuiteReadCache.clearPages(cacheKey);
           } else {
             await SuiteReadCache.clear(cacheKey);
@@ -1557,7 +1560,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       } else if (error.connectionFailure ||
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
-        await loadSavedLeadPages();
+        await loadSavedCrmPages();
         if (mounted &&
             api.sessionRevision == revision &&
             loadRevision == _loadRevision &&
@@ -1618,6 +1621,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'version',
               'company_name',
               if (_isCrm) ...['source', 'rating'],
+              if (_crmContacts) ...CrmContactPage.summaryFields.keys,
               'order_number',
               'currency',
               'subtotal',
@@ -1808,6 +1812,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   child: Text('Order drafts'),
                 ),
             ],
+          ),
+        if (_isCrm)
+          IconButton(
+            tooltip: 'Contacts',
+            icon: const Icon(LucideIcons.contact),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Contacts',
+                  controller: widget.controller,
+                  path: CrmContactPage.endpoint,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
           ),
         if (_isCrm &&
             widget.canCreateLead &&
@@ -2159,6 +2180,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     if (_warehouseStock) 'warehouse_name',
                                     'full_name',
                                     'company_name',
+                                    if (_crmContacts) ...['email', 'phone'],
                                   ]
                                   .map((key) => item[key] ?? '')
                                   .followedBy([
@@ -2285,6 +2307,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     cached
                                         ? 'Search saved leads'
                                         : 'Search leads',
+                                  CrmContactPage.endpoint =>
+                                    cached
+                                        ? 'Search saved contacts'
+                                        : 'Search contacts',
                                   '/srm/inventory/items' ||
                                   _reorderPath ||
                                   _stockSummaryPath => 'Search products',
@@ -2407,6 +2433,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmContacts) ...[
+                            item['company_name'],
+                            item['email'],
+                            item['phone'],
+                          ],
                           if (_warehouseStock) item['warehouse_name'],
                           if (_warehouses) ...[
                             item['warehouse_code'],
@@ -2523,6 +2554,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path ==
                                           GstInvoicePage.listEndpoint ||
                                       widget.path == CrmLeadPage.endpoint ||
+                                      _crmContacts ||
                                       widget.path ==
                                           FinancePartyPage.endpoint) &&
                                   item['id'] is int
@@ -2532,6 +2564,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? _EmployeeDetailsPage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                          )
+                                        : _crmContacts
+                                        ? CrmContactPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            scopeHeaders: widget.scopeHeaders,
                                           )
                                         : widget.path == CrmLeadPage.endpoint
                                         ? CrmLeadPage(
