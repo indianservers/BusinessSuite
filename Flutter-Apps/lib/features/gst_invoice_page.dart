@@ -458,6 +458,7 @@ class GstInvoicePage extends StatefulWidget {
   ) => gstCacheKey(scope, path, headers);
 
   static const summaryFields = [
+    'branch_id',
     'invoice_number',
     'status',
     'currency',
@@ -487,6 +488,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   String? get _key =>
       GstInvoicePage.cacheKey(widget.cacheScope, _path, widget.scopeHeaders);
+  Map<String, String> get _writeHeaders {
+    final branch = widget.summary?['branch_id'];
+    if (branch is! int || branch <= 0) return widget.scopeHeaders;
+    return {...widget.scopeHeaders, 'X-Suite-Branch': '$branch'};
+  }
 
   Future<void> _saveSnapshot(Json invoice) async {
     final key = _key;
@@ -638,7 +644,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       await api.request(
         'POST',
         '$_path/approve',
-        scopeHeaders: widget.scopeHeaders,
+        scopeHeaders: _writeHeaders,
       );
       if (mounted && api.sessionRevision == revision) {
         setState(() {
@@ -710,7 +716,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                   'PATCH',
                   '/srm/business/invoices/${widget.id}/lines/${line['id']}',
                   data: values,
-                  scopeHeaders: widget.scopeHeaders,
+                  scopeHeaders: _writeHeaders,
                 )
                 as Json,
       ),
@@ -739,7 +745,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 'POST',
                 '$_path/lines',
                 data: {...values, 'source_type': 'manual'},
-                scopeHeaders: widget.scopeHeaders,
+                scopeHeaders: _writeHeaders,
               )
               as Json;
         },
@@ -807,7 +813,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                             'PATCH',
                             _path,
                             data: changed,
-                            scopeHeaders: widget.scopeHeaders,
+                            scopeHeaders: _writeHeaders,
                           );
                           if (context.mounted) Navigator.pop(context, true);
                         } catch (failure) {

@@ -4274,8 +4274,10 @@ def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), cur
         for row in db.query(InvoiceDelivery).filter(InvoiceDelivery.invoice_id.in_(identities)).order_by(InvoiceDelivery.id.desc()):
             deliveries.setdefault(row.invoice_id, row)
     if summary_only:
+        from app.branches.presentation import prefetch_branch_names, record_branch_id
         from app.business_packs.financial_projections import delivery_status
 
+        prefetch_branch_names(db, items)
         fields = ("id", "invoice_number", "status", "currency", "issue_date", "due_date",
                   "subtotal", "tax_amount", "total_amount", "paid_amount", "balance_amount")
         summaries = []
@@ -4285,7 +4287,11 @@ def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), cur
             delivery = delivery_status(db, item) if selected else (
                 latest.status if latest else "legacy_sent" if item.sent_at else "not_sent"
             )
-            summaries.append({key: row[key] for key in fields} | _invoice_statuses(item, delivery))
+            summaries.append(
+                {key: row[key] for key in fields}
+                | {"branch_id": record_branch_id(item)}
+                | _invoice_statuses(item, delivery)
+            )
         return summaries
     contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_(identities))}
     companies = {int(item.organization_id or 1) for item in items}
@@ -4322,7 +4328,7 @@ def patch_invoice(invoice_id: int, data: SRMInvoicePatch, db: Session = Depends(
     before = _serialize(invoice)
     for key, value in updates.items():
         setattr(invoice, key, value)
-    _audit(db, current_user, "invoice", invoice.id, "updated", before=before, after=data.model_dump(exclude_unset=True))
+    _audit(db, current_user, "invoice", invoice.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(invoice)
     return _serialize(invoice)
