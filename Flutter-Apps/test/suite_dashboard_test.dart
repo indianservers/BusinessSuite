@@ -21,6 +21,7 @@ import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
+import 'package:business_suite_mobile/features/inventory_tracking_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
@@ -39,6 +40,122 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets(
+    'Inventory tracking registers batches and product-scoped serials',
+    (tester) async {
+      final requests = <RequestOptions>[];
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            expect(request.headers['X-Suite-Branch'], '6');
+            requests.add(request);
+            if (request.method == 'POST') {
+              return response({
+                'id': 12,
+                ...request.data as Map<String, dynamic>,
+              }, 201);
+            }
+            return switch (request.path) {
+              '/srm/inventory/items' => response({
+                'items': [
+                  {'id': 3, 'item_name': 'Ink cartridge', 'active': true},
+                ],
+              }),
+              '/srm/inventory/warehouses' => response({'items': []}),
+              '/srm/inventory/batches' => response({
+                'items': [
+                  {'id': 12, 'batch_number': 'LOT-12'},
+                ],
+              }),
+              _ => throw StateError('Unexpected request: ${request.path}'),
+            };
+          }),
+      );
+      Future<void> tap(String label) async {
+        final finder = find.text(label).last;
+        await tester.ensureVisible(finder);
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> enter(String label, String value) async {
+        final field = find.widgetWithText(TextFormField, label);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, value);
+        await tester.pumpAndSettle();
+      }
+
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+      );
+      for (final serial in [false, true]) {
+        unawaited(
+          navigator.currentState!.push<Json>(
+            MaterialPageRoute(
+              builder: (_) => InventoryTrackingForm(
+                api: api,
+                scopeHeaders: const {'X-Suite-Branch': '6'},
+                serial: serial,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tap('Choose product');
+        await tap('Ink cartridge');
+        if (serial) {
+          await enter('Serial number', 'SN-12');
+          await tap('Choose batch (optional)');
+          await tap('LOT-12');
+          await tap('Save serial');
+        } else {
+          await enter('Batch number', ' LOT-12 ');
+          await enter('Quantity', '8');
+          await enter('Available quantity (optional)', '10');
+          await tap('Save batch');
+          expect(
+            requests.where((request) => request.method == 'POST'),
+            isEmpty,
+          );
+          await enter('Available quantity (optional)', '7');
+          await tap('Save batch');
+        }
+      }
+      final writes = requests
+          .where((request) => request.method == 'POST')
+          .toList();
+      expect(writes.map((request) => request.path), [
+        '/srm/inventory/batches',
+        '/srm/inventory/serial-numbers',
+      ]);
+      expect(writes.first.data, {
+        'product_id': 3,
+        'batch_number': 'LOT-12',
+        'quantity': '8',
+        'available_quantity': '7',
+        'unit_cost': '0',
+        'status': 'available',
+      });
+      expect(writes.last.data, {
+        'product_id': 3,
+        'serial_number': 'SN-12',
+        'batch_id': 12,
+        'status': 'available',
+      });
+      expect(
+        requests
+            .singleWhere(
+              (r) => r.method == 'GET' && r.path == '/srm/inventory/batches',
+            )
+            .queryParameters['product_id'],
+        3,
+      );
+    },
+  );
+
   testWidgets('Draft quotation date and terms edits use the shared record', (
     tester,
   ) async {

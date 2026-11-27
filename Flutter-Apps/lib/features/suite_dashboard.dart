@@ -20,6 +20,7 @@ import 'crm_cpq_evaluator.dart';
 import 'crm_guided_selling_form.dart';
 import 'crm_pipeline_page.dart';
 import 'inventory_batch_page.dart';
+import 'inventory_tracking_form.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
@@ -1975,10 +1976,37 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         path: path,
         cachePrefix: widget.cachePrefix,
         scopeHeaders: widget.scopeHeaders,
+        canCreateOrder: widget.canCreateOrder,
         offlineOnly: _offlineOnly || _usedSavedFallback,
       ),
     ),
   );
+
+  Future<void> _createTrackingRecord() async {
+    final saved = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => InventoryTrackingForm(
+          api: widget.controller.api,
+          scopeHeaders: widget.scopeHeaders,
+          serial: _serialTracking,
+        ),
+      ),
+    );
+    if (!mounted || saved == null) return;
+    final scope = widget.cachePrefix;
+    if (_serialTracking && scope != null) {
+      try {
+        await SuiteReadCache.clearPages('$scope:${InventoryBatchPage.batches}');
+        if (saved['batch_id'] case final int batch) {
+          final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+          await SuiteReadCache.clear(
+            '$scope:${InventoryBatchPage.batches}/$batch:$branch',
+          );
+        }
+      } catch (_) {}
+    }
+    if (mounted) await _refreshCrmRecords();
+  }
 
   void _refresh() {
     _searchDebounce?.cancel();
@@ -2440,6 +2468,17 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             tooltip: 'Serial numbers',
             icon: const Icon(Icons.tag_outlined),
             onPressed: () => _openTracking(InventoryBatchPage.serials),
+          ),
+        if ((_batchTracking || _serialTracking) &&
+            widget.canCreateOrder &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: _serialTracking
+                ? 'Register serial number'
+                : 'Create batch',
+            icon: const Icon(Icons.add),
+            onPressed: _createTrackingRecord,
           ),
         if (_inventory)
           IconButton(

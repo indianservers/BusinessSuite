@@ -66,7 +66,7 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   Future<void> _chooseCustomer() async {
     final customer = await showDialog<Json>(
       context: context,
-      builder: (_) => _SalesRecordPicker(
+      builder: (_) => SalesRecordPicker(
         api: widget.api,
         drafts: widget.drafts,
         offline: widget.offline,
@@ -78,7 +78,7 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   Future<void> _chooseProduct(int index) async {
     final product = await showDialog<Json>(
       context: context,
-      builder: (_) => _SalesRecordPicker(
+      builder: (_) => SalesRecordPicker(
         api: widget.api,
         drafts: widget.drafts,
         offline: widget.offline,
@@ -358,45 +358,76 @@ class _NewSalesOrderPageState extends State<NewSalesOrderPage> {
   );
 }
 
-class _SalesRecordPicker extends StatefulWidget {
-  const _SalesRecordPicker({
+class SalesRecordPicker extends StatefulWidget {
+  const SalesRecordPicker({
+    super.key,
     required this.api,
     this.drafts,
     required this.offline,
     this.product = false,
+    this.scopeHeaders = const {},
+    this.activeOnly = false,
+    this.batchProductId,
   });
   final ApiClient api;
   final SalesOrderDrafts? drafts;
   final bool offline;
   final bool product;
+  final Map<String, String> scopeHeaders;
+  final bool activeOnly;
+  final int? batchProductId;
 
   @override
-  State<_SalesRecordPicker> createState() => _SalesRecordPickerState();
+  State<SalesRecordPicker> createState() => _SalesRecordPickerState();
 }
 
-class _SalesRecordPickerState extends State<_SalesRecordPicker> {
-  late Future<List<Json>> _customers = _load('');
+class _SalesRecordPickerState extends State<SalesRecordPicker> {
+  late var _records = _load('', 1);
   String _search = '';
+  String _submittedSearch = '';
+  int _page = 1;
+  bool get _batch => widget.batchProductId != null;
+  bool get _paged => _batch || widget.activeOnly;
+  String get _kind => _batch
+      ? 'batch'
+      : widget.product
+      ? 'product'
+      : 'customer';
+  String get _nameField => _batch
+      ? 'batch_number'
+      : widget.product
+      ? 'item_name'
+      : 'name';
 
-  Future<List<Json>> _load(String search) async {
+  Future<({List<Json> rows, bool next})> _load(String search, int page) async {
     final drafts = widget.drafts;
     if (drafts != null) {
-      if (widget.product) {
-        return drafts.products(widget.api, search, offline: widget.offline);
-      }
-      return drafts.customers(widget.api, search, offline: widget.offline);
+      final rows = widget.product
+          ? await drafts.products(widget.api, search, offline: widget.offline)
+          : await drafts.customers(widget.api, search, offline: widget.offline);
+      return (rows: rows, next: false);
     }
     final revision = widget.api.sessionRevision;
     final data =
         await widget.api.request(
               'GET',
-              widget.product
+              _batch
+                  ? '/srm/inventory/batches'
+                  : widget.product
                   ? SalesOrderDrafts.productsEndpoint
                   : SalesOrderDrafts.customersEndpoint,
-              query: widget.product
+              scopeHeaders: widget.scopeHeaders,
+              query: _batch
                   ? {
-                      'summary_only': true,
-                      'page': 1,
+                      'product_id': widget.batchProductId,
+                      'page': page,
+                      'per_page': 30,
+                      if (search.isNotEmpty) 'search': search,
+                    }
+                  : widget.product
+                  ? {
+                      'summary_only': !widget.activeOnly,
+                      'page': page,
                       'per_page': 50,
                       if (search.isNotEmpty) 'search': search,
                     }
@@ -406,16 +437,32 @@ class _SalesRecordPickerState extends State<_SalesRecordPicker> {
     if (revision != widget.api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
-    return (data['items'] as List).whereType<Json>().toList();
+    final rows = (data['items'] as List)
+        .whereType<Json>()
+        .where((row) => !widget.activeOnly || row['active'] != false)
+        .toList();
+    final total = data['total'];
+    return (
+      rows: rows,
+      next:
+          data['has_more'] == true ||
+          (widget.activeOnly && total is int && page * 50 < total),
+    );
   }
 
-  void _searchCustomers() => setState(() {
-    _customers = _load(_search.trim());
+  void _searchRecords() {
+    _submittedSearch = _search.trim();
+    _selectPage(1);
+  }
+
+  void _selectPage(int page) => setState(() {
+    _page = page;
+    _records = _load(_submittedSearch, page);
   });
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.product ? 'Choose product' : 'Choose customer'),
+    title: Text('Choose $_kind'),
     content: SizedBox(
       width: 360,
       height: 350,
@@ -424,25 +471,25 @@ class _SalesRecordPickerState extends State<_SalesRecordPicker> {
           TextField(
             maxLength: 100,
             onChanged: (value) => _search = value,
-            onSubmitted: (_) => _searchCustomers(),
+            onSubmitted: (_) => _searchRecords(),
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: widget.product
+              labelText: _batch
+                  ? 'Batch number'
+                  : widget.product
                   ? 'Product name, SKU or barcode'
                   : 'Customer name',
               counterText: '',
               suffixIcon: IconButton(
-                tooltip: widget.product
-                    ? 'Search products'
-                    : 'Search customers',
-                onPressed: _searchCustomers,
+                tooltip: _batch ? 'Search batches' : 'Search ${_kind}s',
+                onPressed: _searchRecords,
                 icon: const Icon(Icons.search),
               ),
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Json>>(
-              future: _customers,
+            child: FutureBuilder<({List<Json> rows, bool next})>(
+              future: _records,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
@@ -450,29 +497,44 @@ class _SalesRecordPickerState extends State<_SalesRecordPicker> {
                 if (snapshot.hasError) {
                   return Center(child: Text('${snapshot.error}'));
                 }
-                final rows = snapshot.requireData;
-                if (rows.isEmpty) {
+                final data = snapshot.requireData;
+                final rows = data.rows;
+                if (rows.isEmpty && (!_paged || (_page == 1 && !data.next))) {
                   return Center(
                     child: Text(
-                      'No matching ${widget.offline ? 'saved ' : ''}${widget.product ? 'products' : 'customers'}',
+                      'No matching ${widget.offline ? 'saved ' : ''}${_batch ? 'batches' : '${_kind}s'}',
                     ),
                   );
                 }
                 return ListView(
                   children: [
                     for (final row in rows)
-                      if (row['id'] is int &&
-                          row[widget.product ? 'item_name' : 'name'] is String)
+                      if (row['id'] is int && row[_nameField] is String)
                         ListTile(
-                          title: Text(
-                            row[widget.product ? 'item_name' : 'name']
-                                as String,
-                          ),
+                          title: Text(row[_nameField] as String),
                           subtitle: widget.product && row['sku'] is String
                               ? Text(row['sku'] as String)
                               : null,
                           onTap: () => Navigator.pop(context, row),
                         ),
+                    if (_paged && (_page > 1 || data.next))
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: _page > 1
+                                ? () => _selectPage(_page - 1)
+                                : null,
+                            child: const Text('Previous'),
+                          ),
+                          TextButton(
+                            onPressed: data.next
+                                ? () => _selectPage(_page + 1)
+                                : null,
+                            child: const Text('Next'),
+                          ),
+                        ],
+                      ),
                   ],
                 );
               },
