@@ -10,7 +10,7 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Stock Ledger reopens the matching filter offline', (
+  testWidgets('Stock Ledger separates offline filters, branches and companies', (
     tester,
   ) async {
     const channel = MethodChannel('com.tekartik.sqflite');
@@ -110,15 +110,21 @@ void main() {
           });
         }),
     );
-    Future<void> open(bool offline) async {
+    Future<void> open(
+      bool offline, {
+      String branch = '6',
+      String scope = 'ledger-test',
+      bool finance = false,
+    }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: InventoryFinanceReportPage(
-            key: ValueKey(offline),
+            key: ValueKey((offline, branch, scope, finance)),
             api: api,
             report: InventoryFinanceReport.stockLedger,
-            scopeHeaders: const {'X-Suite-Branch': '6'},
-            cacheScope: 'ledger-test',
+            scopeHeaders: {'X-Suite-Branch': branch},
+            cacheScope: scope,
+            financeAnalysis: finance,
             offline: offline,
           ),
         ),
@@ -183,6 +189,14 @@ void main() {
     await warehouse('7');
     expect(find.text('No saved report.'), findsOneWidget);
     expect(find.text('Movements for 6'), findsNothing);
+    await open(true, branch: '7');
+    expect(find.text('No saved report.'), findsOneWidget);
+    await open(true, scope: 'different-company');
+    expect(find.text('No saved report.'), findsOneWidget);
+    await open(true, finance: true);
+    expect(find.text('No saved report.'), findsOneWidget);
+    await open(true);
+    expect(find.text('Movements for all'), findsOneWidget);
     expect(requests, 5);
   });
 }
