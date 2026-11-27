@@ -32,6 +32,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   required ApiClient api,
   required String path,
   required String? scope,
+  String? cacheKey,
   required Map<String, String> headers,
   required bool offline,
   required Json Function(Json) project,
@@ -43,7 +44,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
 }) async {
   final revision = api.sessionRevision;
   final branch = headers['X-Suite-Branch'] ?? '';
-  final key = scope == null ? null : '$scope:$path:$branch';
+  final key = cacheKey ?? (scope == null ? null : '$scope:$path:$branch');
   void checkSession() {
     if (revision != api.sessionRevision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);

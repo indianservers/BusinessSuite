@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
+import '../core/crm_detail_snapshot.dart';
 import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
@@ -79,87 +80,59 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         : '$scope:$_path:$branch';
   }
 
+  Json _projectDetails(Json data) => {
+    for (final field in _orderFields) field: data[field],
+    'lines': [
+      for (final line in (data['lines'] as List? ?? []).whereType<Json>())
+        {for (final field in _lineFields) field: line[field]},
+    ],
+    for (final entry in _linkedRecords.entries)
+      if (data[entry.key] case final Json record)
+        entry.key: {
+          entry.value.$2: record[entry.value.$2],
+          'status': record['status'],
+        },
+  };
+
   Future<void> _cacheDetails(Json data) async {
     final key = _cacheKey;
     if (key == null) return;
-    final lines = (data['lines'] as List? ?? []).whereType<Json>();
     try {
-      await SuiteReadCache.write(key, [
-        {
-          for (final field in _orderFields) field: data[field],
-          'lines': [
-            for (final line in lines)
-              {for (final field in _lineFields) field: line[field]},
-          ],
-          for (final entry in _linkedRecords.entries)
-            if (data[entry.key] case final Json record)
-              entry.key: {
-                entry.value.$2: record[entry.value.$2],
-                'status': record['status'],
-              },
-        },
-      ]);
+      await flushCrmDetailWrite(key);
+      await SuiteReadCache.write(key, [_projectDetails(data)]);
     } catch (_) {
       // Online detail remains available if its cache cannot be written.
     }
   }
 
   Future<Json?> _load({bool reconnect = false}) async {
-    final key = _cacheKey;
-    final revision = widget.api.sessionRevision;
-    if (key != null) {
-      try {
-        final snapshot = await SuiteReadCache.snapshot(key);
-        if (mounted &&
-            revision == widget.api.sessionRevision &&
-            snapshot != null &&
-            snapshot.rows.length == 1) {
-          final saved = snapshot.rows.single;
-          setState(() => _saved = saved);
-          if (!reconnect &&
-              !_offline &&
-              !widget.canEdit &&
-              widget.invoiceBuilder == null &&
-              !snapshot.invalidated) {
-            final age = DateTime.now().difference(snapshot.savedAt);
-            if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
-              return saved;
-            }
-          }
-        }
-      } catch (_) {
-        // Cached detail is optional when local storage is unavailable.
-      }
-    }
-    if ((_offline && !reconnect) || !mounted) return null;
-    if (revision != widget.api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
+    final api = widget.api;
+    final revision = api.sessionRevision;
     try {
-      final data =
-          await widget.api.request(
-                'GET',
-                _path,
-                scopeHeaders: widget.scopeHeaders,
-              )
-              as Json;
-      if (revision != widget.api.sessionRevision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
-      }
-      await _cacheDetails(data);
-      _offline = false;
-      return data;
-    } on ApiFailure catch (error) {
-      if (error.status == null ||
-          error.status == 429 ||
-          (error.status ?? 0) >= 500) {
+      final result = await loadCrmDetail(
+        api: api,
+        path: _path,
+        scope: widget.cacheScope,
+        cacheKey: _cacheKey,
+        headers: widget.scopeHeaders,
+        offline: _offline && !reconnect,
+        reuseFresh:
+            !reconnect && !widget.canEdit && widget.invoiceBuilder == null,
+        onCached: (saved) {
+          if (mounted) setState(() => _saved = saved);
+        },
+        project: _projectDetails,
+      );
+      if (!mounted || revision != api.sessionRevision) return null;
+      if (!result.live) {
+        setState(() => _saved = result.record);
         return null;
       }
-      if (key != null && const {401, 403, 404}.contains(error.status)) {
-        _saved = null;
-        try {
-          await SuiteReadCache.clear(key);
-        } catch (_) {}
+      _offline = false;
+      return result.record;
+    } on ApiFailure catch (error) {
+      if (mounted && const {401, 403, 404}.contains(error.status)) {
+        setState(() => _saved = null);
       }
       rethrow;
     }
@@ -342,12 +315,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
-                  '${_offline ? 'Offline' : 'Refresh unavailable'} · '
+                  '${_offline ? 'Offline · ' : ''}'
                   '${detail == null ? 'Saved order summary' : 'Saved order details'}',
                 ),
                 trailing: TextButton(
                   onPressed: _refresh,
-                  child: Text(_offline ? 'Reconnect' : 'Retry'),
+                  child: Text(_offline ? 'Reconnect' : 'Refresh'),
                 ),
               ),
             for (final field in const {

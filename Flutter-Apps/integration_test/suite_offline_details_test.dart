@@ -1773,14 +1773,12 @@ void main() {
     };
     var requests = 0;
     final transportErrors = <String>[];
-    Completer<void>? productRefresh;
+    final blockedRefreshes = <String, Completer<void>>{};
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         requests++;
         expectSync(request.method, 'GET');
-        if (request.path == '/srm/inventory/items/1') {
-          await productRefresh?.future;
-        }
+        await blockedRefreshes[request.path]?.future;
         return response(fixtures[request.path]!);
       });
     dio.interceptors.add(
@@ -1916,7 +1914,8 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await SuiteReadCache.invalidateInventoryItem(scope, 1);
-    productRefresh = Completer<void>();
+    final productRefresh = blockedRefreshes['/srm/inventory/items/1'] =
+        Completer<void>();
     fixtures['/srm/inventory/items/1']!['item_name'] = 'Updated QA stock';
     await tester.pumpWidget(MaterialApp(home: pages[1].$1(false)));
     await findDetail('QA stock');
@@ -1924,5 +1923,17 @@ void main() {
     expect(find.text('Updated QA stock'), findsNothing);
     productRefresh.complete();
     await findDetail('Updated QA stock');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await SuiteReadCache.invalidate('$scope:/srm/sales-orders/1');
+    final orderRefresh = blockedRefreshes['/srm/sales-orders/1'] =
+        Completer<void>();
+    fixtures['/srm/sales-orders/1']!['terms'] = 'Payment due in 45 days';
+    await tester.pumpWidget(MaterialApp(home: pages[2].$1(false)));
+    await findDetail('Payment due in 30 days');
+    expect(requests, 6);
+    expect(find.text('Payment due in 45 days'), findsNothing);
+    orderRefresh.complete();
+    await findDetail('Payment due in 45 days');
   });
 }
