@@ -10,10 +10,12 @@ class AppointmentBookingPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.headers,
+    this.linkedAppointmentId,
   });
 
   final ApiClient api;
   final Map<String, String> headers;
+  final int? linkedAppointmentId;
 
   @override
   State<AppointmentBookingPage> createState() => _AppointmentBookingPageState();
@@ -31,6 +33,40 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
   bool _busy = false;
   bool get _active => mounted && widget.api.sessionRevision == _revision;
   Json? get _policy => _options?['policy'] as Json?;
+  Json? _schedule;
+  String? get _schedulePath => widget.linkedAppointmentId == null
+      ? null
+      : '/srm/service-checkout/appointments/${widget.linkedAppointmentId}/schedule';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_schedulePath != null) _loadSchedule();
+  }
+
+  Future<void> _loadSchedule() => _run(() async {
+    final schedule = await _get(_schedulePath!);
+    final booking = schedule['booking'] as Json;
+    final id = schedule['service_id'];
+    final options = await _get(_optionsPath, {'service_id': id});
+    if (!_active) return;
+    setState(() {
+      _schedule = schedule;
+      _options = options;
+      _service = {'id': id, 'name': (options['service'] as Json?)?['name']};
+      _provider = _rows(options, 'specialists')
+          .where(
+            (provider) =>
+                provider['eligibility_id'] == booking['eligibility_id'],
+          )
+          .firstOrNull;
+      _minutes = booking['duration_minutes'] as int?;
+      _resources
+        ..clear()
+        ..addAll((schedule['additional_resource_ids'] as List).cast<int>());
+      _clearSlots();
+    });
+  });
 
   List<Json> _rows(Json? value, String key) =>
       (value?[key] as List? ?? const []).whereType<Json>().toList();
@@ -189,11 +225,11 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
         return;
       }
       final provider = _provider!;
-      final title = '${_service!['name']} · ${_customer!['name']}';
+      final title = '${_service!['name']} · ${_customer?['name'] ?? ''}';
       _pending = {
         'request_id': const Uuid().v4(),
         'title': String.fromCharCodes(title.runes.take(220)),
-        'customer_id': _customer!['id'],
+        'customer_id': ?_customer?['id'],
         'service_id': _service!['id'],
         'resource_ids': [provider['provider_resource_id'], ..._resources],
         'starts_at': start,
@@ -211,18 +247,30 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
         },
       };
     }
+    final grouped = _schedule;
     try {
       final result = await widget.api.request(
         'POST',
-        '/srm/industry/appointments',
-        data: _pending,
+        _schedulePath ?? '/srm/industry/appointments',
+        data: grouped == null
+            ? _pending
+            : {
+                'expected_appointment_revision':
+                    grouped['appointment_revision'],
+                'expected_occurrence_revision': grouped['occurrence_revision'],
+                'booking': _pending!['booking'],
+                'additional_resource_ids': _resources.toList(),
+              },
         scopeHeaders: widget.headers,
       );
       if (!mounted || widget.api.sessionRevision != _revision) return;
-      if (result is! Json || result['id'] is! int) {
+      final appointment = grouped == null
+          ? result
+          : (result is Json ? result['appointment'] : null);
+      if (appointment is! Json || appointment['id'] is! int) {
         throw ApiFailure('Booking confirmation is unavailable.', 503);
       }
-      Navigator.pop(context, result);
+      Navigator.pop(context, appointment);
     } on ApiFailure catch (failure) {
       if (_active && const {400, 403, 404, 409, 422}.contains(failure.status)) {
         setState(() {
@@ -236,6 +284,7 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final grouped = _schedulePath != null;
     final edit = !_busy && _pending == null;
     final options = _options;
     final providers = _rows(options, 'specialists');
@@ -243,18 +292,38 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
     final quote = options?['service'] as Json?;
     final canCheck = edit && _provider != null && _minutes != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('New appointment')),
+      appBar: AppBar(
+        title: Text(grouped ? 'Reschedule service' : 'New appointment'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          OutlinedButton(
-            onPressed: edit ? _chooseCustomer : null,
-            child: Text('${_customer?['name'] ?? 'Choose customer'}'),
-          ),
-          OutlinedButton(
-            onPressed: edit ? _chooseService : null,
-            child: Text('${_service?['name'] ?? 'Choose service'}'),
-          ),
+          if (grouped)
+            OutlinedButton(
+              onPressed: _busy
+                  ? null
+                  : () {
+                      setState(() {
+                        _pending = null;
+                        _schedule = null;
+                        _provider = null;
+                        _clearSlots();
+                      });
+                      _loadSchedule();
+                    },
+              child: const Text('Reload current schedule'),
+            )
+          else ...[
+            OutlinedButton(
+              onPressed: edit ? _chooseCustomer : null,
+              child: Text('${_customer?['name'] ?? 'Choose customer'}'),
+            ),
+            OutlinedButton(
+              onPressed: edit ? _chooseService : null,
+              child: Text('${_service?['name'] ?? 'Choose service'}'),
+            ),
+          ],
+          if (grouped && _service != null) Text('${_service!['name']}'),
           if (quote != null)
             Text(
               'Estimated price before tax: ${quote['currency']} ${quote['price']}',
@@ -331,6 +400,19 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
                         _clearSlots();
                       }),
               ),
+            for (final id in _resources.where(
+              (id) => !resources.any((resource) => resource['id'] == id),
+            ))
+              CheckboxListTile(
+                title: Text('Current resource #$id'),
+                value: true,
+                onChanged: edit
+                    ? (_) => setState(() {
+                        _resources.remove(id);
+                        _clearSlots();
+                      })
+                    : null,
+              ),
             OutlinedButton(
               onPressed: canCheck ? _loadSlots : null,
               child: const Text('Check available times'),
@@ -360,11 +442,16 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
             if (_busy) const LinearProgressIndicator(),
             if (_notice != null) Text(_notice!, maxLines: 4),
             FilledButton(
-              onPressed: _busy || _customer == null || _slot == null
+              onPressed:
+                  _busy || (!grouped && _customer == null) || _slot == null
                   ? null
                   : _confirm,
               child: Text(
-                _pending == null ? 'Confirm appointment' : 'Retry confirmation',
+                _pending != null
+                    ? 'Retry confirmation'
+                    : grouped
+                    ? 'Save new schedule'
+                    : 'Confirm appointment',
               ),
             ),
           ],

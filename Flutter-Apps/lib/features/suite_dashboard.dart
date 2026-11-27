@@ -1385,7 +1385,13 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
       helpText: 'New start time · device time zone',
     );
     if (!mounted || time == null || api.sessionRevision != session) return;
-    final start = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    final start = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      time.hour,
+      time.minute,
+    );
     if (!start.isAfter(DateTime.now())) {
       setState(() => _error = 'Choose a future start time.');
       return;
@@ -1512,7 +1518,6 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
                       runSpacing: 8,
                       children: [
                         if (appointment['status'] == 'booked' &&
-                            data['pos_checkout_id'] == null &&
                             data['duration_minutes'] is int &&
                             data['resource_ids'] is List &&
                             (allowed is List
@@ -1521,7 +1526,27 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
                           OutlinedButton(
                             onPressed: _saving
                                 ? null
-                                : () => _reschedule(revision, data),
+                                : () async {
+                                    if (data['pos_checkout_id'] == null) {
+                                      await _reschedule(revision, data);
+                                      return;
+                                    }
+                                    final moved = await Navigator.of(context)
+                                        .push<Json>(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AppointmentBookingPage(
+                                                  api: widget.controller.api,
+                                                  headers: widget.scopeHeaders,
+                                                  linkedAppointmentId:
+                                                      widget.id,
+                                                ),
+                                          ),
+                                        );
+                                    if (!mounted || moved == null) return;
+                                    widget.onChanged();
+                                    setState(() => _details = _load());
+                                  },
                             child: const Text('Reschedule'),
                           ),
                         for (final status in next)

@@ -8,10 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  final linked = ValueVariant<bool>({false, true});
   testWidgets('Native appointment checks the slot and retries one booking', (
     tester,
   ) async {
     const startsAt = '2026-12-01T09:00:00+00:00';
+    const schedulePath = '/srm/service-checkout/appointments/23/schedule';
+    final grouped = linked.currentValue!;
     final posts = <Json>[];
     var availabilityCalls = 0;
     final api = ApiClient(
@@ -21,6 +24,21 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
           switch (request.path) {
+            case schedulePath:
+              expect(grouped, isTrue);
+              if (request.method == 'GET') {
+                return response({
+                  'service_id': 3,
+                  'appointment_revision': 4,
+                  'occurrence_revision': 5,
+                  'booking': {'eligibility_id': 8, 'duration_minutes': 30},
+                  'additional_resource_ids': [12],
+                });
+              }
+              posts.add(Map<String, dynamic>.of(request.data as Json));
+              return response({
+                'appointment': {'id': 23},
+              });
             case '/srm/business/customers':
               return response({
                 'items': [
@@ -64,13 +82,14 @@ void main() {
               }
               return response({
                 'slots': [
-                    {'starts_at': startsAt, 'label': '09:00'},
-                    for (var index = 1; index <= 40; index++)
-                      {'starts_at': startsAt, 'label': 'Other time $index'},
+                  {'starts_at': startsAt, 'label': '09:00'},
+                  for (var index = 1; index <= 40; index++)
+                    {'starts_at': startsAt, 'label': 'Other time $index'},
                 ],
                 'selection_available': true,
               });
             case '/srm/industry/appointments':
+              expect(grouped, isFalse);
               posts.add(Map<String, dynamic>.of(request.data as Json));
               if (posts.length == 1) {
                 throw DioException(
@@ -96,6 +115,7 @@ void main() {
                     builder: (_) => AppointmentBookingPage(
                       api: api,
                       headers: const {'X-Suite-Branch': '6'},
+                      linkedAppointmentId: grouped ? 23 : null,
                     ),
                   ),
                 );
@@ -114,28 +134,36 @@ void main() {
     }
 
     await tap('Open booking');
-    await tap('Choose customer');
-    await tap('Aurora Retail');
-    await tap('Choose service');
-    await tap('Consultation');
-    await tester.tap(find.byType(DropdownButton<Json>));
-    await tester.pumpAndSettle();
-    await tap('Asha');
-    await tap('Room A');
+    if (!grouped) {
+      await tap('Choose customer');
+      await tap('Aurora Retail');
+      await tap('Choose service');
+      await tap('Consultation');
+      await tester.tap(find.byType(DropdownButton<Json>));
+      await tester.pumpAndSettle();
+      await tap('Asha');
+      await tap('Room A');
+    }
     await tap('Check available times');
     await tap('09:00');
-    expect(find.text('Confirm appointment').hitTestable(), findsOneWidget);
-    await tap('Confirm appointment');
-    await tap('Retry confirmation');
+    final confirm = grouped ? 'Save new schedule' : 'Confirm appointment';
+    expect(find.text(confirm).hitTestable(), findsOneWidget);
+    await tap(confirm);
     expect(availabilityCalls, 2);
-    expect(posts, hasLength(2));
-    expect(posts.last, posts.first);
-    expect(posts.singleOrNull, isNull);
-    expect(posts.first['resource_ids'], [11, 12]);
+    if (grouped) {
+      expect(posts.single['expected_appointment_revision'], 4);
+      expect(posts.single['expected_occurrence_revision'], 5);
+      expect(posts.single['additional_resource_ids'], [12]);
+    } else {
+      await tap('Retry confirmation');
+      expect(posts, hasLength(2));
+      expect(posts.last, posts.first);
+      expect(posts.first['resource_ids'], [11, 12]);
+    }
     expect(
       posts.first['booking'],
       containsPair('expected_eligibility_revision', 3),
     );
     expect(booked, {'id': 23});
-  });
+  }, variant: linked);
 }
