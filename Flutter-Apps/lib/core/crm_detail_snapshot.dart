@@ -46,21 +46,26 @@ Future<({Json? record, bool live})> loadCrmDetail({
     }
   }
 
-  Json? cached;
-  if (key != null) {
+  var awaitingLive = !offline;
+  Future<Json?> readCached() async {
+    if (key == null) return null;
+    Json? cached;
     try {
-      cached =
-          _pendingDetails[key]?.record ??
-          (await SuiteReadCache.read(key))?.firstOrNull;
+      final pending = await Future<Json?>.value(_pendingDetails[key]?.record);
+      cached = pending ?? (await SuiteReadCache.read(key))?.firstOrNull;
     } catch (_) {}
-    checkSession();
-    if (!offline && cached != null) onCached?.call(cached);
+    if (awaitingLive && revision == api.sessionRevision && cached != null) {
+      onCached?.call(cached);
+    }
+    return cached;
   }
 
+  final cached = readCached();
   if (!offline) {
     try {
       final record =
           await api.request('GET', path, scopeHeaders: headers) as Json;
+      awaitingLive = false;
       checkSession();
       if (key != null) {
         try {
@@ -72,6 +77,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
       checkSession();
       return (record: record, live: true);
     } on ApiFailure catch (error) {
+      awaitingLive = false;
       if (key != null && const {401, 403, 404}.contains(error.status)) {
         try {
           await _pendingDetails.remove(key)?.write;
@@ -84,8 +90,11 @@ Future<({Json? record, bool live})> loadCrmDetail({
           (error.status ?? 0) < 500) {
         rethrow;
       }
+    } finally {
+      awaitingLive = false;
     }
   }
+  final saved = await cached;
   checkSession();
-  return (record: cached, live: false);
+  return (record: saved, live: false);
 }
