@@ -42,6 +42,7 @@ import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
+import 'my_payslips_page.dart';
 import 'my_roster_page.dart';
 import 'finance_party_page.dart';
 import 'power_environment_page.dart';
@@ -2543,6 +2544,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     }
                   },
                 ),
+              ),
+            ),
+          ),
+        if (widget.path == '/employees/')
+          IconButton(
+            tooltip: 'My Payslips',
+            icon: const Icon(LucideIcons.fileText),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MyPayslipsPage(api: widget.controller.api),
               ),
             ),
           ),

@@ -26,6 +26,7 @@ import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
 import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
+import 'package:business_suite_mobile/features/my_payslips_page.dart';
 import 'package:business_suite_mobile/features/my_roster_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
@@ -59,6 +60,76 @@ void mockUnavailableSqlite(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('My Payslips opens history and sends a query for that record', (
+    tester,
+  ) async {
+    RequestOptions? sent;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case '/payroll/my-payslips':
+              return response([
+                {
+                  'id': 71,
+                  'month': 4,
+                  'year': 2024,
+                  'net_salary': '20000',
+                  'currency': 'INR',
+                  'financial_year': '2024–25',
+                },
+              ]);
+            case '/payroll/payslip':
+              expect(
+                request.queryParameters.containsKey('employee_id'),
+                isFalse,
+              );
+              if (request.queryParameters['year'] != 2024) {
+                return response({'detail': 'Payslip not found'}, 404);
+              }
+              expect(request.queryParameters['month'], 4);
+              return response({
+                'payroll_record_id': 71,
+                'net_salary': '20000',
+                'currency': 'INR',
+                'payroll_status': 'Locked',
+              });
+            case '/payroll/payslip-queries':
+              sent = request;
+              return response({'id': 12}, 201);
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(MaterialApp(home: MyPayslipsPage(api: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Available payslips'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('April 2024'));
+    await tester.pumpAndSettle();
+    expect(find.text('Net pay · April 2024'), findsOneWidget);
+    expect(find.text('Download PDF'), findsOneWidget);
+    final question = find.byType(TextField);
+    await tester.ensureVisible(question);
+    await tester.enterText(question, 'Please check the adjustment.');
+    await tester.pumpAndSettle();
+    final send = find.text('Send query to Payroll');
+    await tester.ensureVisible(send);
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+    expect(sent?.method, 'POST');
+    expect(sent?.data, {
+      'payroll_record_id': 71,
+      'subject': 'Payslip query: April 2024',
+      'description': 'Please check the adjustment.',
+      'priority': 'Medium',
+    });
+    expect(find.text('Payslip query sent to Payroll.'), findsOneWidget);
+  });
+
   testWidgets('My Roster loads only my shifts from the web roster API', (
     tester,
   ) async {
@@ -69,12 +140,16 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.path, '/hrms/shift-roster');
           expect(request.queryParameters['employeeId'], 27);
-          final from = DateTime.parse(request.queryParameters['from'] as String);
+          final from = DateTime.parse(
+            request.queryParameters['from'] as String,
+          );
           final to = DateTime.parse(request.queryParameters['to'] as String);
           expect(
-            DateTime.utc(to.year, to.month, to.day)
-                .difference(DateTime.utc(from.year, from.month, from.day))
-                .inDays,
+            DateTime.utc(
+              to.year,
+              to.month,
+              to.day,
+            ).difference(DateTime.utc(from.year, from.month, from.day)).inDays,
             7,
           );
           return response({
@@ -100,7 +175,9 @@ void main() {
       'employee_id': 27,
     });
     await tester.pumpWidget(
-      MaterialApp(home: MyRosterPage(api: api, employeeId: user.employeeId)),
+      MaterialApp(
+        home: MyRosterPage(api: api, employeeId: user.employeeId),
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Morning'), findsOneWidget);
