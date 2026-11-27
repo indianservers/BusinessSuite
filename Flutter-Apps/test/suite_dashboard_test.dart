@@ -681,11 +681,15 @@ void main() {
   testWidgets('Notes moves a note to Trash and restores it by version', (
     tester,
   ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",29,7]');
     const path = '/project-management/notes';
     const note = {
       'id': 15,
       'title': 'Trashed note',
       'can_edit': true,
+      'visibility_scope': 'private',
+      'visibility': 'private',
       'deleted_at': '2026-11-27T10:00:00Z',
       'version': 8,
     };
@@ -716,6 +720,10 @@ void main() {
             }
             return response(currentNote());
           }
+          if (trashed && request.queryParameters['view'] == 'all') {
+            expect(await cache.summaries(), isEmpty);
+            expect(await cache.detail(15), isNull);
+          }
           return response([
             if ((request.queryParameters['view'] == 'trash') == trashed)
               currentNote(),
@@ -726,12 +734,17 @@ void main() {
       'access_token': 'access',
       'refresh_token': 'refresh',
     });
-    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache),
+      ),
+    );
     await tester.pumpAndSettle();
     for (final label in ['Trashed note', 'Move to Trash']) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
     }
+    expect(await cache.detail(15), isNotNull);
     await tester.tap(find.widgetWithText(FilledButton, 'Move to Trash'));
     await tester.pumpAndSettle();
     expect(trashed, isTrue);

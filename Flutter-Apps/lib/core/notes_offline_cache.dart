@@ -72,6 +72,14 @@ class NotesOfflineCache {
   Future<Json?> detail(Object? id) async =>
       (await _read('details')).where((note) => note['id'] == id).firstOrNull;
 
+  Future<void> forgetNote(Object? id) async {
+    for (final suffix in ['summaries', 'details']) {
+      final notes = await _read(suffix);
+      final remaining = notes.where((note) => note['id'] != id).toList();
+      if (remaining.length != notes.length) await _write(suffix, remaining);
+    }
+  }
+
   Future<void> saveDetail(Json note) async {
     final details = (await _read(
       'details',

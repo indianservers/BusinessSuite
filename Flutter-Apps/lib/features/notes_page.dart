@@ -566,7 +566,11 @@ class _NoteEditorState extends State<_NoteEditor> {
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {
         try {
-          await widget.cache?.saveDetail(updated);
+          if (updated['archived'] == true) {
+            await widget.cache?.forgetNote(updated['id']);
+          } else {
+            await widget.cache?.saveDetail(updated);
+          }
         } catch (_) {
           // A local cache failure does not undo a server save.
         }
@@ -622,6 +626,9 @@ class _NoteEditorState extends State<_NoteEditor> {
         '$_notesPath/${note['id']}${restore ? '/restore' : ''}',
         data: {'version': note['version']},
       );
+      if (!restore && widget.api.sessionRevision == revision) {
+        await widget.cache?.forgetNote(note['id']);
+      }
       if (!mounted || widget.api.sessionRevision != revision) return;
       setState(() => _saving = false);
       Navigator.of(context).pop(true);
