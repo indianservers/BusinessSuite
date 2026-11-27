@@ -53,6 +53,10 @@ void main() {
                   {'action': 'contact', 'actor_name': 'Sales coordinator'},
                 ],
               },
+              '$scope:/follow-ups/statistics:6' => {
+                'Total': 7,
+                'Conversion Rate': 42.9,
+              },
               _ => throw StateError('Unexpected SQLite key $key'),
             };
             return [
@@ -100,6 +104,13 @@ void main() {
       expect(requests, 0);
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Follow-up statistics'));
+      await tester.pumpAndSettle();
+      expect(find.text('Saved statistics'), findsOneWidget);
+      expect(find.text('42.9%'), findsOneWidget);
+      expect(requests, 0);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Refresh follow-ups'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -117,6 +128,7 @@ void main() {
     tester,
   ) async {
     Map? created;
+    final filters = <String>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -125,12 +137,15 @@ void main() {
           expect(request.headers['X-Suite-Branch'], '6');
           switch ((request.method, request.path)) {
             case ('GET', '/follow-ups'):
+              filters.add(request.queryParameters['status'] as String);
               return response({
                 'items': [
                   if (created != null) {'id': 9, ...created!, 'status': 'Due'},
                 ],
                 'total': created == null ? 0 : 1,
               });
+            case ('GET', '/follow-ups/statistics'):
+              return response({'Total': 1, 'Due': 1, 'Conversion Rate': 0});
             case ('GET', '/follow-ups/options'):
               return response({
                 'customers': [
@@ -158,6 +173,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Follow-up statistics'));
+    await tester.pumpAndSettle();
+    expect(find.text('0%'), findsOneWidget);
+    await tester.tap(find.text('Due today'));
+    await tester.pumpAndSettle();
+    expect(filters, ['', 'Due']);
     await tester.tap(find.byTooltip('New follow-up'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Customer'), 'Paper');

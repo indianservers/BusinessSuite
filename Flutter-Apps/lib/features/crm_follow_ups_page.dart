@@ -172,11 +172,35 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     row['assigned_to'],
   ].whereType<String>().where((value) => value.isNotEmpty).join(' · ');
 
+  Future<void> _showStatistics() async {
+    final status = await showDialog<String>(
+      context: context,
+      builder: (_) => _FollowUpStatistics(
+        api: widget.api,
+        headers: widget.headers,
+        cacheScope: widget.cacheScope,
+        offline: _offline,
+      ),
+    );
+    if (mounted && status != null) _selectStatus(status);
+  }
+
+  void _selectStatus(String status) => setState(() {
+    _status = status;
+    _page = 1;
+    _rows = _load();
+  });
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Follow-ups'),
       actions: [
+        IconButton(
+          tooltip: 'Follow-up statistics',
+          icon: const Icon(LucideIcons.chartNoAxesColumnIncreasing),
+          onPressed: _showStatistics,
+        ),
         if (widget.canCreate)
           FutureBuilder(
             future: _rows,
@@ -220,11 +244,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
         ),
         DropdownButton<String>(
           value: _status,
-          onChanged: (value) => setState(() {
-            _status = value!;
-            _page = 1;
-            _rows = _load();
-          }),
+          onChanged: (value) => _selectStatus(value!),
           items: [
             const DropdownMenuItem(value: '', child: Text('All statuses')),
             for (final status in _states)
@@ -300,6 +320,114 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     _page += delta;
     _rows = _load();
   });
+}
+
+class _FollowUpStatistics extends StatefulWidget {
+  const _FollowUpStatistics({
+    required this.api,
+    required this.headers,
+    required this.cacheScope,
+    required this.offline,
+  });
+
+  final ApiClient api;
+  final Map<String, String> headers;
+  final String? cacheScope;
+  final bool offline;
+
+  @override
+  State<_FollowUpStatistics> createState() => _FollowUpStatisticsState();
+}
+
+class _FollowUpStatisticsState extends State<_FollowUpStatistics> {
+  late var _statistics = _load(offline: widget.offline);
+  static const _labels = [
+    'Total',
+    'Due',
+    'Overdue',
+    'Completed',
+    'Rescheduled',
+    'Missed',
+    'Upcoming 7 Days',
+    'Conversion Rate',
+  ];
+
+  Future<({Json? record, bool live})> _load({required bool offline}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: '/follow-ups/statistics',
+        scope: widget.cacheScope,
+        headers: widget.headers,
+        offline: offline,
+        project: (record) => {
+          for (final label in _labels)
+            if (record[label] is num) label: record[label],
+        },
+      );
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: _statistics,
+    builder: (context, snapshot) {
+      final loading = snapshot.connectionState != ConnectionState.done;
+      final result = loading ? null : snapshot.data;
+      final record = result?.record;
+      return AlertDialog(
+        title: const Text('Follow-up statistics'),
+        scrollable: true,
+        content: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (loading)
+                const LinearProgressIndicator()
+              else if (snapshot.hasError)
+                Text('${snapshot.error}')
+              else if (record == null)
+                const Text('Connect to load follow-up statistics.')
+              else ...[
+                if (!result!.live) const Text('Saved statistics'),
+                for (final label in _labels)
+                  if (record[label] case final num value)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(label == 'Due' ? 'Due today' : label),
+                      onTap:
+                          label == 'Total' ||
+                              _CrmFollowUpsPageState._states.contains(label)
+                          ? () => Navigator.pop(
+                              context,
+                              label == 'Total' ? '' : label,
+                            )
+                          : null,
+                      trailing: Text(
+                        label == 'Conversion Rate' ? '$value%' : '$value',
+                      ),
+                    ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: loading
+                ? null
+                : () => setState(() {
+                    _statistics = _load(offline: false);
+                  }),
+            child: const Text('Refresh'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _FollowUpDetail extends StatefulWidget {
