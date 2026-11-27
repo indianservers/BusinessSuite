@@ -16,6 +16,7 @@ import 'package:business_suite_mobile/features/crm_customer_page.dart';
 import 'package:business_suite_mobile/features/crm_task_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
 import 'package:business_suite_mobile/features/crm_pipeline_page.dart';
+import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/inventory_stock_movement_page.dart';
@@ -35,6 +36,94 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android creates and syncs a purchase draft from saved choices', (
+    tester,
+  ) async {
+    const base = 'https://example.test/api/v1';
+    final scope = '["$base",${DateTime.now().microsecondsSinceEpoch},7]';
+    const branch = '6';
+    final choices = '$scope:purchase-choices:$branch';
+    await SuiteReadCache.write('$choices:vendor', [
+      {'id': 22, 'name': 'Saved supplier'},
+    ]);
+    await SuiteReadCache.write('$choices:product', [
+      {'id': 3, 'item_name': 'Saved paper', 'sku': 'PAPER-3'},
+    ]);
+    await SuiteReadCache.write('$choices:warehouses', [
+      {'id': 6, 'warehouse_name': 'Saved warehouse'},
+    ]);
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: base,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          writes.add(request);
+          return writes.length == 1
+              ? response({'detail': 'Temporarily unavailable'}, 503)
+              : response({'id': 9, 'status': 'draft'}, 201);
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+    );
+    final result = navigator.currentState!.push<Json>(
+      MaterialPageRoute(
+        builder: (_) => InventoryPurchaseOrderForm(
+          api: api,
+          scopeHeaders: const {'X-Suite-Branch': branch},
+          cacheScope: scope,
+          offline: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> tap(String label) async {
+      final finder = find.text(label).last;
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while (find.text(label).evaluate().isEmpty &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump();
+      }
+      expect(find.text(label), findsWidgets);
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Choose vendor');
+    await tap('Saved supplier');
+    await tap('Choose product');
+    await tap('Saved paper');
+    await tap('Warehouse');
+    await tap('Saved warehouse');
+    await tap('Save draft offline');
+    expect(await result.timeout(const Duration(seconds: 30)), {'local': true});
+    expect(writes, isEmpty);
+    final drafts = SalesOrderDrafts.purchaseOrders(scope);
+    final saved = (await drafts.entries()).single;
+    expect(saved['branch'], branch);
+    expect(saved['payload']['vendor_id'], 22);
+    await drafts.sync(api);
+    expect((await drafts.entries()).single['operation'], saved['operation']);
+    await drafts.sync(api);
+    expect(await drafts.entries(), isEmpty);
+    expect(writes, hasLength(2));
+    for (final request in writes) {
+      expect(
+        request.path,
+        '/srm/procurement/purchase-orders/drafts/offline-create',
+      );
+      expect(request.headers['X-Suite-Organization'], '7');
+      expect(request.headers['X-Suite-Branch'], branch);
+      expect(request.headers['X-Offline-Operation'], saved['operation']);
+      expect(request.data, saved['payload']);
+    }
+  });
 
   testWidgets('Android pipeline renders saved deals during refresh', (
     tester,
