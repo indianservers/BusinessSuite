@@ -259,17 +259,22 @@ Playwright exits.
 ./backend/venv/Scripts/python.exe ./backend/scripts/serve_notes_qa.py
 ```
 
-From the repository's `frontend` directory, start Playwright with a unique run
+From the repository's `frontend` directory, run Playwright with a unique run
 identifier. It starts the local web app and reuses the isolated backend.
+Run both tests concurrently. If Android install and launch are slow, start
+the Android test first and start Playwright once Flutter reports the Android
+test has started.
 
 ```powershell
 $env:NOTES_BROWSER_RUN = 'notes-roundtrip-001'
 ./node_modules/.bin/playwright.cmd test --config playwright.notes.config.ts --grep 'opens a native Android note'
 ```
 
-From `Flutter-Apps`, use the same run identifier and forward device port
-1559 with ADB. The Android test saves a note, waits for the browser to change
-its title, then checks that the changed title appears when Notes is reopened.
+From `Flutter-Apps`, use the same run identifier. On a physical device,
+forward port 1559 with ADB and use `127.0.0.1`. On the Android emulator,
+use `http://10.0.2.2:1559/api/v1` as `NOTES_QA_API_URL` to reach the host
+loopback address directly. The Android test saves a note, waits for the
+browser to change its title, then checks the title when Notes is reopened.
 
 ```powershell
 adb -s YOUR_ADB_SERIAL reverse tcp:1559 tcp:1559
