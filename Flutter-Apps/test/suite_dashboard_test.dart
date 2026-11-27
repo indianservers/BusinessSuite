@@ -2607,6 +2607,7 @@ void main() {
   testWidgets('inventory records a stock movement in the selected branch', (
     tester,
   ) async {
+    FlutterSecureStorage.setMockInitialValues({});
     var recorded = false;
     var productReads = 0;
     final receipts = <Object?>[];
@@ -2656,6 +2657,7 @@ void main() {
           summary: const {'id': 12},
           offline: false,
           canRecordStock: true,
+          cacheScope: '["https://example.test/api/v1",7,3]',
           scopeHeaders: const {'X-Suite-Branch': '3'},
         ),
       ),
@@ -2673,6 +2675,11 @@ void main() {
     );
     await tester.tap(find.text('Save movement'));
     await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Record stock movement'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pending stock movement'), findsOneWidget);
     await tester.tap(find.text('Retry same movement'));
     await tester.pumpAndSettle();
     expect(receipts, hasLength(2));

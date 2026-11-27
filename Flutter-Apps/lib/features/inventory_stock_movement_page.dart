@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
@@ -10,11 +13,13 @@ class InventoryStockMovementPage extends StatefulWidget {
     required this.api,
     required this.productId,
     required this.scopeHeaders,
+    this.cacheScope,
   });
 
   final ApiClient api;
   final int productId;
   final Map<String, String> scopeHeaders;
+  final String? cacheScope;
 
   @override
   State<InventoryStockMovementPage> createState() =>
@@ -33,17 +38,54 @@ class _InventoryStockMovementPageState
   String? _error;
   bool _saving = false;
   ({String id, Json payload})? _uncertainAttempt;
-  bool get _locked => _saving || _uncertainAttempt != null;
+  static const _storage = FlutterSecureStorage();
+  String? get _receiptKey {
+    final scope = widget.cacheScope;
+    final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+    return scope == null
+        ? null
+        : 'stock_receipt_${Uri.encodeComponent('$scope:$branch:${widget.productId}')}';
+  }
 
-  Future<dynamic> _loadWarehouses() => widget.api.request(
-    'GET',
-    '/srm/inventory/warehouses',
-    scopeHeaders: widget.scopeHeaders,
-  );
+  Future<dynamic> _loadWarehouses() async {
+    final key = _receiptKey;
+    final session = widget.api.sessionRevision;
+    if (key != null) {
+      final stored = await _storage.read(key: key);
+      if (!mounted || session != widget.api.sessionRevision) return null;
+      if (stored != null) {
+        final data = jsonDecode(stored) as Json;
+        _uncertainAttempt = (
+          id: data['id'] as String,
+          payload: data['payload'] as Json,
+        );
+        return null;
+      }
+    }
+    return widget.api.request(
+      'GET',
+      '/srm/inventory/warehouses',
+      scopeHeaders: widget.scopeHeaders,
+    );
+  }
+
+  Future<void> _clearReceipt(String? key) async {
+    if (key == null) return;
+    try {
+      await _storage.delete(key: key);
+    } catch (_) {
+      // If a receipt survives, replaying it is safe.
+    }
+  }
 
   Future<void> _save() async {
-    if (_saving || !_form.currentState!.validate()) return;
+    if (_saving ||
+        (_uncertainAttempt == null && _form.currentState?.validate() != true)) {
+      return;
+    }
     final session = widget.api.sessionRevision;
+    final key = _receiptKey;
+    final retrying = _uncertainAttempt != null;
     final attempt =
         _uncertainAttempt ??
         (
@@ -63,6 +105,13 @@ class _InventoryStockMovementPageState
       _error = null;
     });
     try {
+      if (!retrying && key != null) {
+        await _storage.write(
+          key: key,
+          value: jsonEncode({'id': attempt.id, 'payload': attempt.payload}),
+        );
+      }
+      if (!mounted || session != widget.api.sessionRevision) return;
       await widget.api.request(
         'POST',
         '/srm/inventory/stock-movements/offline-create',
@@ -72,12 +121,15 @@ class _InventoryStockMovementPageState
         },
         data: attempt.payload,
       );
+      await _clearReceipt(key);
       if (!mounted || session != widget.api.sessionRevision) return;
       Navigator.pop(context, true);
     } on ApiFailure catch (error) {
+      final uncertain = error.connectionFailure || (error.status ?? 0) >= 500;
+      if (!retrying && !uncertain) await _clearReceipt(key);
       if (mounted) {
         setState(() {
-          if (error.connectionFailure || (error.status ?? 0) >= 500) {
+          if (uncertain) {
             _uncertainAttempt = attempt;
             _error =
                 'Could not confirm the movement. Retry this same movement or check the product ledger.';
@@ -85,6 +137,10 @@ class _InventoryStockMovementPageState
             _error = error.message;
           }
         });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Could not save the movement on this device.');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -111,6 +167,24 @@ class _InventoryStockMovementPageState
             return const Center(child: CircularProgressIndicator());
           }
           final data = snapshot.data;
+          if (_uncertainAttempt case final attempt?) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text('Pending stock movement'),
+                Text(
+                  "${attempt.payload['movement_type'] == 'stock_in' ? 'Stock in' : 'Stock out'}"
+                  " · ${attempt.payload['quantity']} · Warehouse #${attempt.payload['warehouse_id']}",
+                ),
+                if (_error != null) Text(_error!),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(_saving ? 'Saving…' : 'Retry same movement'),
+                ),
+              ],
+            );
+          }
           if (data is! Json || data['items'] is! List) {
             return Center(
               child: TextButton(
@@ -143,7 +217,7 @@ class _InventoryStockMovementPageState
                       child: Text('Stock out'),
                     ),
                   ],
-                  onChanged: _locked
+                  onChanged: _saving
                       ? null
                       : (value) => setState(() => _type = value!),
                 ),
@@ -159,11 +233,11 @@ class _InventoryStockMovementPageState
                   ],
                   validator: (value) =>
                       value == null ? 'Choose a warehouse' : null,
-                  onChanged: _locked ? null : (value) => _warehouse = value,
+                  onChanged: _saving ? null : (value) => _warehouse = value,
                 ),
                 TextFormField(
                   controller: _quantity,
-                  enabled: !_locked,
+                  enabled: !_saving,
                   decoration: const InputDecoration(labelText: 'Quantity'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -177,7 +251,7 @@ class _InventoryStockMovementPageState
                 ),
                 TextFormField(
                   controller: _rate,
-                  enabled: !_locked,
+                  enabled: !_saving,
                   decoration: const InputDecoration(
                     labelText: 'Rate (optional)',
                   ),
@@ -194,7 +268,7 @@ class _InventoryStockMovementPageState
                 ),
                 TextFormField(
                   controller: _reference,
-                  enabled: !_locked,
+                  enabled: !_saving,
                   decoration: const InputDecoration(
                     labelText: 'Reference (optional)',
                   ),
@@ -203,13 +277,7 @@ class _InventoryStockMovementPageState
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(
-                    _saving
-                        ? 'Saving…'
-                        : _uncertainAttempt == null
-                        ? 'Save movement'
-                        : 'Retry same movement',
-                  ),
+                  child: Text(_saving ? 'Saving…' : 'Save movement'),
                 ),
               ],
             ),

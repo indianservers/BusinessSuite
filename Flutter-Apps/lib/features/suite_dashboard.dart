@@ -2612,6 +2612,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
           api: widget.api,
           productId: id,
           scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cacheScope,
         ),
       ),
     );
