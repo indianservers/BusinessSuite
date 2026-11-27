@@ -1132,6 +1132,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   String _appointmentStatus = '';
   DateTime? _appointmentDay;
 
+  void _moveAppointmentDay(int days) {
+    final day = _appointmentDay ?? DateTime.now();
+    _setAppointmentDay(DateTime(day.year, day.month, day.day + days));
+  }
+
   Future<void> _pickAppointmentDay() async {
     final day = await showDatePicker(
       context: context,
@@ -1784,6 +1789,31 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                               onPressed: () => _setAppointmentDay(null),
                               icon: const Icon(Icons.clear),
                             ),
+                    ),
+                  if (_appointments)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: 'Previous day',
+                          onPressed: () => _moveAppointmentDay(-1),
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final now = DateTime.now();
+                            _setAppointmentDay(
+                              DateTime(now.year, now.month, now.day),
+                            );
+                          },
+                          child: const Text('Today'),
+                        ),
+                        IconButton(
+                          tooltip: 'Next day',
+                          onPressed: () => _moveAppointmentDay(1),
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
                     ),
                   if (_stockAlerts)
                     ListTile(

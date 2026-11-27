@@ -2440,6 +2440,22 @@ void main() {
           today.day + 1,
         ).toUtc().toIso8601String(),
       );
+      await tester.tap(find.byTooltip('Previous day'));
+      await tester.pumpAndSettle();
+      expect(
+        calls
+            .lastWhere((r) => r.path == '/srm/industry/records')
+            .queryParameters['until_at'],
+        datedRequest.queryParameters['from_at'],
+      );
+      await tester.tap(find.byTooltip('Next day'));
+      await tester.pumpAndSettle();
+      expect(
+        calls
+            .lastWhere((r) => r.path == '/srm/industry/records')
+            .queryParameters,
+        datedRequest.queryParameters,
+      );
       await tester.tap(find.byTooltip('Clear schedule date'));
       await tester.pumpAndSettle();
       expect(
