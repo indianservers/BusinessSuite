@@ -76,8 +76,12 @@ void main() {
     expect(saved, findsOneWidget);
     expect(find.text('Edit contact'), findsNothing);
     responseReady.complete();
-    await tester.pumpAndSettle();
-    expect(find.text('Live contact from API'), findsOneWidget);
+    final live = find.text('Live contact from API');
+    final liveDeadline = DateTime.now().add(const Duration(seconds: 30));
+    while (live.evaluate().isEmpty && DateTime.now().isBefore(liveDeadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(live, findsOneWidget);
     expect(find.text('Edit contact'), findsOneWidget);
   });
 

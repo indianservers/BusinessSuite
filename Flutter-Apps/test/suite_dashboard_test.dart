@@ -11,6 +11,7 @@ import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
+import 'package:business_suite_mobile/features/crm_quotation_page.dart';
 import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
@@ -37,6 +38,62 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Quotation approval uses the shared status workflow', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    var status = 'Draft';
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            writes.add(request);
+            status = request.path.endsWith('/submit')
+                ? 'Pending Approval'
+                : 'Approved';
+          }
+          return response({
+            'id': 44,
+            'quote_number': 'QT-44',
+            'status': status,
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmQuotationPage(
+          api: api,
+          summary: const {'id': 44},
+          offline: false,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+          canSubmit: true,
+          canApprove: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final label in ['Submit for approval', 'Approve quotation']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(label == 'Submit for approval' ? 0 : 1));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(label),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(writes.map((request) => request.path), [
+      '/crm/quotes/44/submit',
+      '/crm/quotes/44/approve',
+    ]);
+    expect(writes.last.headers['X-Suite-Organization'], '7');
+    expect(find.text('Approved'), findsOneWidget);
+  });
+
   test(
     'A rejected queued task stays available for review without retrying',
     () async {

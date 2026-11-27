@@ -519,6 +519,22 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               'crm_manage',
               'crm_admin',
             }),
+        canSubmitQuotes:
+            app.grant == 'crm' &&
+            ['manage', 'edit', 'create'].any(
+              (action) => _canWriteCrm(access, action, const {
+                'crm_quotes_manage',
+                'crm_manage',
+                'crm_admin',
+              }),
+            ),
+        canApproveQuotes:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'approve', const {
+              'crm_quotes_approve',
+              'crm_manage',
+              'crm_admin',
+            }),
         canMoveDeals:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'edit', const {
@@ -1339,6 +1355,8 @@ class _SuiteRecords extends StatefulWidget {
     this.canEditContacts = false,
     this.canMoveDeals = false,
     this.canCreateDeals = false,
+    this.canSubmitQuotes = false,
+    this.canApproveQuotes = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
@@ -1359,6 +1377,8 @@ class _SuiteRecords extends StatefulWidget {
   final bool canEditContacts;
   final bool canMoveDeals;
   final bool canCreateDeals;
+  final bool canSubmitQuotes;
+  final bool canApproveQuotes;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
@@ -1976,6 +1996,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path: CrmDealPage.endpoint,
                   canMoveDeals: widget.canMoveDeals,
                   canCreateDeals: widget.canCreateDeals,
+                  canSubmitQuotes: widget.canSubmitQuotes,
+                  canApproveQuotes: widget.canApproveQuotes,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2034,6 +2056,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Quotations',
                   controller: widget.controller,
                   path: CrmQuotationPage.endpoint,
+                  canSubmitQuotes: widget.canSubmitQuotes,
+                  canApproveQuotes: widget.canApproveQuotes,
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -2876,6 +2900,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
+                                            canSubmit: widget.canSubmitQuotes,
+                                            canApprove: widget.canApproveQuotes,
+                                            onChanged: _refreshCrmRecords,
                                           )
                                         : _crmTasks
                                         ? CrmTaskPage(

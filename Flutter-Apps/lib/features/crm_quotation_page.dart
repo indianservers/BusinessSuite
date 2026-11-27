@@ -14,6 +14,9 @@ class CrmQuotationPage extends StatefulWidget {
     required this.offline,
     required this.scopeHeaders,
     this.cacheScope,
+    this.canSubmit = false,
+    this.canApprove = false,
+    this.onChanged,
   });
 
   static const endpoint = '/crm/quotations';
@@ -32,6 +35,9 @@ class CrmQuotationPage extends StatefulWidget {
   final bool offline;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
+  final bool canSubmit;
+  final bool canApprove;
+  final VoidCallback? onChanged;
 
   @override
   State<CrmQuotationPage> createState() => _CrmQuotationPageState();
@@ -40,6 +46,7 @@ class CrmQuotationPage extends StatefulWidget {
 class _CrmQuotationPageState extends State<CrmQuotationPage> {
   Json? _cached;
   bool _savingPdf = false;
+  bool _changingStatus = false;
   late Future<({Json? record, bool live})> _quote = _load(
     offline: widget.offline,
   );
@@ -120,6 +127,54 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     }
   }
 
+  Future<void> _approvalAction(String action, String label, Json quote) async {
+    if (_changingStatus) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$label?'),
+        content: Text(
+          "Quotation ${quote['quote_number'] ?? widget.summary['id']}",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true || api.sessionRevision != revision) {
+      return;
+    }
+    setState(() => _changingStatus = true);
+    try {
+      await api.request(
+        'POST',
+        '/crm/quotes/${widget.summary['id']}/$action',
+        scopeHeaders: widget.scopeHeaders,
+        data: const <String, dynamic>{},
+      );
+      if (!mounted || api.sessionRevision != revision) return;
+      _refresh();
+      widget.onChanged?.call();
+    } on ApiFailure catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _changingStatus = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -144,6 +199,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
           );
         }
         final record = snapshot.data?.record ?? _cached ?? widget.summary;
+        final live =
+            snapshot.connectionState == ConnectionState.done &&
+            snapshot.data?.live == true;
+        final status = record['status']?.toString().toLowerCase();
         final currency = record['currency'] ?? '';
         final amount = record['grand_total'] ?? record['total_amount'];
         final fields = {
@@ -176,14 +235,52 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     '${record['quote_number'] ?? 'Quotation'}',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  if (snapshot.connectionState == ConnectionState.done &&
-                      snapshot.data?.live == true)
+                  if (live)
                     OutlinedButton.icon(
                       onPressed: _savingPdf ? null : () => _savePdf(record),
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: Text(
                         _savingPdf ? 'Preparing PDF…' : 'Save quotation PDF',
                       ),
+                    ),
+                  if (live &&
+                      widget.canSubmit &&
+                      const {'draft', 'rejected'}.contains(status))
+                    FilledButton(
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _approvalAction(
+                              'submit',
+                              'Submit for approval',
+                              record,
+                            ),
+                      child: const Text('Submit for approval'),
+                    ),
+                  if (live && widget.canApprove && status == 'pending approval')
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilledButton(
+                          onPressed: _changingStatus
+                              ? null
+                              : () => _approvalAction(
+                                  'approve',
+                                  'Approve quotation',
+                                  record,
+                                ),
+                          child: const Text('Approve quotation'),
+                        ),
+                        OutlinedButton(
+                          onPressed: _changingStatus
+                              ? null
+                              : () => _approvalAction(
+                                  'reject',
+                                  'Reject quotation',
+                                  record,
+                                ),
+                          child: const Text('Reject quotation'),
+                        ),
+                      ],
                     ),
                   for (final field in fields.entries)
                     if (field.value != null &&
