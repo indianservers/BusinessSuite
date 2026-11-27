@@ -6534,7 +6534,7 @@ def calculate_quote(
     return _quote_payload(db, quote) | {"calculation": totals}
 
 
-def _quote_for_approval(db: Session, user: User, quote_id: int) -> CRMQuotation:
+def _quote_for_status_change(db: Session, user: User, quote_id: int) -> CRMQuotation:
     organization_id = _organization_id(db, user)
     resource = _get_resource("quotations")
     quote = _get_record(db, resource, quote_id, organization_id)
@@ -6551,7 +6551,7 @@ def submit_quote(
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     _assert_entity_permission("quotations", current_user, "manage")
-    quote = _quote_for_approval(db, current_user, quote_id)
+    quote = _quote_for_status_change(db, current_user, quote_id)
     if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only draft or rejected quotes can be submitted")
     db.add(CRMQuoteApproval(organization_id=quote.organization_id, quote_id=quote.id, status="pending", reason=(payload.model_dump().get("comments") if payload else None), submitted_by=current_user.id, approver_user_id=None))
@@ -6565,7 +6565,7 @@ def approve_quote(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_quotes_approve", "crm_admin", "crm_manage")),
 ):
-    quote = _quote_for_approval(db, current_user, quote_id)
+    quote = _quote_for_status_change(db, current_user, quote_id)
     if str(quote.status or "").lower() not in {"pending approval", "draft", "approved"} and str(quote.approval_status or "").lower() != "pending":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only submitted quotes can be approved")
     approval = db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quote.id, CRMQuoteApproval.status == "pending").order_by(CRMQuoteApproval.id.desc()).first()
@@ -6587,7 +6587,7 @@ def reject_quote(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_quotes_approve", "crm_admin", "crm_manage")),
 ):
-    quote = _quote_for_approval(db, current_user, quote_id)
+    quote = _quote_for_status_change(db, current_user, quote_id)
     approval = db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quote.id, CRMQuoteApproval.status == "pending").order_by(CRMQuoteApproval.id.desc()).first()
     if approval:
         approval.status = "rejected"
@@ -6618,7 +6618,7 @@ def accept_quote(
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     _assert_entity_permission("quotations", current_user, "manage")
-    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    quote = _quote_for_status_change(db, current_user, quote_id)
     if str(quote.status or "").lower() not in {"sent", "approved", "accepted"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only sent or approved quotes can be accepted")
     conversion = _convert_quote_to_srm(db, quote, current_user)

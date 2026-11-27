@@ -519,7 +519,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               'crm_manage',
               'crm_admin',
             }),
-        canSubmitQuotes:
+        canManageQuotes:
             app.grant == 'crm' &&
             ['manage', 'edit', 'create'].any(
               (action) => _canWriteCrm(access, action, const {
@@ -1355,7 +1355,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canEditContacts = false,
     this.canMoveDeals = false,
     this.canCreateDeals = false,
-    this.canSubmitQuotes = false,
+    this.canManageQuotes = false,
     this.canApproveQuotes = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
@@ -1377,7 +1377,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canEditContacts;
   final bool canMoveDeals;
   final bool canCreateDeals;
-  final bool canSubmitQuotes;
+  final bool canManageQuotes;
   final bool canApproveQuotes;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
@@ -1996,7 +1996,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path: CrmDealPage.endpoint,
                   canMoveDeals: widget.canMoveDeals,
                   canCreateDeals: widget.canCreateDeals,
-                  canSubmitQuotes: widget.canSubmitQuotes,
+                  canManageQuotes: widget.canManageQuotes,
                   canApproveQuotes: widget.canApproveQuotes,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
@@ -2056,7 +2056,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Quotations',
                   controller: widget.controller,
                   path: CrmQuotationPage.endpoint,
-                  canSubmitQuotes: widget.canSubmitQuotes,
+                  canManageQuotes: widget.canManageQuotes,
                   canApproveQuotes: widget.canApproveQuotes,
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
@@ -2900,7 +2900,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
-                                            canSubmit: widget.canSubmitQuotes,
+                                            canManage: widget.canManageQuotes,
                                             canApprove: widget.canApproveQuotes,
                                             onChanged: _refreshCrmRecords,
                                           )

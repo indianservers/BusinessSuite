@@ -38,7 +38,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Quotation approval uses the shared status workflow', (
+  testWidgets('Quotation approval and conversion use the shared workflow', (
     tester,
   ) async {
     final writes = <RequestOptions>[];
@@ -50,14 +50,18 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.method == 'POST') {
             writes.add(request);
-            status = request.path.endsWith('/submit')
-                ? 'Pending Approval'
-                : 'Approved';
+            status = switch (request.path.split('/').last) {
+              'submit' => 'Pending Approval',
+              'approve' => 'Approved',
+              _ => 'Accepted',
+            };
           }
           return response({
             'id': 44,
             'quote_number': 'QT-44',
             'status': status,
+            'deal_id': 9,
+            if (status == 'Accepted') 'converted_srm_sales_order_id': 57,
           });
         }),
     );
@@ -68,16 +72,20 @@ void main() {
           summary: const {'id': 44},
           offline: false,
           scopeHeaders: const {'X-Suite-Organization': '7'},
-          canSubmit: true,
+          canManage: true,
           canApprove: true,
         ),
       ),
     );
     await tester.pumpAndSettle();
-    for (final label in ['Submit for approval', 'Approve quotation']) {
+    for (final (index, label) in [
+      'Submit for approval',
+      'Approve quotation',
+      'Accept and convert',
+    ].indexed) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
-      expect(writes, hasLength(label == 'Submit for approval' ? 0 : 1));
+      expect(writes, hasLength(index));
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -89,9 +97,11 @@ void main() {
     expect(writes.map((request) => request.path), [
       '/crm/quotes/44/submit',
       '/crm/quotes/44/approve',
+      '/crm/quotes/44/accept',
     ]);
     expect(writes.last.headers['X-Suite-Organization'], '7');
-    expect(find.text('Approved'), findsOneWidget);
+    expect(find.text('Accepted'), findsOneWidget);
+    expect(find.text('57'), findsOneWidget);
   });
 
   test(

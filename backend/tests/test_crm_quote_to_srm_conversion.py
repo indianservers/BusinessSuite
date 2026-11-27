@@ -40,3 +40,20 @@ def test_accepted_crm_quote_converts_to_srm_idempotently(client, db, superuser_h
     assert second.status_code == 200, second.text
     assert second.json()["idempotent"] is True
     assert db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == deal.id).count() == 1
+
+
+def test_accepting_approved_quote_reuses_linked_sales_order(client, db, superuser_headers):
+    deal, quote = create_won_deal_with_quote(db, "Quote approval acceptance")
+    quote.status = "Approved"
+    db.commit()
+    endpoint = f"/api/v1/crm/quotes/{quote.id}/accept"
+    first = client.post(endpoint, headers=superuser_headers)
+    assert first.status_code == 200, first.text
+    assert first.json()["status"] == "Accepted"
+    order_id = first.json()["converted_srm_sales_order_id"]
+    assert order_id is not None
+    second = client.post(endpoint, headers=superuser_headers)
+    assert second.status_code == 200, second.text
+    assert second.json()["converted_srm_sales_order_id"] == order_id
+    assert second.json()["srmConversion"]["idempotent"] is True
+    assert db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == deal.id).count() == 1

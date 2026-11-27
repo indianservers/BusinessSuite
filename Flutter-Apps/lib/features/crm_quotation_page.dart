@@ -14,7 +14,7 @@ class CrmQuotationPage extends StatefulWidget {
     required this.offline,
     required this.scopeHeaders,
     this.cacheScope,
-    this.canSubmit = false,
+    this.canManage = false,
     this.canApprove = false,
     this.onChanged,
   });
@@ -35,7 +35,7 @@ class CrmQuotationPage extends StatefulWidget {
   final bool offline;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
-  final bool canSubmit;
+  final bool canManage;
   final bool canApprove;
   final VoidCallback? onChanged;
 
@@ -66,6 +66,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             ...CrmQuotationPage.fields,
             'terms_and_conditions',
             'terms',
+            'converted_srm_sales_order_id',
           ])
             field: record[field],
           'lines': [
@@ -127,7 +128,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     }
   }
 
-  Future<void> _approvalAction(String action, String label, Json quote) async {
+  Future<void> _changeStatus(String action, String label, Json quote) async {
     if (_changingStatus) return;
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -136,7 +137,11 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
       builder: (context) => AlertDialog(
         title: Text('$label?'),
         content: Text(
-          "Quotation ${quote['quote_number'] ?? widget.summary['id']}",
+          [
+            "Quotation ${quote['quote_number'] ?? widget.summary['id']}",
+            if (action == 'accept')
+              'This records the customer’s acceptance and creates or links commercial records in Sales & POS.',
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -215,6 +220,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
           'Expires': record['expiry_date'],
           'Total': amount == null ? null : '$amount $currency'.trim(),
           'Terms': record['terms_and_conditions'] ?? record['terms'],
+          'Sales order': record['converted_srm_sales_order_id'],
         };
         final lines = (record['lines'] as List? ?? const [])
             .whereType<Json>()
@@ -244,12 +250,12 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                       ),
                     ),
                   if (live &&
-                      widget.canSubmit &&
+                      widget.canManage &&
                       const {'draft', 'rejected'}.contains(status))
                     FilledButton(
                       onPressed: _changingStatus
                           ? null
-                          : () => _approvalAction(
+                          : () => _changeStatus(
                               'submit',
                               'Submit for approval',
                               record,
@@ -263,7 +269,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         FilledButton(
                           onPressed: _changingStatus
                               ? null
-                              : () => _approvalAction(
+                              : () => _changeStatus(
                                   'approve',
                                   'Approve quotation',
                                   record,
@@ -273,7 +279,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         OutlinedButton(
                           onPressed: _changingStatus
                               ? null
-                              : () => _approvalAction(
+                              : () => _changeStatus(
                                   'reject',
                                   'Reject quotation',
                                   record,
@@ -282,6 +288,24 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         ),
                       ],
                     ),
+                  if (live &&
+                      widget.canManage &&
+                      const {'sent', 'approved'}.contains(status))
+                    if (record['deal_id'] is int)
+                      FilledButton(
+                        onPressed: _changingStatus
+                            ? null
+                            : () => _changeStatus(
+                                'accept',
+                                'Accept and convert',
+                                record,
+                              ),
+                        child: const Text('Accept and convert'),
+                      )
+                    else
+                      const Text(
+                        'Link a CRM deal before converting this quotation.',
+                      ),
                   for (final field in fields.entries)
                     if (field.value != null &&
                         field.value.toString().isNotEmpty)
