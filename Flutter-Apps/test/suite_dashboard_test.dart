@@ -82,6 +82,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Support plan'));
     await tester.pumpAndSettle();
+    final discountType = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(discountType);
+    await tester.tap(discountType);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Percentage').last);
+    await tester.pumpAndSettle();
+    final discount = find.widgetWithText(TextFormField, 'Discount');
+    await tester.ensureVisible(discount);
+    await tester.enterText(discount, '10');
     final save = find.text('Save item');
     await tester.ensureVisible(save);
     await tester.tap(save);
@@ -94,6 +103,8 @@ void main() {
       'tax_rate': 18,
       'item_type': 'service',
       'service_id': 81,
+      'discount_type': 'percent',
+      'discount_value': 10,
     });
   });
 

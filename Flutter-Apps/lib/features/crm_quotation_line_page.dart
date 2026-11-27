@@ -29,10 +29,16 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
   bool _saving = false;
   String? _error;
   Json? _catalogItem;
+  String get _initialDiscountType =>
+      const {'percent', 'percentage'}.contains(widget.line?['discount_type'])
+      ? 'percent'
+      : 'amount';
+  late String _discountType = _initialDiscountType;
   static const _fields = {
     'name': 'Item name',
     'quantity': 'Quantity',
     'unit_price': 'Unit price',
+    'discount_value': 'Discount',
     'tax_rate': 'Tax rate (%)',
   };
   static const _catalogFields = {
@@ -57,13 +63,20 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
   String? _validate(String field, String? value) {
     final text = value?.trim() ?? '';
     if (field == 'name') return text.isEmpty ? 'Enter an item name' : null;
-    if (field == 'tax_rate' && text.isEmpty) return null;
+    if (const {'tax_rate', 'discount_value'}.contains(field) && text.isEmpty) {
+      return null;
+    }
     final number = num.tryParse(text);
     if (number == null || !number.isFinite || number < 0) {
       return 'Enter a valid number';
     }
     if (field == 'quantity' && number == 0) return 'Quantity must be positive';
     if (field == 'tax_rate' && number > 100) return 'Enter a rate up to 100';
+    if (field == 'discount_value' &&
+        _discountType == 'percent' &&
+        number > 100) {
+      return 'Enter a percentage up to 100';
+    }
     return null;
   }
 
@@ -71,6 +84,9 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
     if (_saving || _form.currentState?.validate() != true) return;
     _values.clear();
     _form.currentState!.save();
+    if (_discountType != _initialDiscountType) {
+      _values['discount_type'] = _discountType;
+    }
     if (_catalogItem case final item?) {
       final kind = item['kind'];
       _values['item_type'] = kind;
@@ -170,7 +186,25 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
               ),
             if (_catalogItem case final item?)
               Text('${item['name']} · ${item['code'] ?? ''}'),
-            for (final field in _fields.entries)
+            for (final field in _fields.entries) ...[
+              if (field.key == 'discount_value')
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Discount type'),
+                  initialValue: _discountType,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'amount',
+                      child: Text('Fixed amount'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'percent',
+                      child: Text('Percentage'),
+                    ),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _discountType = value!),
+                ),
               TextFormField(
                 key: ValueKey((
                   field.key,
@@ -190,13 +224,18 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
                 onSaved: (value) {
                   final text = value?.trim() ?? '';
                   final previous = widget.line?[field.key]?.toString() ?? '';
-                  if (widget.line == null || text != previous) {
+                  if (field.key == 'discount_value') {
+                    if (text != previous) {
+                      _values[field.key] = num.tryParse(text) ?? 0;
+                    }
+                  } else if (widget.line == null || text != previous) {
                     _values[field.key] = field.key == 'name'
                         ? text
                         : num.tryParse(text);
                   }
                 },
               ),
+            ],
             if (_error case final error?) Text(error),
             FilledButton(
               onPressed: _saving ? null : _save,

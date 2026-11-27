@@ -912,10 +912,15 @@ def test_quote_line_links_to_shared_catalog_service(client, superuser_headers):
     line = client.post(
         f"/api/v1/crm/quotes/{quote.json()['id']}/lines",
         headers=superuser_headers,
-        json={"item_type": "service", "service_id": service.json()["id"], "name": "Support plan", "quantity": 1, "unit_price": 100},
+        json={
+            "item_type": "service", "service_id": service.json()["id"], "name": "Support plan",
+            "quantity": 1, "unit_price": 100, "discount_type": "percent", "discount_value": 10, "tax_rate": 18,
+        },
     )
     assert line.status_code == 201, line.text
     assert line.json()["service_id"] == service.json()["id"]
+    assert line.json()["discount_amount"] == 10
+    assert line.json()["quoteTotals"]["grandTotal"] == 106.2
 
 
 def test_removing_draft_quote_item_recalculates_total(client, superuser_headers):

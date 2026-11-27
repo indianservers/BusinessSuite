@@ -82,6 +82,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                   'quantity',
                   'unit_price',
                   'line_total',
+                  'discount_amount',
                 ])
                   field: line[field],
               },
@@ -375,11 +376,16 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
               );
             }
             final line = lines[index - 1];
+            final discount = num.tryParse('${line['discount_amount'] ?? ''}');
             return ListTile(
               title: Text('${line['name'] ?? 'Item'}'),
               subtitle: Text(
-                "${line['quantity'] ?? '—'} × ${line['unit_price'] ?? '—'} $currency"
-                    .trim(),
+                [
+                  "${line['quantity'] ?? '—'} × ${line['unit_price'] ?? '—'} $currency"
+                      .trim(),
+                  if (discount != null && discount > 0)
+                    'Discount $discount $currency'.trim(),
+                ].join('\n'),
               ),
               trailing: Text("${line['line_total'] ?? '—'} $currency".trim()),
               onTap: canEditLines && !_changingStatus && line['id'] is int
