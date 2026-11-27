@@ -746,6 +746,7 @@ void main() {
       for (final (id, title, flag) in [
         (1, 'Top note', 'pinned'),
         (2, 'Starred note', 'favorite'),
+        (3, 'Alpha note', 'test_only'),
       ])
         {
           'id': id,
@@ -783,6 +784,14 @@ void main() {
       expect(find.text(visible), findsOneWidget);
       expect(find.text(hidden), findsNothing);
     }
+    await tester.tap(find.byTooltip('Sort notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Title'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text('Alpha note')).dy,
+      lessThan(tester.getTopLeft(find.text('Starred note')).dy),
+    );
   });
 
   testWidgets('offline metadata edits preserve formatted Notes content', (

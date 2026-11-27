@@ -119,6 +119,7 @@ class _NotesPageState extends State<NotesPage> {
   Map<int, Map<String, dynamic>> _pendingEdits = {};
   String _query = '';
   String _view = 'all';
+  String _sort = 'modified';
   String? _error;
   bool _loading = true;
   bool _savedView = false;
@@ -147,6 +148,7 @@ class _NotesPageState extends State<NotesPage> {
     final request = ++_request;
     final query = _query.trim();
     final view = _view;
+    final sort = _sort;
     final canReadSaved = const {
       'all',
       'pinned',
@@ -193,7 +195,7 @@ class _NotesPageState extends State<NotesPage> {
           return '${_titleFor(note)} ${_previewFor(note)} ${edits?['tags'] ?? note['tags'] ?? ''}'
               .toLowerCase()
               .contains(term);
-        }).toList();
+        }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
       });
     }
     try {
@@ -204,7 +206,11 @@ class _NotesPageState extends State<NotesPage> {
           await widget.api.request(
                 'GET',
                 _notesPath,
-                query: {'view': view, if (query.isNotEmpty) 'q': query},
+                query: {
+                  'view': view,
+                  if (sort != 'modified') 'sort': sort,
+                  if (query.isNotEmpty) 'q': query,
+                },
               )
               as List;
       if (!current()) return;
@@ -275,6 +281,23 @@ class _NotesPageState extends State<NotesPage> {
       (_pendingFor(note)?['values']['title'] as String?) ??
       (note['title'] as String?) ??
       'Untitled note';
+
+  int _compareSavedNotes(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+    String sort,
+  ) {
+    bool pinned(Map<String, dynamic> note) =>
+        (_pendingFor(note)?['values']['pinned'] ?? note['pinned']) == true;
+    if (pinned(a) != pinned(b)) return pinned(a) ? -1 : 1;
+    final dateKey = sort == 'created' ? 'created_at' : 'updated_at';
+    final compared = sort == 'title'
+        ? _titleFor(a).compareTo(_titleFor(b))
+        : '${b[dateKey] ?? ''}'.compareTo('${a[dateKey] ?? ''}');
+    return compared == 0
+        ? (b['id'] as int? ?? 0).compareTo(a['id'] as int? ?? 0)
+        : compared;
+  }
 
   String _previewFor(Map<String, dynamic> note) =>
       (_pendingFor(note)?['values']['content'] as String?) ??
@@ -384,6 +407,21 @@ class _NotesPageState extends State<NotesPage> {
             tooltip: 'Refresh notes',
             onPressed: () => _load(reconnect: true),
             icon: const Icon(Icons.refresh),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Sort notes',
+            icon: const Icon(Icons.sort),
+            initialValue: _sort,
+            onSelected: (sort) {
+              if (sort == _sort) return;
+              _sort = sort;
+              _load();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'modified', child: Text('Last modified')),
+              PopupMenuItem(value: 'created', child: Text('Date created')),
+              PopupMenuItem(value: 'title', child: Text('Title')),
+            ],
           ),
         ],
       ),
