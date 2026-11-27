@@ -43,7 +43,8 @@ void main() {
       {'full_name': 'Saved contact from SQLite'},
     ]);
     final responseReady = Completer<void>();
-    var requested = false;
+    String? requestedPath;
+    String? transportError;
     int? responseStatus;
     addTearDown(() {
       if (!responseReady.isCompleted) responseReady.complete();
@@ -53,11 +54,18 @@ void main() {
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
-          expect(request.path, path);
-          requested = true;
+          requestedPath = request.path;
           await responseReady.future;
           return response({'id': 33, 'full_name': 'Live contact from API'});
-        }),
+        })
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onError: (error, handler) {
+              transportError = '${error.type}: ${error.error}';
+              handler.next(error);
+            },
+          ),
+        ),
     )..onResponse = (_, _, status) => responseStatus = status;
     await tester.pumpWidget(
       MaterialApp(
@@ -72,25 +80,28 @@ void main() {
       ),
     );
     final saved = find.text('Saved contact from SQLite');
-    final deadline = DateTime.now().add(const Duration(seconds: 15));
-    while ((!requested || saved.evaluate().isEmpty) &&
-        DateTime.now().isBefore(deadline)) {
-      await tester.pump(const Duration(milliseconds: 100));
+    Future<void> waitForContact(Finder finder) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while ((requestedPath == null || finder.evaluate().isEmpty) &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump();
+      }
+      expect(
+        finder,
+        findsOneWidget,
+        reason:
+            'Request: $requestedPath, HTTP status: $responseStatus. '
+            'Transport error: $transportError. '
+            'Visible text: ${tester.widgetList<Text>(find.byType(Text)).map((widget) => widget.data).join(', ')}',
+      );
     }
-    expect(saved, findsOneWidget);
-    expect(requested, isTrue);
+
+    await waitForContact(saved);
+    expect(requestedPath, path);
     expect(find.text('Edit contact'), findsNothing);
     responseReady.complete();
-    final live = find.text('Live contact from API');
-    final liveDeadline = DateTime.now().add(const Duration(seconds: 30));
-    while (live.evaluate().isEmpty && DateTime.now().isBefore(liveDeadline)) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    expect(
-      live,
-      findsOneWidget,
-      reason: 'HTTP response status: $responseStatus',
-    );
+    await waitForContact(find.text('Live contact from API'));
     expect(find.text('Edit contact'), findsOneWidget);
   });
 
