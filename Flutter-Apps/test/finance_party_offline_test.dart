@@ -29,6 +29,15 @@ void main() {
           final search = request.queryParameters['search'];
           final warehouse = request.queryParameters['warehouse_id'];
           final movement = request.queryParameters['movement_id'];
+          final format = request.queryParameters['export_format'];
+          if (format != null) {
+            expect(format, 'xlsx');
+            expect(search, 'cable');
+            expect(warehouse, '6');
+            expect(request.queryParameters['start_date'], '2026-11-01');
+            expect(request.responseType, ResponseType.bytes);
+            return ResponseBody.fromString('Not an export', 200);
+          }
           if (movement != null) {
             expect(movement, 81);
             expect(search, 'cable');
@@ -97,6 +106,14 @@ void main() {
     await tester.tap(find.text('Apply filters'));
     await tester.pumpAndSettle();
     expect(find.text('Cable delivery 6'), findsOneWidget);
+    await tester.tap(find.byTooltip('Export stock ledger'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export Excel'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('The server did not return a spreadsheet.'),
+      findsOneWidget,
+    );
     await tester.tap(find.byTooltip('View source movement'));
     await tester.pumpAndSettle();
     expect(find.text('Stock Movement'), findsOneWidget);

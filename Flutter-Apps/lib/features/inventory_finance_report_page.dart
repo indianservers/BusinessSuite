@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_pdf.dart';
 
 enum InventoryFinanceReport {
   stockLedger('Stock Ledger', 'ledger', {
@@ -196,25 +199,25 @@ class _InventoryFinanceReportPageState
   late String _search = widget.initialSearch;
   late Map<String, String> _filters = widget.initialFilters;
   late bool _offline = widget.offline;
+  bool _exporting = false;
   bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
   late var _report = _load(offline: widget.offline);
 
   Iterable<Json> _rows(Json? data) =>
       (data?['items'] as List? ?? const []).whereType<Json>();
 
+  Json get _ledgerQuery => {
+    'report': 'ledger',
+    'page': _page,
+    'per_page': _pageSize,
+    if (_search.isNotEmpty) 'search': _search,
+    ..._filters,
+    if (widget.movementId case final int id) 'movement_id': id,
+  };
+
   Future<({Json? record, bool live})> _load({bool offline = false}) {
     final request = ++_request;
     _cached = null;
-    final query = _ledger
-        ? <String, dynamic>{
-            'report': 'ledger',
-            'page': _page,
-            'per_page': _pageSize,
-            if (_search.isNotEmpty) 'search': _search,
-            ..._filters,
-            if (widget.movementId case final int id) 'movement_id': id,
-          }
-        : const <String, dynamic>{};
     final scope = widget.cacheScope;
     final movement = widget.movementId == null
         ? ''
@@ -231,7 +234,7 @@ class _InventoryFinanceReportPageState
           : '$ledgerScope:$_pageSize:${Uri.encodeComponent(jsonEncode(_filters))}',
       headers: widget.scopeHeaders,
       offline: offline,
-      query: query,
+      query: _ledger ? _ledgerQuery : const {},
       onCached: (saved) {
         if (mounted && request == _request) {
           setState(() => _cached = saved);
@@ -257,6 +260,68 @@ class _InventoryFinanceReportPageState
         ],
       },
     );
+  }
+
+  Future<void> _exportLedger(String format) async {
+    if (_exporting || _offline) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final path = widget.report.endpoint;
+    final headers = widget.scopeHeaders;
+    final query = {..._ledgerQuery, 'export_format': format};
+    setState(() => _exporting = true);
+    try {
+      final bytes = format == 'pdf'
+          ? await fetchSuitePdf(api, path, query: query, scopeHeaders: headers)
+          : await _fetchLedgerSpreadsheet(api, path, query, headers);
+      if (!mounted || revision != api.sessionRevision) return;
+      final saved = await FilePicker.saveFile(
+        fileName: 'inventory-srm-ledger.$format',
+        bytes: bytes,
+      );
+      if (mounted && saved != null && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stock ledger export saved.')),
+        );
+      }
+    } catch (error) {
+      if (mounted && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<Uint8List> _fetchLedgerSpreadsheet(
+    ApiClient api,
+    String path,
+    Json query,
+    Map<String, String> headers,
+  ) async {
+    final response =
+        await api.request(
+              'GET',
+              path,
+              query: query,
+              scopeHeaders: headers,
+              responseType: ResponseType.bytes,
+              returnResponse: true,
+            )
+            as Response;
+    final data = response.data;
+    if (response.statusCode != 200 ||
+        data is! List<int> ||
+        data.length < 4 ||
+        data[0] != 0x50 ||
+        data[1] != 0x4b ||
+        data[2] != 3 ||
+        data[3] != 4) {
+      throw ApiFailure('The server did not return a spreadsheet.');
+    }
+    return Uint8List.fromList(data);
   }
 
   void _openMovement(int id) {
@@ -347,6 +412,17 @@ class _InventoryFinanceReportPageState
           }),
           icon: const Icon(Icons.refresh),
         ),
+        if (_ledger)
+          PopupMenuButton<String>(
+            tooltip: 'Export stock ledger',
+            enabled: !_offline && !_exporting,
+            icon: const Icon(Icons.download),
+            onSelected: _exportLedger,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'xlsx', child: Text('Export Excel')),
+              PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
+            ],
+          ),
         if (_ledger)
           IconButton(
             tooltip: 'Stock ledger filters',
