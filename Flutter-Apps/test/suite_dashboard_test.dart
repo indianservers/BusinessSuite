@@ -5025,6 +5025,7 @@ void main() {
   testWidgets(
     'native launcher opens authenticated module and settings routes',
     (tester) async {
+      var emptyAppointmentWindow = false;
       tester.view.physicalSize = const Size(430, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -5121,13 +5122,15 @@ void main() {
             '/auth/change-password' => response({'message': 'Updated'}),
             '/srm/industry/records' => response({
               'items': [
-                {
-                  'id': 61,
-                  'title': 'Sample booking',
-                  'status': 'booked',
-                  'data': {'customer_name': 'Asha Rao'},
-                },
-                {'id': 62, 'title': 'Previous visit', 'status': 'completed'},
+                if (!emptyAppointmentWindow) ...[
+                  {
+                    'id': 61,
+                    'title': 'Sample booking',
+                    'status': 'booked',
+                    'data': {'customer_name': 'Asha Rao'},
+                  },
+                  {'id': 62, 'title': 'Previous visit', 'status': 'completed'},
+                ],
               ],
             }),
             '/srm/industry/appointments/61' => response({
@@ -5858,14 +5861,18 @@ void main() {
           today.day + 7,
         ).toUtc().toIso8601String(),
       );
+      emptyAppointmentWindow = true;
       await tester.tap(find.byTooltip('Next week'));
       await tester.pumpAndSettle();
+      expect(find.text('No appointments match this view'), findsOneWidget);
+      expect(find.byTooltip('Next week').hitTestable(), findsOneWidget);
       expect(
         calls
             .lastWhere((r) => r.path == '/srm/industry/records')
             .queryParameters['from_at'],
         weekRequest.queryParameters['until_at'],
       );
+      emptyAppointmentWindow = false;
       await tester.tap(find.byTooltip('Clear schedule date'));
       await tester.pumpAndSettle();
       expect(

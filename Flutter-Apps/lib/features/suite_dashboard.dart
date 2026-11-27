@@ -2406,7 +2406,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   AppBar _recordsAppBar(BuildContext context, {required List<Widget> actions}) {
     // Leave room for the back button, title and toolbar padding.
-    final compact = MediaQuery.sizeOf(context).width < 220 + actions.length * 48;
+    final compact =
+        MediaQuery.sizeOf(context).width < 220 + actions.length * 48;
     return AppBar(
       title: Text(widget.title),
       actions: compact ? null : actions,
@@ -3279,7 +3280,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (rows == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (rows.isEmpty && !_searchOnServer && !_usedSavedFallback) {
+              if (rows.isEmpty &&
+                  !_appointments &&
+                  !_searchOnServer &&
+                  !_usedSavedFallback) {
                 return const Center(child: Text('No records found'));
               }
               final cached = snapshot.data == null || _usedSavedFallback;
@@ -3562,6 +3566,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     Text(
                       _stockAlerts && _term.isEmpty
                           ? 'No low stock items'
+                          : _appointments
+                          ? 'No appointments match this view'
                           : 'No matching records',
                     ),
                   if (_hasPages && !cached && (_page > 1 || _hasNextPage))
