@@ -54,6 +54,8 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
   String _term = '';
   String _status = '';
   int _page = 1;
+  int _generation = 0;
+  Json? _cachedRows;
 
   @override
   void dispose() {
@@ -99,6 +101,8 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
 
   Future<({Json? record, bool live})> _load() {
     final scope = widget.cacheScope;
+    final generation = ++_generation;
+    _cachedRows = null;
     return loadCrmDetail(
       api: widget.api,
       path: _path,
@@ -107,6 +111,11 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
           : '$scope:follow-ups:${Uri.encodeComponent(_term)}:$_status:$_page',
       headers: widget.headers,
       offline: _offline,
+      onCached: (record) {
+        if (mounted && generation == _generation) {
+          setState(() => _cachedRows = record);
+        }
+      },
       query: {
         'search': _term,
         'status': _status,
@@ -226,11 +235,14 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
           child: FutureBuilder(
             future: _rows,
             builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
+              final refreshing =
+                  snapshot.connectionState != ConnectionState.done;
+              final data = refreshing ? null : snapshot.data;
+              final record = refreshing ? _cachedRows : data?.record;
+              if (refreshing && record == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final data = snapshot.data;
-              final record = data?.record;
+              final live = data?.live == true;
               final rows = (record?['items'] as List? ?? const []).cast<Json>();
               return ListView(
                 children: [
@@ -239,15 +251,15 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
                   else if (record == null)
                     const ListTile(title: Text('Connect to load follow-ups.'))
                   else ...[
-                    if (!data!.live)
-                      const ListTile(title: Text('Saved follow-ups')),
+                    if (refreshing) const LinearProgressIndicator(),
+                    if (!live) const ListTile(title: Text('Saved follow-ups')),
                     if (rows.isEmpty)
                       const ListTile(title: Text('No follow-ups found')),
                     for (final row in rows)
                       ListTile(
                         title: Text('${row['title']}'),
                         subtitle: Text(_description(row)),
-                        onTap: () => _open(row, live: data.live),
+                        onTap: refreshing ? null : () => _open(row, live: live),
                       ),
                   ],
                   if (_page > 1 ||

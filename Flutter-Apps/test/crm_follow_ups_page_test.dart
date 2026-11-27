@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:business_suite_mobile/core/api_client.dart';
@@ -11,84 +12,106 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('CRM opens saved follow-up activity without contacting the API', (
-    tester,
-  ) async {
-    const sqlite = MethodChannel('com.tekartik.sqflite');
-    const scope = '["https://example.test/api/v1",5,7]';
-    const row = {'id': 9, 'title': 'Check delivery', 'status': 'Due'};
-    final messenger = tester.binding.defaultBinaryMessenger;
-    databaseFactory = databaseFactorySqflitePlugin;
-    messenger.setMockMethodCallHandler(sqlite, (call) async {
-      switch (call.method) {
-        case 'getDatabasesPath':
-          return '/test';
-        case 'openDatabase':
-          return {'id': 1};
-        case 'execute':
-          return null;
-        case 'query':
-          final query = call.arguments as Map;
-          if ((query['sql'] as String).toUpperCase().contains('USER_VERSION')) {
+  testWidgets(
+    'Saved follow-ups open offline and disappear when access is denied',
+    (tester) async {
+      const sqlite = MethodChannel('com.tekartik.sqflite');
+      const scope = '["https://example.test/api/v1",5,7]';
+      const row = {'id': 9, 'title': 'Check delivery', 'status': 'Due'};
+      final refresh = Completer<ResponseBody>();
+      var requests = 0;
+      final messenger = tester.binding.defaultBinaryMessenger;
+      databaseFactory = databaseFactorySqflitePlugin;
+      messenger.setMockMethodCallHandler(sqlite, (call) async {
+        switch (call.method) {
+          case 'getDatabasesPath':
+            return '/test';
+          case 'openDatabase':
+            return {'id': 1};
+          case 'execute':
+            return null;
+          case 'update':
+            return 1;
+          case 'query':
+            final query = call.arguments as Map;
+            if ((query['sql'] as String).toUpperCase().contains(
+              'USER_VERSION',
+            )) {
+              return [
+                {'user_version': 3},
+              ];
+            }
+            final key = (query['arguments'] as List).first;
+            final record = switch (key) {
+              '$scope:follow-ups:::1:/follow-ups:6' => {
+                'items': [row],
+                'total': 1,
+              },
+              '$scope:/follow-ups/9:6' => {
+                ...row,
+                'activities': [
+                  {'action': 'contact', 'actor_name': 'Sales coordinator'},
+                ],
+              },
+              _ => throw StateError('Unexpected SQLite key $key'),
+            };
             return [
-              {'user_version': 3},
+              {
+                'saved_at': DateTime.now().millisecondsSinceEpoch,
+                'rows': jsonEncode([record]),
+              },
             ];
-          }
-          final key = (query['arguments'] as List).first;
-          final record = switch (key) {
-            '$scope:follow-ups:::1:/follow-ups:6' => {
-              'items': [row],
-              'total': 1,
-            },
-            '$scope:/follow-ups/9:6' => {
-              ...row,
-              'activities': [
-                {'action': 'contact', 'actor_name': 'Sales coordinator'},
-              ],
-            },
-            _ => throw StateError('Unexpected SQLite key $key'),
-          };
-          return [
-            {
-              'saved_at': DateTime.now().millisecondsSinceEpoch,
-              'rows': jsonEncode([record]),
-            },
-          ];
-        default:
-          fail('Unexpected SQLite method ${call.method}');
-      }
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(sqlite, null);
-      databaseFactory = null;
-    });
-    final api = ApiClient(
-      baseUrl: 'https://example.test/api/v1',
-      store: MemoryStore(),
-      transport: Dio()
-        ..httpClientAdapter = FakeAdapter((_) async {
-          fail('Saved follow-up activity must open without a network request');
-        }),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CrmFollowUpsPage(
-          api: api,
-          headers: const {'X-Suite-Branch': '6'},
-          cacheScope: scope,
-          offline: true,
-          canEdit: true,
+          default:
+            fail('Unexpected SQLite method ${call.method}');
+        }
+      });
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(sqlite, null);
+        databaseFactory = null;
+      });
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            requests++;
+            expect(request.path, '/follow-ups');
+            return refresh.future;
+          }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CrmFollowUpsPage(
+            api: api,
+            headers: const {'X-Suite-Branch': '6'},
+            cacheScope: scope,
+            offline: true,
+            canEdit: true,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Check delivery'));
-    await tester.pumpAndSettle();
-    expect(find.text('Saved activity history'), findsOneWidget);
-    expect(find.text('contact'), findsOneWidget);
-    expect(find.text('Sales coordinator'), findsOneWidget);
-    expect(find.text('Save action'), findsNothing);
-  });
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Check delivery'));
+      await tester.pumpAndSettle();
+      expect(find.text('Saved activity history'), findsOneWidget);
+      expect(find.text('contact'), findsOneWidget);
+      expect(find.text('Sales coordinator'), findsOneWidget);
+      expect(find.text('Save action'), findsNothing);
+      expect(requests, 0);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Refresh follow-ups'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(requests, 1);
+      expect(find.text('Check delivery'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      refresh.complete(response({'detail': 'Follow-up access revoked'}, 403));
+      await tester.pumpAndSettle();
+      expect(find.text('Check delivery'), findsNothing);
+      expect(find.textContaining('Follow-up access revoked'), findsOneWidget);
+    },
+  );
 
   testWidgets('CRM schedules a customer follow-up with a date and time', (
     tester,
