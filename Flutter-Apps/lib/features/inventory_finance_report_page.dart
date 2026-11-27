@@ -65,6 +65,33 @@ enum InventoryFinanceReport {
     'value_difference': 'Value difference',
     'investigation': 'Investigation',
   }, analysisReport: true),
+  stockSummary('Detailed Stock Summary', 'summary', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'unit': 'Unit',
+    'opening_quantity': 'Opening quantity',
+    'purchases': 'Purchases',
+    'purchase_returns': 'Purchase returns',
+    'sales': 'Sales',
+    'sales_returns': 'Sales returns',
+    'transfers_in': 'Transfers in',
+    'transfers_out': 'Transfers out',
+    'adjustments_and_other': 'Adjustments and other',
+    'reserved_quantity': 'Reserved quantity',
+    'available_quantity': 'Available quantity',
+    'quantity': 'Closing quantity',
+    'stock_value': 'Stock value',
+    'currency': 'Currency',
+  }, analysisReport: true),
+  historicalValuation('Stock Valuation by Date', 'valuation', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'quantity': 'Quantity',
+    'average_cost': 'Average cost',
+    'stock_value': 'Stock value',
+    'currency': 'Currency',
+    'valuation_method': 'Valuation method',
+  }, analysisReport: true),
   grossMargin('Gross Margin', 'gross-margin', {
     'sku': 'SKU',
     'revenue_status': 'Revenue attribution',
@@ -188,7 +215,9 @@ enum InventoryFinanceReport {
       '/fam/inventory/${reconciliation ? 'reconciliation' : 'reports'}/$slug',
   };
   String get labelField => switch (this) {
-    inventoryReconciliation => 'item_name',
+    inventoryReconciliation ||
+    stockSummary ||
+    historicalValuation => 'item_name',
     grossMargin => 'item_name',
     stockLedger ||
     salesMovements ||
@@ -302,12 +331,7 @@ class _InventoryFinanceReportPageState
               for (final key in [
                 widget.report.labelField,
                 ...widget.report.fields.keys,
-                if (_analysis) 'movement_id',
-                if (widget.report ==
-                    InventoryFinanceReport.inventoryReconciliation) ...[
-                  'product_id',
-                  'warehouse_id',
-                ],
+                if (_analysis) ...['movement_id', 'product_id', 'warehouse_id'],
               ])
                 key: row[key],
             },
@@ -609,8 +633,8 @@ class _InventoryFinanceReportPageState
                         icon: const Icon(Icons.chevron_right),
                         onPressed: () => _openLedger(movementId: movement),
                       )
-                    : widget.report ==
-                              InventoryFinanceReport.inventoryReconciliation &&
+                    : _analysis &&
+                          widget.report != InventoryFinanceReport.stockLedger &&
                           product is int
                     ? IconButton(
                         tooltip: 'View item ledger',
@@ -628,7 +652,9 @@ class _InventoryFinanceReportPageState
                       if (row[field.key] case final Object value)
                         '${field.value}: ${_metric(field.key, value, data)}'
                       else if (field.key == 'gross_margin' ||
-                          field.key == 'gross_margin_percent')
+                          field.key == 'gross_margin_percent' ||
+                          field.key == 'reserved_quantity' ||
+                          field.key == 'available_quantity')
                         '${field.value}: Not available',
                   ].join('\n'),
                 ),

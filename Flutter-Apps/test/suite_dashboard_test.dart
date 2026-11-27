@@ -5489,7 +5489,20 @@ void main() {
             '/srm/inventory/reports' => response({
               'total': 1,
               'items': [
-                {'movement_number': 'Filtered stock movement'},
+                if ([
+                  'summary',
+                  'valuation',
+                  'reconciliation',
+                ].contains(request.queryParameters['report']))
+                  {
+                    'item_name': 'Warehouse report stock',
+                    'opening_quantity': 8,
+                    'quantity': 10,
+                    'valuation_method': 'weighted_average',
+                    'quantity_difference': 2,
+                  }
+                else
+                  {'movement_number': 'Filtered stock movement'},
               ],
             }),
             '/srm/inventory/reports/stock-summary' => response({
@@ -5988,6 +6001,27 @@ void main() {
             await open(title);
             expect(find.text('Filtered stock movement'), findsOneWidget);
             expect(calls.last.path, '/srm/inventory/reports');
+            expect(calls.last.queryParameters['report'], slug);
+            await back();
+          }
+          for (final (title, slug, detail) in [
+            ('Detailed Stock Summary', 'summary', 'Opening quantity: 8'),
+            (
+              'Stock Valuation by Date',
+              'valuation',
+              'Valuation method: weighted_average',
+            ),
+            (
+              'Inventory Reconciliation',
+              'reconciliation',
+              'Quantity difference: 2',
+            ),
+          ]) {
+            await tester.tap(find.byTooltip('Stock activity reports'));
+            await tester.pumpAndSettle();
+            await open(title);
+            expect(find.text('Warehouse report stock'), findsOneWidget);
+            expect(find.textContaining(detail), findsOneWidget);
             expect(calls.last.queryParameters['report'], slug);
             await back();
           }
