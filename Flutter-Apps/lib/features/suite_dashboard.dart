@@ -2165,6 +2165,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   scopeHeaders: widget.scopeHeaders,
                   cacheScope: widget.cachePrefix,
                   offline: _offlineOnly || _usedSavedFallback,
+                  canMove: widget.canMoveDeals,
+                  onDealChanged: _refreshCrmRecords,
                   dealBuilder: (summary, offline, refresh) => CrmDealPage(
                     api: widget.controller.api,
                     summary: summary,

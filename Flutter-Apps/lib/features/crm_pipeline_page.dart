@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_deal_page.dart';
+import 'crm_deal_stage_page.dart';
 
 class CrmPipelinePage extends StatefulWidget {
   const CrmPipelinePage({
@@ -13,6 +14,8 @@ class CrmPipelinePage extends StatefulWidget {
     required this.cacheScope,
     required this.offline,
     required this.dealBuilder,
+    this.canMove = false,
+    this.onDealChanged,
   });
 
   final ApiClient api;
@@ -20,6 +23,8 @@ class CrmPipelinePage extends StatefulWidget {
   final String? cacheScope;
   final bool offline;
   final Widget Function(Json, bool, VoidCallback) dealBuilder;
+  final bool canMove;
+  final VoidCallback? onDealChanged;
 
   @override
   State<CrmPipelinePage> createState() => _CrmPipelinePageState();
@@ -69,7 +74,14 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
         'per_page': '$_pageSize',
         if (_search.isNotEmpty) 'search': _search,
       },
-      fields: {'id', 'name', 'status', ...CrmDealPage.summaryFields},
+      fields: {
+        'id',
+        'name',
+        'status',
+        'contact_name',
+        'owner_name',
+        ...CrmDealPage.summaryFields,
+      },
     );
   }
 
@@ -91,6 +103,21 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
     _page = page;
     _loadDeals(pipeline, stage, page);
   });
+
+  Future<void> _moveDeal(int id, int pipeline) async {
+    final result = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => CrmDealStagePage(
+          api: widget.api,
+          id: id,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    _reloadDeals(pipeline, _stage, _page);
+    widget.onDealChanged?.call();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -165,27 +192,30 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
                 final rows = _items(
                   stages.data?.record,
                 ).where((row) => row['id'] is int);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: _stage ?? 0,
-                    items: [
-                      const DropdownMenuItem(
-                        value: 0,
-                        child: Text('All stages'),
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Row(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('All stages'),
+                        selected: _stage == null,
+                        onSelected: (selected) {
+                          if (selected) _reloadDeals(pipeline, null, 1);
+                        },
                       ),
                       for (final row in rows)
-                        DropdownMenuItem(
-                          value: row['id'] as int,
-                          child: Text('${row['name']}'),
+                        ChoiceChip(
+                          label: Text('${row['name']}'),
+                          selected: _stage == row['id'],
+                          onSelected: (selected) {
+                            if (selected) {
+                              _reloadDeals(pipeline, row['id'] as int, 1);
+                            }
+                          },
                         ),
                     ],
-                    onChanged: (id) {
-                      if (id != null) {
-                        _reloadDeals(pipeline, id == 0 ? null : id, 1);
-                      }
-                    },
                   ),
                 );
               },
@@ -226,34 +256,61 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
             Text(
               record == null ? 'No saved deals for this view.' : 'Saved deals',
             ),
+          if (total is int)
+            ListTile(
+              dense: true,
+              title: Text(total == 1 ? '1 deal' : '$total deals'),
+            ),
           Expanded(
             child: rows.isEmpty && record != null
                 ? const Center(child: Text('No deals in this view.'))
                 : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: rows.length,
                     itemBuilder: (context, index) {
                       final row = rows[index];
-                      return ListTile(
-                        title: Text('${row['name'] ?? 'Deal'}'),
-                        subtitle: Text(
-                          [
-                            row['stage_name'] ?? row['status'],
-                            if (row['amount'] != null)
-                              "${row['amount']} ${row['currency'] ?? ''}"
-                                  .trim(),
-                          ].whereType<String>().join(' · '),
-                        ),
-                        onTap: row['id'] is int
-                            ? () => Navigator.of(context).push<void>(
-                                MaterialPageRoute(
-                                  builder: (_) => widget.dealBuilder(
-                                    row,
-                                    !live,
-                                    () => _reloadDeals(pipeline, _stage, _page),
+                      final id = row['id'];
+                      final name = '${row['name'] ?? 'Deal'}';
+                      return Card(
+                        child: ListTile(
+                          title: Text(name),
+                          subtitle: Text(
+                            [
+                                  row['company_name'] ?? row['contact_name'],
+                                  row['stage_name'] ?? row['status'],
+                                  if (row['amount'] != null)
+                                    "${row['amount']} ${row['currency'] ?? ''}"
+                                        .trim(),
+                                  if (row['probability'] != null)
+                                    "${row['probability']}%",
+                                  if (row['expected_close_date'] != null)
+                                    "Close ${row['expected_close_date']}",
+                                  row['owner_name'],
+                                ]
+                                .whereType<String>()
+                                .where((text) => text.isNotEmpty)
+                                .join(' · '),
+                          ),
+                          trailing: live && widget.canMove && id is int
+                              ? IconButton(
+                                  tooltip: 'Move $name',
+                                  icon: const Icon(Icons.swap_horiz),
+                                  onPressed: () => _moveDeal(id, pipeline),
+                                )
+                              : null,
+                          onTap: id is int
+                              ? () => Navigator.of(context).push<void>(
+                                  MaterialPageRoute(
+                                    builder: (_) => widget.dealBuilder(
+                                      row,
+                                      !live,
+                                      () =>
+                                          _reloadDeals(pipeline, _stage, _page),
+                                    ),
                                   ),
-                                ),
-                              )
-                            : null,
+                                )
+                              : null,
+                        ),
                       );
                     },
                   ),

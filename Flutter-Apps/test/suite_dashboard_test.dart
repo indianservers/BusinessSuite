@@ -4086,6 +4086,14 @@ void main() {
               ],
               'pages': 2,
             }),
+            '/crm/productivity/deals/83/stages' => response({
+              'version': 1,
+              'current_stage_id': 4,
+              'stages': [
+                {'id': 4, 'name': 'Qualified'},
+                {'id': 5, 'name': 'Proposal'},
+              ],
+            }),
             '/crm/deal-workspace/83/record' => response({
               'id': 83,
               'name': 'Next deal',
@@ -4171,6 +4179,7 @@ void main() {
           'role': {
             'permissions': [
               {'name': 'crm_cpq_manage'},
+              {'name': 'crm_deals_manage'},
             ],
           },
         });
@@ -4541,7 +4550,6 @@ void main() {
           await tester.tap(find.byTooltip('Pipeline'));
           await tester.pumpAndSettle();
           expect(find.text('Sales pipeline'), findsOneWidget);
-          await open('All stages');
           await open('Qualified');
           expect(
             calls
@@ -4550,6 +4558,19 @@ void main() {
                 .queryParameters['stage_id'],
             '4',
           );
+          expect(find.text('1 deal'), findsOneWidget);
+          expect(
+            tester
+                .widget<ChoiceChip>(
+                  find.widgetWithText(ChoiceChip, 'Qualified'),
+                )
+                .selected,
+            isTrue,
+          );
+          await tester.tap(find.byTooltip('Move Next deal'));
+          await tester.pumpAndSettle();
+          expect(find.text('Review stage move'), findsOneWidget);
+          await back();
           await open('Next deal');
           expect(find.text('A renewal from the CRM pipeline'), findsOneWidget);
           await back();
