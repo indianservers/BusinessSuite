@@ -1360,6 +1360,69 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
     scopeHeaders: widget.scopeHeaders,
   );
 
+  Future<void> _reschedule(int revision, Json data) async {
+    final api = widget.controller.api;
+    final session = api.sessionRevision;
+    final current = DateTime.tryParse('${data['starts_at']}')?.toLocal();
+    if (_saving || current == null) return;
+    final now = DateTime.now();
+    final today = DateUtils.dateOnly(now);
+    final lastDay = today.add(const Duration(days: 3650));
+    final day = await showDatePicker(
+      context: context,
+      initialDate: current.isBefore(now)
+          ? today
+          : current.isAfter(lastDay)
+          ? lastDay
+          : current,
+      firstDate: today,
+      lastDate: lastDay,
+    );
+    if (!mounted || day == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+      helpText: 'New start time · device time zone',
+    );
+    if (!mounted || time == null || api.sessionRevision != session) return;
+    final start = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    if (!start.isAfter(DateTime.now())) {
+      setState(() => _error = 'Choose a future start time.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await api.request(
+        'PUT',
+        '/srm/industry/appointments/${widget.id}/schedule',
+        data: {
+          'expected_revision': revision,
+          'starts_at': start.toUtc().toIso8601String(),
+          'duration_minutes': data['duration_minutes'],
+          'resource_ids': data['resource_ids'],
+        },
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (!mounted || api.sessionRevision != session) return;
+      widget.onChanged();
+      setState(() => _details = _load());
+    } on ApiFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString();
+          if (error.status == 409 || error.connectionFailure) {
+            _details = _load();
+          }
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   String _time(BuildContext context, Object value) {
     final date = DateTime.tryParse('$value')?.toLocal();
     if (date == null) return '$value';
@@ -1448,6 +1511,19 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
+                        if (appointment['status'] == 'booked' &&
+                            data['pos_checkout_id'] == null &&
+                            data['duration_minutes'] is int &&
+                            data['resource_ids'] is List &&
+                            (allowed is List
+                                ? allowed.contains('schedule')
+                                : caps?['manage'] == true))
+                          OutlinedButton(
+                            onPressed: _saving
+                                ? null
+                                : () => _reschedule(revision, data),
+                            child: const Text('Reschedule'),
+                          ),
                         for (final status in next)
                           if (_actions[status] case (
                             final permission,
