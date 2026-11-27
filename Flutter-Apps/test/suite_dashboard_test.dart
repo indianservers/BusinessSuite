@@ -457,6 +457,84 @@ void main() {
     expect(find.text('SO-57'), findsOneWidget);
   });
 
+  testWidgets('Issued quotation revisions open a separate shared draft', (
+    tester,
+  ) async {
+    final version = 'a' * 64;
+    final writes = <RequestOptions>[];
+    const document = '/srm/documents/quotations/44';
+    const draft = {'id': 45, 'quote_number': 'QT-44-R2', 'status': 'Draft'};
+    var refreshed = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Organization'], '7');
+          switch (request.path) {
+            case '/crm/quotations/44':
+              return response({
+                'id': 44,
+                'quote_number': 'QT-44',
+                'status': 'Sent',
+              });
+            case document:
+              return response({'version': version, 'removed': false});
+            case '$document/revise':
+              expect(request.method, 'POST');
+              writes.add(request);
+              if (writes.length == 1) {
+                return response({'detail': 'Try the revision again.'}, 503);
+              }
+              return response({'record': draft}, 201);
+            case '/crm/quotations/45':
+              return response(draft);
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmQuotationPage(
+          api: api,
+          summary: const {'id': 44},
+          offline: false,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+          canManage: true,
+          canCreateRevision: true,
+          onChanged: () => refreshed++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Create new version'), findsNothing);
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await tester.tap(find.text('Create revision draft'));
+      await tester.pumpAndSettle();
+      final submit = find.text('Create revised draft');
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(writes, hasLength(attempt));
+      await tester.enterText(find.byType(TextFormField), '  Updated offer  ');
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+    }
+    expect(writes, hasLength(2));
+    expect(writes.first.data, {
+      'reason': 'Updated offer',
+      'version': version,
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(writes.last.data, writes.first.data);
+    expect(find.text('QT-44-R2'), findsOneWidget);
+    expect(refreshed, 1);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('QT-44'), findsOneWidget);
+    expect(find.text('Sent'), findsOneWidget);
+  });
+
   test(
     'A rejected queued task stays available for review without retrying',
     () async {

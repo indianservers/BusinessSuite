@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
@@ -20,6 +21,7 @@ class CrmQuotationPage extends StatefulWidget {
     this.canManage = false,
     this.canApprove = false,
     this.canSend = false,
+    this.canCreateRevision = false,
     this.canViewSalesOrder = false,
     this.onChanged,
   });
@@ -44,6 +46,7 @@ class CrmQuotationPage extends StatefulWidget {
   final bool canManage;
   final bool canApprove;
   final bool canSend;
+  final bool canCreateRevision;
   final bool canViewSalesOrder;
   final VoidCallback? onChanged;
 
@@ -55,6 +58,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
   Json? _cached;
   bool _savingPdf = false;
   bool _changingStatus = false;
+  ({String reason, String version, String id})? _revisionRequest;
   late Future<({Json? record, bool live})> _quote = _load(
     offline: widget.offline,
   );
@@ -118,6 +122,111 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _cached = null;
     _quote = _load();
   });
+
+  Future<void> _revise() async {
+    if (_changingStatus) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final path = '/srm/documents/quotations/${widget.summary['id']}';
+    final headers = widget.scopeHeaders;
+    setState(() => _changingStatus = true);
+    try {
+      final document = await api.request('GET', path, scopeHeaders: headers);
+      if (!mounted || api.sessionRevision != revision) return;
+      if (document is! Json ||
+          document['removed'] == true ||
+          document['version'] is! String) {
+        throw ApiFailure('This quotation is unavailable for revision.');
+      }
+      final version = document['version'] as String;
+      final reason = await _requestRevisionReason();
+      if (!mounted || reason == null || api.sessionRevision != revision) return;
+      final previous = _revisionRequest;
+      final request = previous?.reason == reason && previous?.version == version
+          ? previous!
+          : (reason: reason, version: version, id: const Uuid().v4());
+      _revisionRequest = request;
+      final result = await api.request(
+        'POST',
+        '$path/revise',
+        scopeHeaders: headers,
+        data: {
+          'reason': request.reason,
+          'version': request.version,
+          'request_id': request.id,
+        },
+      );
+      if (!mounted || api.sessionRevision != revision) return;
+      final record = result is Json ? result['record'] : null;
+      if (record is! Json || record['id'] is! int) {
+        throw ApiFailure('The revision could not be confirmed. Try again.');
+      }
+      _revisionRequest = null;
+      widget.onChanged?.call();
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CrmQuotationPage(
+            api: api,
+            summary: record,
+            offline: false,
+            scopeHeaders: headers,
+            cacheScope: widget.cacheScope,
+            canManage: widget.canManage,
+            canApprove: widget.canApprove,
+            canSend: widget.canSend,
+            canCreateRevision: widget.canCreateRevision,
+            canViewSalesOrder: widget.canViewSalesOrder,
+            onChanged: widget.onChanged,
+          ),
+        ),
+      );
+    } on ApiFailure catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _changingStatus = false);
+    }
+  }
+
+  Future<String?> _requestRevisionReason() {
+    final form = GlobalKey<FormState>();
+    var reason = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create revision draft'),
+        content: Form(
+          key: form,
+          child: TextFormField(
+            decoration: const InputDecoration(
+              labelText: 'Reason',
+              helperText: 'The original stays in the register.',
+            ),
+            maxLength: 500,
+            maxLines: 3,
+            onChanged: (value) => reason = value.trim(),
+            validator: (_) =>
+                reason.length < 5 ? 'Enter at least five characters.' : null,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) Navigator.pop(context, reason);
+            },
+            child: const Text('Create revised draft'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _editLine({required String? currency, Json? line}) async {
     final saved = await Navigator.of(context).push<bool>(
@@ -445,6 +554,13 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                               record,
                             ),
                       child: const Text('Create new version'),
+                    ),
+                  if (live &&
+                      widget.canCreateRevision &&
+                      !const {'deleted', 'archived'}.contains(status))
+                    OutlinedButton(
+                      onPressed: _changingStatus ? null : _revise,
+                      child: const Text('Create revision draft'),
                     ),
                   if (widget.canViewSalesOrder &&
                       record['converted_srm_sales_order_id'] is int)

@@ -2931,6 +2931,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             canManage: widget.canManageQuotes,
                                             canApprove: widget.canApproveQuotes,
                                             canSend: widget.canSendQuotes,
+                                            canCreateRevision:
+                                                widget.canCreateQuotes,
                                             canViewSalesOrder:
                                                 widget.canViewQuoteSalesOrders,
                                             onChanged: _refreshCrmRecords,
@@ -2994,6 +2996,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                         widget.canApproveQuotes,
                                                     canSend:
                                                         widget.canSendQuotes,
+                                                    canCreateRevision:
+                                                        widget.canCreateQuotes,
                                                     canViewSalesOrder: widget
                                                         .canViewQuoteSalesOrders,
                                                   ),
