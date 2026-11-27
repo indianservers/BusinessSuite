@@ -9,6 +9,8 @@ import '../core/notes_offline_cache.dart';
 const _notesPath = '/project-management/notes';
 const _richPrefix = '<!--suite-richtext:v1-->';
 
+enum _NoteChange { saved, removed }
+
 class _NoteHistory extends StatefulWidget {
   const _NoteHistory({
     required this.api,
@@ -271,8 +273,8 @@ class _NotesPageState extends State<NotesPage> {
       '';
 
   void _open([Map<String, dynamic>? summary]) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+    final changed = await Navigator.of(context).push<_NoteChange>(
+      MaterialPageRoute<_NoteChange>(
         builder: (_) => _NoteEditor(
           api: widget.api,
           summary: summary,
@@ -281,7 +283,14 @@ class _NotesPageState extends State<NotesPage> {
         ),
       ),
     );
-    if (mounted && changed == true) await _load();
+    if (!mounted || changed == null) return;
+    if (changed == _NoteChange.removed) {
+      final id = summary?['id'];
+      setState(
+        () => _notes = _notes.where((note) => note['id'] != id).toList(),
+      );
+    }
+    await _load();
   }
 
   Future<void> _viewCreation(Map<String, dynamic> entry) async {
@@ -672,7 +681,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         if (!mounted || revision != widget.api.sessionRevision) return;
         _dirty = false;
         _saving = false;
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(_NoteChange.saved);
         return;
       }
       Object? updated;
@@ -716,7 +725,13 @@ class _NoteEditorState extends State<_NoteEditor> {
         _dirty = false;
         _saving = false;
       });
-      Navigator.of(context).pop(true);
+      final archiveChanged =
+          updated is Map<String, dynamic> &&
+          note != null &&
+          (updated['archived'] == true) != (note['archived'] == true);
+      Navigator.of(
+        context,
+      ).pop(archiveChanged ? _NoteChange.removed : _NoteChange.saved);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -767,7 +782,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       }
       if (!mounted || widget.api.sessionRevision != revision) return;
       setState(() => _saving = false);
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(_NoteChange.removed);
     } on ApiFailure catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {

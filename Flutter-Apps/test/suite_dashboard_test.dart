@@ -846,6 +846,7 @@ void main() {
       'version': 8,
     };
     var trashed = false;
+    var failedRefresh = false;
     var version = 7;
     Map<String, dynamic> currentNote() => {
       ...note,
@@ -875,6 +876,10 @@ void main() {
           if (trashed && request.queryParameters['view'] == 'all') {
             expect(await cache.summaries(), isEmpty);
             expect(await cache.detail(15), isNull);
+            if (!failedRefresh) {
+              failedRefresh = true;
+              return response({'detail': 'Connection interrupted'}, 503);
+            }
           }
           return response([
             if ((request.queryParameters['view'] == 'trash') == trashed)
@@ -900,7 +905,10 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Move to Trash'));
     await tester.pumpAndSettle();
     expect(trashed, isTrue);
+    expect(failedRefresh, isTrue);
     expect(find.text('Trashed note'), findsNothing);
+    await tester.tap(find.byTooltip('Refresh notes'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Filter notes'));
     await tester.pumpAndSettle();
     for (final label in ['Trash', 'Trashed note', 'Restore note']) {
