@@ -16,7 +16,8 @@ enum _OrderAction {
   issue('Issue purchase order', 'Confirm issue'),
   revise('Create revision draft', 'Create revised draft'),
   cancel('Cancel purchase order', 'Confirm cancellation'),
-  edit('Modify draft with reason', 'Save draft changes');
+  edit('Modify draft with reason', 'Save draft changes'),
+  archive('Archive purchase order draft', 'Confirm archive');
 
   const _OrderAction(this.title, this.confirm);
   final String title, confirm;
@@ -83,6 +84,8 @@ class InventoryProcurementPage extends StatefulWidget {
     this.canReceive = false,
     this.canIssue = false,
     this.canExport = false,
+    this.canArchive = false,
+    this.archived = false,
     this.onReceived,
     this.onOrderChanged,
   });
@@ -96,6 +99,7 @@ class InventoryProcurementPage extends StatefulWidget {
   final bool canReceive;
   final bool canIssue;
   final bool canExport;
+  final bool canArchive, archived;
   final VoidCallback? onReceived;
   final VoidCallback? onOrderChanged;
 
@@ -109,6 +113,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   late var _record = _load(offline: widget.offline);
   bool _changingOrder = false;
   bool _savingPdf = false;
+  late bool _archived = widget.archived;
   final _requests =
       <
         _OrderAction,
@@ -143,6 +148,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         canReceive: widget.canReceive,
         canIssue: widget.canIssue,
         canExport: widget.canExport,
+        canArchive: widget.canArchive,
         onReceived: widget.onReceived,
         onOrderChanged: widget.onOrderChanged,
       ),
@@ -217,7 +223,9 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         throw ApiFailure('The purchase order version is unavailable.');
       }
       if (document['removed'] == true ||
-          ((action == _OrderAction.issue || action == _OrderAction.edit) &&
+          ((action == _OrderAction.issue ||
+                  action == _OrderAction.edit ||
+                  action == _OrderAction.archive) &&
               document['editable'] != true) ||
           (action == _OrderAction.cancel && document['editable'] != false)) {
         _refresh();
@@ -252,8 +260,14 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
             );
       _requests[action] = request;
       final response = await api.request(
-        action == _OrderAction.edit ? 'PATCH' : 'POST',
-        action == _OrderAction.edit ? path : '$path/${action.name}',
+        switch (action) {
+          _OrderAction.edit => 'PATCH',
+          _OrderAction.archive => 'DELETE',
+          _ => 'POST',
+        },
+        action == _OrderAction.edit || action == _OrderAction.archive
+            ? path
+            : '$path/${action.name}',
         scopeHeaders: widget.scopeHeaders,
         data: {
           'version': request.version,
@@ -273,6 +287,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         revisedId = draft['id'] as int;
       }
       _requests.remove(action);
+      if (action == _OrderAction.archive) _archived = true;
       _refresh();
       widget.onOrderChanged?.call();
       if (revisedId != null) _openOrder(revisedId, false);
@@ -385,6 +400,8 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                       'The original remains in the register.',
                     _OrderAction.cancel =>
                       'The order stays in the register as cancelled.',
+                    _OrderAction.archive =>
+                      'Find this draft under Archived orders.',
                     _OrderAction.issue || _OrderAction.edit => null,
                   },
                 ),
@@ -469,6 +486,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           canReceive: widget.canReceive,
           canIssue: widget.canIssue,
           canExport: widget.canExport,
+          canArchive: widget.canArchive,
           onReceived: widget.onReceived,
           onOrderChanged: widget.onOrderChanged,
         ),
@@ -478,28 +496,36 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
 
   Future<({Json? record, bool live})> _load({bool offline = false}) {
     final kind = widget.kind;
+    final archived = _archived;
+    final scope = widget.cacheScope;
     return loadCrmDetail(
       api: widget.api,
-      path: '${kind.path}/${widget.summary['id']}',
-      scope: widget.cacheScope,
+      path: archived ? _documentPath : '${kind.path}/${widget.summary['id']}',
+      scope: archived && scope != null ? '$scope:archived-order' : scope,
       headers: widget.scopeHeaders,
       offline: offline,
       onCached: (saved) {
         if (mounted) setState(() => _cached = saved);
       },
-      project: (data) => {
-        for (final key in [kind.number, ...kind.fields.keys]) key: data[key],
-        'lines': [
-          for (final line in _lines(data))
-            {
-              for (final key in [
-                'description',
-                'item_code',
-                ...kind.lineFields.keys,
-              ])
-                key: line[key],
-            },
-        ],
+      project: (payload) {
+        final data = archived
+            ? payload['record'] as Json? ?? const {}
+            : payload;
+        final record = {
+          for (final key in [kind.number, ...kind.fields.keys]) key: data[key],
+          'lines': [
+            for (final line in _lines(data))
+              {
+                for (final key in [
+                  'description',
+                  'item_code',
+                  ...kind.lineFields.keys,
+                ])
+                  key: line[key],
+              },
+          ],
+        };
+        return archived ? {'record': record} : record;
       },
     );
   }
@@ -539,7 +565,12 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
         final kind = widget.kind;
         final data = snapshot.data?.record ?? _cached;
-        final row = data ?? widget.summary;
+        final archivedRecord = data?['record'];
+        final row =
+            (_archived
+                ? (archivedRecord is Json ? archivedRecord : null)
+                : data) ??
+            widget.summary;
         final lines = _lines(row).toList();
         final done = snapshot.connectionState == ConnectionState.done;
         final canReceive =
@@ -597,6 +628,21 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                           ? null
                           : () => _changeOrder(_OrderAction.edit),
                       child: const Text('Modify draft with reason'),
+                    ),
+                  if (widget.canArchive &&
+                      kind == ProcurementRecord.order &&
+                      done &&
+                      snapshot.data?.live == true &&
+                      const {
+                        'draft',
+                        'created',
+                        'planned',
+                      }.contains(row['status']))
+                    OutlinedButton(
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(_OrderAction.archive),
+                      child: const Text('Archive draft'),
                     ),
                   if (widget.canReceive &&
                       kind == ProcurementRecord.order &&

@@ -594,6 +594,8 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
         showInventory: app.title == 'Sales & POS',
         canEditOrders: allowsSalesAction('edit'),
+        canArchiveOrders:
+            app.title == 'Sales & POS' && _canWriteSales(access, 'delete'),
         canCreateOrderInvoices:
             allowsSalesAction('create') &&
             (controller.user?.isSuperuser == true ||
@@ -1397,6 +1399,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canExportSalesDocuments = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
+    this.canArchiveOrders = false,
     this.canEditWarehouses = false,
     this.canCreateLead = false,
     this.canCreateContacts = false,
@@ -1426,6 +1429,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canExportSalesDocuments;
   final bool canIssueInvoices;
   final bool canEditOrders;
+  final bool canArchiveOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
   final bool canCreateContacts;
@@ -1547,10 +1551,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _batchTracking => widget.path == InventoryBatchPage.batches;
   bool get _serialTracking => widget.path == InventoryBatchPage.serials;
   ProcurementRecord? get _procurement => switch (widget.path) {
-    '/srm/procurement/purchase-orders' => ProcurementRecord.order,
+    '/srm/procurement/purchase-orders' ||
+    _archivedOrdersPath => ProcurementRecord.order,
     '/srm/procurement/grn' => ProcurementRecord.receipt,
     _ => null,
   };
+  static const _archivedOrdersPath = '/srm/documents/purchase-orders';
+  bool get _archivedOrders => widget.path == _archivedOrdersPath;
   bool get _cachePagedRecords =>
       _isCrm ||
       _crmContacts ||
@@ -1804,7 +1811,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ? data['perPage'] ?? data['per_page'] ?? data['pageSize']
           : null;
       final pages = data is Json ? data['pages'] : null;
-      _hasNextPage = pages is int
+      final hasMore = data is Json ? data['has_more'] : null;
+      _hasNextPage = hasMore is bool
+          ? hasMore
+          : pages is int
           ? page < pages
           : total is int && pageSize is int && page * pageSize < total;
     }
@@ -1837,6 +1847,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 record.number,
                 ...record.fields.keys,
               ],
+              if (_archivedOrders) 'number',
               'order_number',
               'currency',
               'subtotal',
@@ -2007,10 +2018,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             kind: kind,
             canReceive: widget.canCreateOrder,
             canIssue: widget.canEditOrders,
+            canArchive: widget.canArchiveOrders,
+            archived: _archivedOrders,
             canExport: widget.canExportSalesDocuments,
             onReceived: _refreshStockLists,
             onOrderChanged: _refreshCrmRecords,
-            summary: row,
+            summary: _archivedOrders
+                ? {...row, 'po_number': row['number']}
+                : row,
             scopeHeaders: widget.scopeHeaders,
             cacheScope: widget.cachePrefix,
             offline: _offlineOnly || _usedSavedFallback,
@@ -2519,6 +2534,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: kind.title,
                   controller: widget.controller,
                   path: kind.path,
+                  canArchiveOrders: widget.canArchiveOrders,
                   canExportSalesDocuments: widget.canExportSalesDocuments,
                   canCreateOrder: widget.canCreateOrder,
                   canEditOrders: widget.canEditOrders,
@@ -2533,7 +2549,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 PopupMenuItem(value: kind, child: Text(kind.title)),
             ],
           ),
+        if (_procurement == ProcurementRecord.order && !_archivedOrders)
+          IconButton(
+            tooltip: 'Archived orders',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Archived orders',
+                  controller: widget.controller,
+                  path: _archivedOrdersPath,
+                  query: const {'include_removed': true, 'status': 'archived'},
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
         if (_procurement == ProcurementRecord.order &&
+            !_archivedOrders &&
             widget.canCreateOrder &&
             !_offlineOnly &&
             !_usedSavedFallback)
@@ -2758,6 +2793,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canViewFinanceInventory: widget.canViewFinanceInventory,
                   canEditOrders:
                       widget.canEditOrders && widget.canEditWarehouses,
+                  canArchiveOrders: widget.canArchiveOrders,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   canCreateOrder: widget.canCreateOrder,
@@ -2890,6 +2926,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       'vendor_name',
                                       'reference_number',
                                     ],
+                                    if (_archivedOrders) 'number',
                                     if (_crmQuoteApprovals) ...[
                                       'quote_id',
                                       'reason',
@@ -3163,6 +3200,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             item['batch_number'] ??
                             item['serial_number'] ??
                             item[_procurement?.number] ??
+                            (_archivedOrders ? item['number'] : null) ??
                             (name.isEmpty
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);

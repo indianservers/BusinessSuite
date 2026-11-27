@@ -230,6 +230,7 @@ void main() {
     final issueRequests = <RequestOptions>[];
     RequestOptions? edited;
     RequestOptions? revised;
+    RequestOptions? archived;
     RequestOptions? pdfRequest;
     const document = '/srm/documents/purchase-orders/72';
     var issued = false;
@@ -240,6 +241,19 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
+          if (request.path == '/srm/documents/purchase-orders/73') {
+            if (request.method == 'DELETE') archived = request;
+            return response({
+              'version': version,
+              'editable': archived == null,
+              'removed': archived != null,
+              'record': {
+                'id': 73,
+                'po_number': 'PO-73',
+                'status': archived == null ? 'draft' : 'archived',
+              },
+            });
+          }
           if (request.path == document && request.method == 'PATCH') {
             edited = request;
             return response({
@@ -355,6 +369,7 @@ void main() {
           canReceive: true,
           canIssue: true,
           canExport: true,
+          canArchive: true,
         ),
       ),
     );
@@ -514,6 +529,21 @@ void main() {
       'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
     });
     expect(find.text('PO-73'), findsOneWidget);
+    await tester.tap(find.text('Archive draft'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextFormField),
+      'Duplicate revision draft',
+    );
+    await tester.tap(find.text('Confirm archive'));
+    await tester.pumpAndSettle();
+    expect(archived?.data, {
+      'version': version,
+      'reason': 'Duplicate revision draft',
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(find.text('archived'), findsOneWidget);
+    expect(find.text('Archive draft'), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('PO-72'), findsOneWidget);
@@ -4835,6 +4865,22 @@ void main() {
               'total': 1,
               'per_page': 25,
             }),
+            '/srm/documents/purchase-orders' => response({
+              'items': [
+                {
+                  'id': 74,
+                  'number': 'PO-74',
+                  'status': 'archived',
+                  'removed': true,
+                },
+              ],
+              'has_more': false,
+            }),
+            '/srm/documents/purchase-orders/74' => response({
+              'record': {'id': 74, 'po_number': 'PO-74', 'status': 'archived'},
+              'removed': true,
+              'history': [],
+            }),
             '/srm/procurement/purchase-orders/72' => response({
               'po_number': 'PO-72',
               'vendor_name': 'Example supplier',
@@ -5187,6 +5233,12 @@ void main() {
           await open('PO-72');
           expect(find.text('Printer paper'), findsOneWidget);
           expect(find.textContaining('Received: 8'), findsOneWidget);
+          await back();
+          await tester.tap(find.byTooltip('Archived orders'));
+          await tester.pumpAndSettle();
+          await open('PO-74');
+          expect(find.text('archived'), findsOneWidget);
+          await back();
           await back();
           await back();
           await tester.tap(find.byTooltip('Procurement'));
