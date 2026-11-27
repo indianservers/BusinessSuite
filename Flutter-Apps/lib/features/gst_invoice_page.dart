@@ -16,6 +16,7 @@ class GstInvoicePage extends StatefulWidget {
     this.canExport = false,
     this.canIssue = false,
     this.cacheScope,
+    this.scopeHeaders = const {},
     this.summary,
     this.offline = false,
     this.onChanged,
@@ -27,9 +28,23 @@ class GstInvoicePage extends StatefulWidget {
   final bool canExport;
   final bool canIssue;
   final String? cacheScope;
+  final Map<String, String> scopeHeaders;
   final Json? summary;
   final bool offline;
   final VoidCallback? onChanged;
+
+  static String? cacheKey(
+    String? scope,
+    String path,
+    Map<String, String> headers,
+  ) {
+    if (scope == null) return null;
+    final keys = headers.keys.toList()..sort();
+    final context = Uri(
+      queryParameters: {for (final key in keys) key: headers[key]},
+    ).query;
+    return '$scope:$path${context.isEmpty ? '' : ':$context'}';
+  }
 
   static const summaryFields = [
     'invoice_number',
@@ -59,7 +74,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   bool _issuing = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   String? get _key =>
-      widget.cacheScope == null ? null : '${widget.cacheScope}:$_path';
+      GstInvoicePage.cacheKey(widget.cacheScope, _path, widget.scopeHeaders);
 
   Future<void> _saveSnapshot(Json invoice) async {
     final key = _key;
@@ -111,7 +126,9 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       throw ApiFailure('Open this invoice online to save it on this device.');
     }
     try {
-      final invoice = await api.request('GET', _path) as Json;
+      final invoice =
+          await api.request('GET', _path, scopeHeaders: widget.scopeHeaders)
+              as Json;
       if (api.sessionRevision != revision) {
         throw ApiFailure('Your session ended. Sign in again.', 401);
       }
@@ -140,12 +157,14 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   });
 
   Future<void> _notifyChanged() async {
-    final scope = widget.cacheScope;
-    if (scope != null) {
+    final key = GstInvoicePage.cacheKey(
+      widget.cacheScope,
+      GstInvoicePage.listEndpoint,
+      widget.scopeHeaders,
+    );
+    if (key != null) {
       try {
-        await SuiteReadCache.invalidate(
-          '$scope:${GstInvoicePage.listEndpoint}',
-        );
+        await SuiteReadCache.invalidate(key);
       } catch (_) {}
     }
     if (mounted) widget.onChanged?.call();
@@ -180,7 +199,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (!mounted || confirmed != true || api.sessionRevision != revision) {
         return;
       }
-      await api.request('POST', '$_path/approve');
+      await api.request(
+        'POST',
+        '$_path/approve',
+        scopeHeaders: widget.scopeHeaders,
+      );
       if (mounted && api.sessionRevision == revision) {
         setState(() {
           _invoice = _load();
@@ -210,7 +233,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     final revision = api.sessionRevision;
     setState(() => _exporting = true);
     try {
-      final bytes = await fetchSuitePdf(api, '$_path/pdf');
+      final bytes = await fetchSuitePdf(
+        api,
+        '$_path/pdf',
+        scopeHeaders: widget.scopeHeaders,
+      );
       if (!mounted || api.sessionRevision != revision) return;
       final number = '${invoice['invoice_number'] ?? widget.id}'.replaceAll(
         RegExp(r'[^A-Za-z0-9._-]'),
@@ -247,6 +274,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                   'PATCH',
                   '/srm/business/invoices/${widget.id}/lines/${line['id']}',
                   data: values,
+                  scopeHeaders: widget.scopeHeaders,
                 )
                 as Json,
       ),
@@ -342,6 +370,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                             'PATCH',
                             _path,
                             data: changed,
+                            scopeHeaders: widget.scopeHeaders,
                           );
                           if (context.mounted) Navigator.pop(context, true);
                         } catch (failure) {

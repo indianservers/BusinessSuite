@@ -1663,7 +1663,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
   }
 
-  String? get _cacheKey => widget.cachePrefix == null
+  String? get _cacheKey => widget.path == GstInvoicePage.listEndpoint
+      ? GstInvoicePage.cacheKey(
+          widget.cachePrefix,
+          GstInvoicePage.listEndpoint,
+          widget.scopeHeaders,
+        )
+      : widget.cachePrefix == null
       ? null
       : '${widget.cachePrefix}:${_stockSummary
             ? _stockSummaryCachePath
@@ -2939,6 +2945,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'GST Billing',
                   controller: widget.controller,
                   path: GstInvoicePage.listEndpoint,
+                  scopeHeaders: widget.scopeHeaders,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
                   canExportSalesDocuments: widget.canExportSalesDocuments,
@@ -3755,6 +3762,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                     api: widget.controller.api,
                                                     id: invoice['id'] as int,
                                                     summary: invoice,
+                                                    scopeHeaders:
+                                                        widget.scopeHeaders,
                                                     cacheScope:
                                                         widget.cachePrefix,
                                                     canEdit: true,
@@ -3778,8 +3787,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             id: item['id'] as int,
                                             summary: item,
                                             cacheScope: widget.cachePrefix,
+                                            scopeHeaders: widget.scopeHeaders,
                                             onChanged: _refresh,
-                                            offline: _offlineOnly,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
                                             canExport:
                                                 widget.canExportSalesDocuments,
                                             canIssue: widget.canIssueInvoices,

@@ -3757,6 +3757,7 @@ void main() {
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         expect(request.path, '/srm/invoices/7');
+        expect(request.headers['X-Suite-Branch'], '6');
         if (request.method == 'PATCH') {
           expect(request.data, {'due_date': '2026-12-15'});
           dueDate = '2026-12-15';
@@ -3778,6 +3779,7 @@ void main() {
           ),
           id: 7,
           canEdit: true,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
         ),
       ),
     );
