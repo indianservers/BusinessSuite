@@ -642,6 +642,44 @@ void main() {
     }
   });
 
+  testWidgets('Notes duplicates a saved note via the shared API', (
+    tester,
+  ) async {
+    const path = '/project-management/notes';
+    const original = {'id': 12, 'title': 'Original note', 'can_edit': true};
+    const copy = {'id': 13, 'title': 'Original note (copy)'};
+    var duplicated = false;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            expect(request.path, '$path/12/duplicate');
+            expect(request.data, isNull);
+            duplicated = true;
+            return response(copy, 201);
+          }
+          if (request.path == '$path/12') return response(original);
+          expect(request.path, path);
+          return response([if (duplicated) copy, original]);
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Original note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Duplicate note'));
+    await tester.pumpAndSettle();
+    expect(duplicated, isTrue);
+    expect(find.text('Original note (copy)'), findsOneWidget);
+    expect(find.text('Original note'), findsOneWidget);
+  });
+
   testWidgets('Notes restores history as a new version', (tester) async {
     const path = '/project-management/notes';
     const note = {
