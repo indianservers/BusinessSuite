@@ -678,7 +678,7 @@ void main() {
     }
   });
 
-  testWidgets('Notes restores a trashed note with its current version', (
+  testWidgets('Notes moves a note to Trash and restores it by version', (
     tester,
   ) async {
     const path = '/project-management/notes';
@@ -687,9 +687,15 @@ void main() {
       'title': 'Trashed note',
       'can_edit': true,
       'deleted_at': '2026-11-27T10:00:00Z',
-      'version': 7,
+      'version': 8,
     };
-    var restored = false;
+    var trashed = false;
+    var version = 7;
+    Map<String, dynamic> currentNote() => {
+      ...note,
+      'deleted_at': trashed ? note['deleted_at'] : null,
+      'version': version,
+    };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -697,13 +703,22 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.path == '$path/15/restore') {
             expect(request.method, 'POST');
-            expect(request.data, {'version': 7});
-            restored = true;
-            return response({...note, 'deleted_at': null, 'version': 8});
+            expect(request.data, {'version': 8});
+            trashed = false;
+            version++;
+            return response(currentNote());
           }
-          if (request.path == '$path/15') return response(note);
+          if (request.path == '$path/15') {
+            if (request.method == 'DELETE') {
+              expect(request.data, {'version': 7});
+              trashed = true;
+              version++;
+            }
+            return response(currentNote());
+          }
           return response([
-            if (request.queryParameters['view'] == 'trash' && !restored) note,
+            if ((request.queryParameters['view'] == 'trash') == trashed)
+              currentNote(),
           ]);
         }),
     );
@@ -713,13 +728,22 @@ void main() {
     });
     await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
     await tester.pumpAndSettle();
+    for (final label in ['Trashed note', 'Move to Trash']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.widgetWithText(FilledButton, 'Move to Trash'));
+    await tester.pumpAndSettle();
+    expect(trashed, isTrue);
+    expect(find.text('Trashed note'), findsNothing);
     await tester.tap(find.byTooltip('Filter notes'));
     await tester.pumpAndSettle();
     for (final label in ['Trash', 'Trashed note', 'Restore note']) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
     }
-    expect(restored, isTrue);
+    expect(trashed, isFalse);
+    expect(version, 9);
     expect(find.text('Trashed note'), findsNothing);
   });
 

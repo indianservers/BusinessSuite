@@ -588,9 +588,29 @@ class _NoteEditorState extends State<_NoteEditor> {
     }
   }
 
-  Future<void> _restore() async {
+  Future<void> _changeTrash({required bool restore}) async {
     final note = _note;
-    if (_saving || note == null) return;
+    if (_saving || _dirty || note == null) return;
+    if (!restore) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Move note to Trash?'),
+          content: const Text('You can restore this note from Trash.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Move to Trash'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
     final revision = widget.api.sessionRevision;
     setState(() {
       _saving = true;
@@ -598,8 +618,8 @@ class _NoteEditorState extends State<_NoteEditor> {
     });
     try {
       await widget.api.request(
-        'POST',
-        '$_notesPath/${note['id']}/restore',
+        restore ? 'POST' : 'DELETE',
+        '$_notesPath/${note['id']}${restore ? '/restore' : ''}',
         data: {'version': note['version']},
       );
       if (!mounted || widget.api.sessionRevision != revision) return;
@@ -711,12 +731,17 @@ class _NoteEditorState extends State<_NoteEditor> {
               ),
           ],
           if (_error != null) Text(_error!),
-          if (_note?['deleted_at'] != null &&
-              _note?['can_edit'] == true &&
-              _note?['version'] is int)
+          if (_note?['can_edit'] == true &&
+              _note?['version'] is int &&
+              !_savedView &&
+              _pending == null)
             OutlinedButton(
-              onPressed: _loading || _saving || _offline ? null : _restore,
-              child: const Text('Restore note'),
+              onPressed: _loading || _saving || _offline || _dirty
+                  ? null
+                  : () => _changeTrash(restore: _note?['deleted_at'] != null),
+              child: Text(
+                _note?['deleted_at'] == null ? 'Move to Trash' : 'Restore note',
+              ),
             ),
           if (widget.summary != null && _note == null) ...[
             if (_loading) ...[
