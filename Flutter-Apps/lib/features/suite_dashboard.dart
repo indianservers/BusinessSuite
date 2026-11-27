@@ -418,7 +418,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : controller.user?.permissions.any(permissions.contains) == true);
   }
 
-  bool _canEditContacts(Json access) {
+  bool _canWriteContacts(Json access, String action) {
     if (!_allowed(access, 'crm') || widget.controller.offline) return false;
     final user = widget.controller.user;
     if (user?.isSuperuser == true) return true;
@@ -427,7 +427,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       return user?.permissions.any(permissions.contains) == true;
     }
     final grant = (access['grants'] as Json?)?['crm'] as Json?;
-    return (grant?['actions'] as List?)?.contains('edit') == true &&
+    return (grant?['actions'] as List?)?.contains(action) == true &&
         (grant?['permissions'] as List?)?.any(permissions.contains) == true;
   }
 
@@ -495,7 +495,10 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : const {},
         cachePrefix: cache,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
-        canEditContacts: app.grant == 'crm' && _canEditContacts(access),
+        canCreateContacts:
+            app.grant == 'crm' && _canWriteContacts(access, 'create'),
+        canEditContacts:
+            app.grant == 'crm' && _canWriteContacts(access, 'edit'),
         canCreateOrder: app.title == 'Sales & POS' && _canCreateOrder(access),
         canEditWarehouses:
             app.title == 'Sales & POS' && _canWriteSales(access, 'edit'),
@@ -1305,6 +1308,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canEditOrders = false,
     this.canEditWarehouses = false,
     this.canCreateLead = false,
+    this.canCreateContacts = false,
     this.canEditContacts = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
@@ -1322,6 +1326,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canEditOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
+  final bool canCreateContacts;
   final bool canEditContacts;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
@@ -1848,6 +1853,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Contacts',
                   controller: widget.controller,
                   path: CrmContactPage.endpoint,
+                  canCreateContacts: widget.canCreateContacts,
                   canEditContacts: widget.canEditContacts,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
@@ -1855,6 +1861,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_crmContacts &&
+            widget.canCreateContacts &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New contact',
+            icon: const Icon(LucideIcons.userPlus),
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => CrmContactForm(
+                    api: widget.controller.api,
+                    scopeHeaders: widget.scopeHeaders,
+                  ),
+                ),
+              );
+              if (mounted && created == true) {
+                _page = 1;
+                await _refreshContacts();
+              }
+            },
           ),
         if (_isCrm &&
             widget.canCreateLead &&

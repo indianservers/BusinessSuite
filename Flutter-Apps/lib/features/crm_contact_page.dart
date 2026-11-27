@@ -68,7 +68,7 @@ class _CrmContactPageState extends State<CrmContactPage> {
   Future<void> _edit(Json contact) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => _ContactEditPage(
+        builder: (_) => CrmContactForm(
           api: widget.api,
           contact: contact,
           scopeHeaders: widget.scopeHeaders,
@@ -148,10 +148,11 @@ class _CrmContactPageState extends State<CrmContactPage> {
   );
 }
 
-class _ContactEditPage extends StatefulWidget {
-  const _ContactEditPage({
+class CrmContactForm extends StatefulWidget {
+  const CrmContactForm({
+    super.key,
     required this.api,
-    required this.contact,
+    this.contact = const {},
     required this.scopeHeaders,
   });
 
@@ -160,10 +161,10 @@ class _ContactEditPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
 
   @override
-  State<_ContactEditPage> createState() => _ContactEditPageState();
+  State<CrmContactForm> createState() => _CrmContactFormState();
 }
 
-class _ContactEditPageState extends State<_ContactEditPage> {
+class _CrmContactFormState extends State<CrmContactForm> {
   static const _fields = {
     'first_name': ('First name', 100),
     'last_name': ('Last name', 100),
@@ -176,6 +177,7 @@ class _ContactEditPageState extends State<_ContactEditPage> {
   final _changes = <String, dynamic>{};
   bool _saving = false;
   String? _error;
+  bool get _creating => widget.contact['id'] == null;
 
   Future<void> _save() async {
     if (_saving || _form.currentState?.validate() != true) return;
@@ -200,8 +202,10 @@ class _ContactEditPageState extends State<_ContactEditPage> {
     final revision = widget.api.sessionRevision;
     try {
       await widget.api.request(
-        'PATCH',
-        '${CrmContactPage.endpoint}/${widget.contact['id']}',
+        _creating ? 'POST' : 'PATCH',
+        _creating
+            ? CrmContactPage.endpoint
+            : '${CrmContactPage.endpoint}/${widget.contact['id']}',
         scopeHeaders: widget.scopeHeaders,
         data: _changes,
       );
@@ -217,7 +221,7 @@ class _ContactEditPageState extends State<_ContactEditPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Edit contact')),
+    appBar: AppBar(title: Text(_creating ? 'New contact' : 'Edit contact')),
     body: Form(
       key: _form,
       child: SingleChildScrollView(
@@ -244,7 +248,13 @@ class _ContactEditPageState extends State<_ContactEditPage> {
             if (_error case final error?) Text(error),
             FilledButton(
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'Saving…' : 'Save changes'),
+              child: Text(
+                _saving
+                    ? 'Saving…'
+                    : _creating
+                    ? 'Create contact'
+                    : 'Save changes',
+              ),
             ),
           ],
         ),

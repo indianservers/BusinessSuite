@@ -35,6 +35,52 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Contact creation validates the name and posts to shared CRM', (
+    tester,
+  ) async {
+    final requests = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          return response({'id': 82}, 201);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmContactForm(
+          api: api,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+        ),
+      ),
+    );
+    final create = find.text('Create contact');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(requests, isEmpty);
+    final firstName = find.widgetWithText(TextFormField, 'First name');
+    await tester.ensureVisible(firstName);
+    await tester.enterText(firstName, ' Anya ');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Last name'),
+      'Rao',
+    );
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(requests.single.method, 'POST');
+    expect(requests.single.path, '/crm/contacts');
+    expect(requests.single.headers['X-Suite-Organization'], '7');
+    expect(requests.single.data, {
+      'first_name': 'Anya',
+      'last_name': 'Rao',
+      'full_name': 'Anya Rao',
+    });
+  });
+
   testWidgets('Contact edit submits only changed fields and refreshes', (
     tester,
   ) async {
