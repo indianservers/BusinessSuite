@@ -140,7 +140,17 @@ class SuiteReadCache {
     for (final entry in entries) {
       for (final row
           in (jsonDecode(entry['rows'] as String) as List).cast<Json>()) {
-        if (row['id'] case final int id) unique.putIfAbsent(id, () => row);
+        if (row['id'] case final int id) {
+          final existing = unique[id];
+          final version = row['version'];
+          final existingVersion = existing?['version'];
+          if (existing == null ||
+              (version is int &&
+                  existingVersion is int &&
+                  version > existingVersion)) {
+            unique[id] = row;
+          }
+        }
       }
     }
     final ids = unique.keys.toList()..sort((a, b) => b.compareTo(a));
