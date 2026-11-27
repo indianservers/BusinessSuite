@@ -126,14 +126,20 @@ void main() {
       branchId: 3,
       changes: changes,
     );
+    final operation = (await drafts.entries()).single['operation'];
+    var status = 503;
     dio.httpClientAdapter = FakeAdapter((request) async {
       expect(request.method, 'PUT');
       expect(request.path, '/srm/inventory/items/314');
       expect(request.headers['X-Suite-Branch'], '3');
       expect(request.headers['X-Suite-Organization'], '8');
+      expect(request.headers['X-Offline-Operation'], operation);
       expect(request.data, changes);
-      return response({'detail': 'Product changed'}, 409);
+      return response({'detail': 'Product changed'}, status);
     });
+    await drafts.sync(api);
+    expect((await drafts.entries()).single['error'], isNull);
+    status = 409;
     await drafts.sync(api);
     final saved = (await drafts.entries()).single;
     expect(saved['changes'], changes);

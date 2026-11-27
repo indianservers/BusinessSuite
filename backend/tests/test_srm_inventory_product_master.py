@@ -103,6 +103,23 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
             },
         )
         assert ops_product.status_code == 201, ops_product.text
+        receipts.create(db.connection(), checkfirst=True)
+        item_path = f"/api/v1/srm/inventory/items/{ops_product.json()['id']}"
+        original = client.get(item_path, headers=headers)
+        assert original.status_code == 200, original.text
+        edit = {"description": "Saved offline", "expected_updated_at": original.json()["updated_at"]}
+        edit_headers = {**headers, "X-Offline-Operation": str(uuid4())}
+        saved = client.put(item_path, headers=edit_headers, json=edit)
+        assert saved.status_code == 200, saved.text
+        assert saved.json()["updated_at"] != edit["expected_updated_at"]
+        replay_edit = client.put(item_path, headers=edit_headers, json=edit)
+        assert replay_edit.status_code == 200, replay_edit.text
+        assert replay_edit.json() == saved.json()
+        mismatch_edit = client.put(item_path, headers=edit_headers, json={**edit, "description": "Different"})
+        assert mismatch_edit.status_code == 409, mismatch_edit.text
+        stale_edit = client.put(item_path, headers={**headers, "X-Offline-Operation": str(uuid4())}, json=edit)
+        assert stale_edit.status_code == 409, stale_edit.text
+
         ops_opening = client.post(
             "/api/v1/srm/inventory/opening-stock",
             headers=headers,
@@ -110,7 +127,6 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
         )
         assert ops_opening.status_code == 201, ops_opening.text
 
-        receipts.create(db.connection(), checkfirst=True)
         movement_path = "/api/v1/srm/inventory/stock-movements/offline-create"
         receipt_headers = {**headers, "X-Offline-Operation": str(uuid4())}
         stock_in_payload = {"product_id": ops_product.json()["id"], "warehouse_id": warehouse.json()["id"], "movement_type": "stock_in", "quantity": 5, "rate": 21, "reference_number": "ADHOC-IN"}

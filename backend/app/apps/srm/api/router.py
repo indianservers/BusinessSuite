@@ -1636,7 +1636,35 @@ def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user
 
 
 @router.put("/inventory/items/{product_id}")
-def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin")),
+                       offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
+    if isinstance(offline_operation, UUID):
+        from app.shared.offline_operations import perform_offline_operation
+        return perform_offline_operation(
+            db, current_user, offline_operation, ("update_inventory_product", _org(current_user), product_id),
+            data.model_dump(mode="json", exclude_unset=True),
+            lambda: _update_inventory_product(db, current_user, product_id, data),
+            lambda _: _inventory_product_for_edit(db, current_user, product_id),
+        )
+    result = _update_inventory_product(db, current_user, product_id, data)
+    db.commit()
+    return result
+
+
+def _inventory_product_for_edit(db, actor, product_id, *, lock=False):
+    from app.shared.catalog import metadata, workspace_access
+    from app.shared.catalog_branches import is_available, selected_branch
+
+    product = _product_or_404(db, _org(actor), product_id, lock=lock)
+    if not is_available(product, selected_branch(actor)):
+        raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
+    kind = "service" if product.product_type == "service" else "product"
+    detail = metadata(db, kind, product.id)
+    workspace_access(db, actor, detail.workspace_id if detail else None, True)
+    return product, kind, detail
+
+
+def _update_inventory_product(db, current_user, product_id, data):
     patch = data.model_dump(exclude_unset=True)
     check_version = "expected_updated_at" in patch
     expected_updated_at = patch.pop("expected_updated_at", None)
@@ -1645,15 +1673,8 @@ def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = De
         from app.apps.srm.services.commercial import lock_tenant
         lock_tenant(db, current_user)
     org_id = _org(current_user)
-    product = _product_or_404(db, org_id, product_id, lock=check_version)
-    from app.shared.catalog_branches import is_available, selected_branch
-    if not is_available(product, selected_branch(current_user)):
-        raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
+    product, kind, detail = _inventory_product_for_edit(db, current_user, product_id, lock=check_version)
     before = _product_payload(product)
-    from app.shared.catalog import metadata, workspace_access
-    kind = "service" if product.product_type == "service" else "product"
-    detail = metadata(db, kind, product.id)
-    workspace_access(db, current_user, detail.workspace_id if detail else None, True)
     if check_version and product.updated_at != expected_updated_at:
         raise HTTPException(409, "Product changed since it was saved. Refresh before editing.")
     if any(key in patch and patch[key] != getattr(product, key) for key in classification):
@@ -1669,7 +1690,7 @@ def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = De
     if not product.mrp:
         product.mrp = product.sales_rate
     _audit(db, current_user, "product", product.id, "UPDATE", before, _product_payload(product))
-    db.commit()
+    db.flush()
     db.refresh(product)
     return _product_payload(product)
 

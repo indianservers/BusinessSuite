@@ -184,8 +184,7 @@ class InventoryOfflineCreates {
             scopeHeaders: {
               'X-Suite-Organization': _company,
               'X-Suite-Branch': '$branch',
-              if (productId == null)
-                'X-Offline-Operation': entry['operation'] as String,
+              'X-Offline-Operation': entry['operation'] as String,
             },
             data: productId == null ? entry['product'] : entry['changes'],
           );
