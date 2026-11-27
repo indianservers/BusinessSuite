@@ -8,6 +8,7 @@ import 'package:business_suite_mobile/main.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -18,12 +19,14 @@ void main() {
     ('GST', 'GST Billing', 'GST'),
     ('Sales Orders', null, 'ORDER'),
     ('Inventory', 'Inventory', 'ITEM'),
+    ('CRM Leads', null, 'LEAD'),
   ]) {
     testWidgets('Refreshing the $screen list does not wait for SQLite', (
       tester,
     ) async {
       const channel = MethodChannel('com.tekartik.sqflite');
       final messenger = tester.binding.defaultBinaryMessenger;
+      FlutterSecureStorage.setMockInitialValues({});
       databaseFactory = databaseFactorySqflitePlugin;
       final opening = Completer<String>();
       var holdCache = false;
@@ -35,6 +38,7 @@ void main() {
         return opening.future;
       });
       addTearDown(() {
+        FlutterSecureStorage.setMockInitialValues({});
         messenger.setMockMethodCallHandler(channel, null);
         databaseFactory = null;
       });
@@ -49,6 +53,7 @@ void main() {
                 'companyId': 7,
                 'grants': {
                   'srm': {'enabled': true},
+                  'crm': {'enabled': true},
                 },
               }),
               '/access/launcher-preferences' => response({'favorites': []}),
@@ -74,6 +79,12 @@ void main() {
                 ],
                 'total': 1,
               }),
+              '/crm/lead-management/leads' => response({
+                'items': [
+                  {'id': 6, 'title': 'LEAD-${++requests}'},
+                ],
+                'total': 1,
+              }),
               _ => throw StateError('Unexpected request ${request.path}'),
             };
           }),
@@ -84,9 +95,11 @@ void main() {
       try {
         await tester.pumpWidget(BusinessSuiteApp(controller: controller));
         await tester.pumpAndSettle();
-        final sales = find.text('Sales & POS');
-        await tester.ensureVisible(sales);
-        await tester.tap(sales);
+        final module = find.text(
+          prefix == 'LEAD' ? 'VyaparaCRM' : 'Sales & POS',
+        );
+        await tester.ensureVisible(module);
+        await tester.tap(module);
         await tester.pumpAndSettle();
         if (route != null) {
           await tester.tap(find.byTooltip(route));
