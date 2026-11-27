@@ -6503,15 +6503,15 @@ def delete_quote_line(
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     _assert_entity_permission("quotations", current_user, "manage")
-    organization_id = _organization_id(db, current_user)
     line = db.query(CRMQuotationItem).filter(CRMQuotationItem.id == line_id).first()
     if not line:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
-    quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
+    quote = _quote_for_status_change(db, current_user, line.quote_id or line.quotation_id)
     if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     before = _serialize(line)
     db.delete(line)
+    db.flush()
     totals = _recalculate_quote(db, quote)
     _create_crm_audit_log(db, user_id=current_user.id, entity_type="quote-lines", entity_id=line_id, action="DELETE", old_values=before, description="Quote line deleted")
     db.commit()

@@ -78,6 +78,54 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
     }
   }
 
+  Future<void> _remove() async {
+    final line = widget.line;
+    if (_saving || line == null || line['id'] is! int) return;
+    final revision = widget.api.sessionRevision;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove quotation item?'),
+        content: Text(
+          "${line['name'] ?? 'Item'} will be removed from this quotation.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove item'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted ||
+        confirmed != true ||
+        revision != widget.api.sessionRevision) {
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request(
+        'DELETE',
+        "/crm/quote-lines/${line['id']}",
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (mounted && revision == widget.api.sessionRevision) {
+        Navigator.pop(context, true);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.line == null ? 'Add item' : 'Edit item')),
@@ -115,6 +163,11 @@ class _CrmQuotationLinePageState extends State<CrmQuotationLinePage> {
               onPressed: _saving ? null : _save,
               child: Text(_saving ? 'Saving…' : 'Save item'),
             ),
+            if (widget.line != null)
+              TextButton(
+                onPressed: _saving ? null : _remove,
+                child: const Text('Remove item'),
+              ),
           ],
         ),
       ),

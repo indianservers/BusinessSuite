@@ -895,6 +895,28 @@ def test_crm_calendar_integrations_and_meeting_sync(client, db, superuser_header
     assert disconnected.status_code == 200
 
 
+def test_removing_draft_quote_item_recalculates_total(client, superuser_headers):
+    created = client.post(
+        "/api/v1/crm/quotations",
+        headers=superuser_headers,
+        json={"quote_number": "QT-REMOVE-ITEM", "issue_date": "2026-11-27", "expiry_date": "2026-12-27"},
+    )
+    assert created.status_code == 201, created.text
+    quote_id = created.json()["id"]
+    line = client.post(
+        f"/api/v1/crm/quotes/{quote_id}/lines",
+        headers=superuser_headers,
+        json={"name": "Training", "quantity": 2, "unit_price": 100},
+    )
+    assert line.status_code == 201, line.text
+    removed = client.delete(f"/api/v1/crm/quote-lines/{line.json()['id']}", headers=superuser_headers)
+    assert removed.status_code == 200, removed.text
+    record = client.get(f"/api/v1/crm/quotations/{quote_id}", headers=superuser_headers)
+    assert record.status_code == 200, record.text
+    assert record.json()["lines"] == []
+    assert float(record.json()["grand_total"]) == 0
+
+
 def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, superuser_headers):
     contact = client.post(
         "/api/v1/crm/contacts",
