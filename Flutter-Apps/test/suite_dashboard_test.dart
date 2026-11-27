@@ -3276,16 +3276,30 @@ void main() {
               'items': [
                 {
                   'id': 84,
+                  'project_id': 5,
                   'title': 'Sample CRM follow-up',
                   'due_date': '2026-11-29',
                 },
               ],
               'pages': 1,
+              'filters': {
+                'projects': [
+                  {'id': 5, 'can_manage_tasks': true},
+                ],
+              },
             }),
             '/project-management/tasks/84' => response({
               'id': 84,
               'title': 'Sample CRM follow-up',
               'description': 'Prepare renewal proposal',
+              'updated_at': '2026-11-27T09:00:00Z',
+              'status':
+                  calls.any(
+                    (call) =>
+                        call.method == 'PATCH' && call.path.endsWith('/84'),
+                  )
+                  ? 'Done'
+                  : 'To Do',
             }),
             '/master-data/company-directory/query' => response({
               'rows': [
@@ -3698,6 +3712,18 @@ void main() {
           );
           await open('Sample CRM follow-up');
           expect(find.text('Prepare renewal proposal'), findsOneWidget);
+          await open('Change status');
+          await open('Done');
+          final taskUpdate = calls.lastWhere(
+            (request) =>
+                request.method == 'PATCH' &&
+                request.path == '/project-management/tasks/84',
+          );
+          expect(taskUpdate.data, {
+            'status': 'Done',
+            'expected_updated_at': '2026-11-27T09:00:00Z',
+          });
+          expect(find.text('Done'), findsOneWidget);
           await back();
           await back();
           await tester.tap(find.byTooltip('Customers'));

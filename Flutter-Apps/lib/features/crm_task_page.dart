@@ -12,6 +12,8 @@ class CrmTaskPage extends StatefulWidget {
     required this.offline,
     required this.scopeHeaders,
     this.cacheScope,
+    this.canEdit = false,
+    this.onChanged,
   });
 
   static const endpoint = '/project-management/tasks';
@@ -27,12 +29,25 @@ class CrmTaskPage extends StatefulWidget {
   final bool offline;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
+  final bool canEdit;
+  final VoidCallback? onChanged;
 
   @override
   State<CrmTaskPage> createState() => _CrmTaskPageState();
 }
 
 class _CrmTaskPageState extends State<CrmTaskPage> {
+  bool _saving = false;
+  String? _error;
+  static const _statuses = [
+    'Backlog',
+    'To Do',
+    'In Progress',
+    'In Review',
+    'Blocked',
+    'Done',
+    'Cancelled',
+  ];
   late Future<({Json? record, bool live})> _task = _load(
     offline: widget.offline,
   );
@@ -51,8 +66,47 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
       );
 
   void _refresh() => setState(() {
+    _error = null;
     _task = _load();
   });
+
+  Future<void> _changeStatus(Json task) async {
+    final status = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Change task status'),
+        children: [
+          for (final status in _statuses)
+            if (status != task['status'])
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, status),
+                child: Text(status),
+              ),
+        ],
+      ),
+    );
+    if (!mounted || status == null) return;
+    final revision = widget.api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request(
+        'PATCH',
+        '${CrmTaskPage.endpoint}/${widget.summary['id']}',
+        scopeHeaders: widget.scopeHeaders,
+        data: {'status': status, 'expected_updated_at': task['updated_at']},
+      );
+      if (!mounted || revision != widget.api.sessionRevision) return;
+      widget.onChanged?.call();
+      _refresh();
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -62,7 +116,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
         IconButton(
           tooltip: 'Refresh task',
           icon: const Icon(Icons.refresh),
-          onPressed: _refresh,
+          onPressed: _saving ? null : _refresh,
         ),
       ],
     ),
@@ -89,6 +143,18 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
               '${data['title'] ?? 'Task'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.canEdit &&
+                snapshot.connectionState == ConnectionState.done &&
+                snapshot.data?.live == true &&
+                data['updated_at'] is String)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => _changeStatus(data),
+                  child: Text(_saving ? 'Saving…' : 'Change status'),
+                ),
+              ),
+            if (_error case final error?) Text(error),
             for (final field in CrmTaskPage.fields.entries)
               if ((data[field.key] ?? widget.summary[field.key])
                   case final String value when value.isNotEmpty)

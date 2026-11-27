@@ -1439,6 +1439,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   int _page = 1;
   bool _hasNextPage = false;
   bool _customerCreateAllowed = false;
+  Set<int> _editableTaskProjects = {};
   int _loadRevision = 0;
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
@@ -1665,6 +1666,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
     if (loadRevision != _loadRevision) return records;
     _offlineOnly = false;
+    if (_crmTasks && data is Json) {
+      final filters = data['filters'] as Json?;
+      _editableTaskProjects = {
+        for (final project
+            in (filters?['projects'] as List? ?? const []).whereType<Json>())
+          if (project['can_manage_tasks'] == true && project['id'] is int)
+            project['id'] as int,
+      };
+    }
     if (mounted && _crmCustomers && data is Json) {
       final allowed = (data['context'] as Json?)?['canCreate'] == true;
       if (allowed != _customerCreateAllowed) {
@@ -2823,6 +2833,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
+                                            canEdit:
+                                                !_offlineOnly &&
+                                                !_usedSavedFallback &&
+                                                _editableTaskProjects.contains(
+                                                  item['project_id'],
+                                                ),
+                                            onChanged: _refreshCrmRecords,
                                           )
                                         : _crmCustomers
                                         ? CrmCustomerPage(
