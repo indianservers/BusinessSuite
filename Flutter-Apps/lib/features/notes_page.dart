@@ -790,6 +790,26 @@ class _NoteEditorState extends State<_NoteEditor> {
     }
   }
 
+  Future<void> _duplicate() async {
+    final id = _note?['id'];
+    if (id is! int || _saving || _dirty) return;
+    final session = widget.api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request('POST', '$_notesPath/$id/duplicate');
+      if (!mounted || widget.api.sessionRevision != session) return;
+      setState(() => _saving = false);
+      Navigator.of(context).pop(_NoteChange.saved);
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted && _saving) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _discardPending() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -896,6 +916,17 @@ class _NoteEditorState extends State<_NoteEditor> {
               ),
           ],
           if (_error != null) Text(_error!),
+          if (_note?['can_edit'] == true &&
+              _note?['deleted_at'] == null &&
+              !_offline &&
+              !_savedView)
+            OutlinedButton.icon(
+              onPressed: _loading || _saving || _dirty || _pending != null
+                  ? null
+                  : _duplicate,
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Duplicate note'),
+            ),
           if (_note?['can_edit'] == true &&
               _note?['version'] is int &&
               !_savedView &&
