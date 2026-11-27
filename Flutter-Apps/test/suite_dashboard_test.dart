@@ -2987,6 +2987,19 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/srm/inventory/reports/stock-summary' => response({
+              'items': [
+                {
+                  'id': 13,
+                  'sku': 'STOCK-2',
+                  'item_name': 'Healthy product',
+                  'current_quantity': 10,
+                  'reorder_threshold': 2,
+                  'stock_value': 240,
+                  'currency': 'INR',
+                },
+              ],
+            }),
             '/srm/inventory/reports/reorder' => response({
               'items': [
                 {
@@ -3250,6 +3263,12 @@ void main() {
           expect(find.text('1 item needs attention'), findsOneWidget);
           expect(find.text('Out of stock'), findsOneWidget);
           expect(find.text('Healthy product'), findsNothing);
+          await back();
+          await tester.tap(find.byTooltip('Stock Summary'));
+          await tester.pumpAndSettle();
+          expect(find.text('Healthy product'), findsOneWidget);
+          expect(find.textContaining('Quantity 10'), findsOneWidget);
+          expect(find.textContaining('Stock value 240 INR'), findsOneWidget);
           await back();
           await tester.tap(find.byTooltip('Warehouses'));
           await tester.pumpAndSettle();

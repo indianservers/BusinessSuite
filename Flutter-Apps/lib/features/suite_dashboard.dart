@@ -1347,7 +1347,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   }
 
   static const _reorderPath = '/srm/inventory/reports/reorder';
-  static const _stockSummaryCachePath = '/srm/inventory/reports/stock-summary';
+  static const _stockSummaryPath = InventoryStockReceipts.stockSummaryEndpoint;
+  static const _stockSummaryCachePath =
+      InventoryStockReceipts.stockSummaryCache;
+  bool get _stockSummary => widget.path == _stockSummaryPath;
   static const _warehousesPath = InventoryWarehouseForm.endpoint;
   static const _warehouseStockPath =
       InventoryStockReceipts.warehouseStockEndpoint;
@@ -1421,7 +1424,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   String? get _cacheKey => widget.cachePrefix == null
       ? null
-      : '${widget.cachePrefix}:${_stockAlerts ? _stockSummaryCachePath : widget.path}';
+      : '${widget.cachePrefix}:${_stockSummary
+            ? _stockSummaryCachePath
+            : _stockAlerts
+            ? _stockSummaryPath
+            : widget.path}';
 
   Future<List<Json>> _startLoad({bool reconnect = false}) {
     final result = _load(reconnect: reconnect);
@@ -1469,6 +1476,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               (_inventory ||
                   _warehouses ||
                   _warehouseStock ||
+                  _stockSummary ||
                   _valuation ||
                   path == '/srm/sales-orders' ||
                   path == GstInvoicePage.listEndpoint ||
@@ -1639,6 +1647,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 'stock_value',
               ],
               if (_valuation) ...['stock_value', 'unpriced_currency_items'],
+              if (_stockSummary) 'stock_value',
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
               if (path == FinancePartyPage.endpoint)
@@ -1691,6 +1700,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             '$scope:${InventoryOfflineCreates.itemsEndpoint}',
           ),
           SuiteReadCache.invalidate('$scope:$_stockSummaryCachePath'),
+          SuiteReadCache.invalidate('$scope:$_stockSummaryPath'),
           SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
           SuiteReadCache.invalidate('$scope:$_valuationPath'),
         ]);
@@ -1858,6 +1868,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           icon: const Icon(LucideIcons.refreshCw),
           onPressed: _refresh,
         ),
+        if (_inventory)
+          IconButton(
+            tooltip: 'Stock Summary',
+            icon: const Icon(LucideIcons.list),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Stock Summary',
+                  controller: widget.controller,
+                  path: _stockSummaryPath,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
         if (_inventory)
           IconButton(
             tooltip: 'Warehouses',
@@ -2045,6 +2072,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _searchOnServer ||
                   widget.cachePrefix != null ||
                   _stockAlerts ||
+                  _stockSummary ||
                   _warehouses ||
                   _warehouseStock ||
                   _valuation ||
@@ -2224,7 +2252,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? 'Search saved leads'
                                         : 'Search leads',
                                   '/srm/inventory/items' ||
-                                  _reorderPath => 'Search products',
+                                  _reorderPath ||
+                                  _stockSummaryPath => 'Search products',
                                   _warehousesPath => 'Search warehouses',
                                   _warehouseStockPath =>
                                     'Search products or warehouses',
@@ -2371,7 +2400,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 : null,
                           );
                         }
-                        if (_warehouseStock || _valuation) {
+                        if (_warehouseStock || _valuation || _stockSummary) {
                           final currency =
                               item['currency'] ?? 'Currency unavailable';
                           return ListTile(
@@ -2379,11 +2408,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             subtitle: Text(
                               [
                                 subtitle,
-                                'Quantity ${item[_valuation ? 'current_quantity' : 'quantity'] ?? '—'}',
+                                'Quantity ${item[_warehouseStock ? 'quantity' : 'current_quantity'] ?? '—'}',
                                 if (_warehouseStock)
                                   'Average cost ${item['average_cost'] ?? '—'} $currency',
                                 'Stock value ${item['stock_value'] ?? '—'} $currency'
                                     .trim(),
+                                if (_stockSummary && _lowStock(item))
+                                  'Low stock · reorder at ${item['reorder_threshold']}',
                               ].where((text) => text.isNotEmpty).join('\n'),
                             ),
                           );
