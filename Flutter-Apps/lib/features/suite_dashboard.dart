@@ -41,6 +41,7 @@ import 'branch_settings_panel.dart';
 import 'lead_sources_panel.dart';
 import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
+import 'appointment_booking_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
 import 'my_payslips_page.dart';
@@ -1235,6 +1236,7 @@ class _AppointmentBranchesState extends State<_AppointmentBranches> {
                       path: '/srm/industry/records',
                       query: const {'kind': 'appointment'},
                       scopeHeaders: {'X-Suite-Branch': '${branch['id']}'},
+                      canCreateAppointment: branch['can_write'] == true,
                     ),
                   ),
                 ),
@@ -1485,6 +1487,7 @@ class _SuiteRecords extends StatefulWidget {
     this.collection,
     this.query = const {},
     this.scopeHeaders = const {},
+    this.canCreateAppointment = false,
     this.cachePrefix,
     this.employeeCacheScope,
     this.canCreateTimesheets = false,
@@ -1525,6 +1528,7 @@ class _SuiteRecords extends StatefulWidget {
   final String? path, collection;
   final Map<String, dynamic> query;
   final Map<String, String> scopeHeaders;
+  final bool canCreateAppointment;
   final String? cachePrefix;
   final String? employeeCacheScope;
   final bool canCreateTimesheets;
@@ -1563,6 +1567,11 @@ class _SuiteRecords extends StatefulWidget {
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _appointments => widget.query['kind'] == 'appointment';
+  late final _appointmentCapabilities = widget.controller.api.request(
+    'GET',
+    '/srm/industry/capabilities',
+    scopeHeaders: widget.scopeHeaders,
+  );
   String _appointmentStatus = '';
   DateTime? _appointmentDay;
   bool _appointmentWeek = false;
@@ -2432,6 +2441,37 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     appBar: _recordsAppBar(
       context,
       actions: [
+        if (_appointments && widget.canCreateAppointment)
+          FutureBuilder(
+            future: _appointmentCapabilities,
+            builder: (context, snapshot) {
+              final caps = snapshot.data;
+              final actions = caps is Json ? caps['appointment_actions'] : null;
+              final canSchedule = actions is List
+                  ? actions.contains('schedule')
+                  : caps is Json && caps['manage'] == true;
+              if (!canSchedule) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: 'New appointment',
+                icon: const Icon(LucideIcons.plus),
+                onPressed: () async {
+                  final booked = await Navigator.of(context).push<Json>(
+                    MaterialPageRoute(
+                      builder: (_) => AppointmentBookingPage(
+                        api: widget.controller.api,
+                        headers: widget.scopeHeaders,
+                      ),
+                    ),
+                  );
+                  if (!context.mounted || booked == null) return;
+                  _refresh();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Appointment booked.')),
+                  );
+                },
+              );
+            },
+          ),
         if (widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null))
           PopupMenuButton<String>(
             tooltip: 'Sales order actions',
