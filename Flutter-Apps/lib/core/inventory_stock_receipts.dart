@@ -73,7 +73,7 @@ class InventoryStockReceipts {
             data: payload,
           );
           await storage.delete(key: key);
-          await invalidate(branch, payload['product_id'] as int);
+          await invalidateLists(products: [payload['product_id'] as int]);
         } on ApiFailure catch (error) {
           if (error.status == null ||
               const {401, 429}.contains(error.status) ||
@@ -91,20 +91,13 @@ class InventoryStockReceipts {
     }
   }
 
-  Future<void> invalidate(String branch, int product) async {
+  Future<void> invalidateLists({Iterable<int> products = const []}) async {
     try {
-      await SuiteReadCache.invalidate(
-        '$scope:/srm/inventory/items/$product:$branch',
-      );
-    } catch (_) {
-      // A local cache failure cannot undo a confirmed movement.
-    }
-    await invalidateLists();
-  }
-
-  Future<void> invalidateLists() async {
-    try {
-      await SuiteReadCache.invalidateInventoryReports(scope);
+      await Future.wait([
+        SuiteReadCache.invalidateInventoryReports(scope),
+        for (final product in products.toSet())
+          SuiteReadCache.invalidateInventoryItem(scope, product),
+      ]);
     } catch (_) {
       // A local cache failure cannot undo a confirmed movement.
     }

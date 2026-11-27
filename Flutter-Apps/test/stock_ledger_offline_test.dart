@@ -17,6 +17,7 @@ void main() {
     final messenger = tester.binding.defaultBinaryMessenger;
     databaseFactory = databaseFactorySqflitePlugin;
     final snapshots = <String, Map>{};
+    final invalidatedProducts = <String>[];
     messenger.setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
         case 'getDatabasesPath':
@@ -47,6 +48,14 @@ void main() {
         case 'update':
           final values = (call.arguments as Map)['arguments'] as List;
           if (values.length == 2) return 0;
+          if (values.length == 3) {
+            expect(
+              values.last,
+              '${(values[1] as String).substring(0, (values[1] as String).length - 1)};',
+            );
+            invalidatedProducts.add(values[1] as String);
+            return 0;
+          }
           expect(values, [
             1,
             'ledger-test:',
@@ -75,7 +84,16 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.path == '/srm/sales-orders/24') {
-            return response({'id': 24, 'status': 'approved', 'lines': []});
+            return response({
+              'id': 24,
+              'status': 'approved',
+              'lines': [
+                {'product_id': 9},
+                {'product_id': 9},
+                {'product_id': 12},
+                {'description': 'Service without a catalog product'},
+              ],
+            });
           }
           if (request.path == '/srm/sales-orders/24/confirm') {
             expect(request.method, 'POST');
@@ -147,6 +165,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Confirm sales order'));
     await tester.pumpAndSettle();
+    expect(
+      invalidatedProducts,
+      unorderedEquals([
+        'ledger-test:/srm/inventory/items/9:',
+        'ledger-test:/srm/inventory/items/12:',
+      ]),
+    );
     await open(false);
     await warehouse('6');
     expect(requests, 5);

@@ -53,6 +53,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'terms',
   ];
   static const _lineFields = [
+    'product_id',
     'description',
     'item_code',
     'quantity',
@@ -250,7 +251,13 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       widget.onChanged?.call();
       if (action == 'confirm') {
         if (widget.cacheScope case final String scope) {
-          await InventoryStockReceipts(scope).invalidateLists();
+          await InventoryStockReceipts(scope).invalidateLists(
+            products: [
+              for (final line
+                  in (order['lines'] as List? ?? []).whereType<Json>())
+                if (line['product_id'] case final int product) product,
+            ],
+          );
         }
         if (!mounted || revision != widget.api.sessionRevision) return;
       }
