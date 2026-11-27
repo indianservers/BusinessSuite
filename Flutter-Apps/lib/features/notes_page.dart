@@ -147,7 +147,12 @@ class _NotesPageState extends State<NotesPage> {
     final request = ++_request;
     final query = _query.trim();
     final view = _view;
-    final canReadSaved = const {'all', 'pinned', 'favorites'}.contains(view);
+    final canReadSaved = const {
+      'all',
+      'pinned',
+      'favorites',
+      'quick',
+    }.contains(view);
     final revision = widget.api.sessionRevision;
     bool current() =>
         mounted &&
@@ -173,6 +178,10 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = true;
         _notes = savedNotes.where((note) {
           final edits = _pendingFor(note)?['values'];
+          if (view == 'quick' &&
+              (note['project_id'] != null || note['folder_id'] != null)) {
+            return false;
+          }
           if (view == 'pinned' &&
               (edits?['pinned'] ?? note['pinned']) != true) {
             return false;
@@ -338,7 +347,7 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final term = _query.trim().toLowerCase();
-    final drafts = _view == 'all'
+    final drafts = _view == 'all' || _view == 'quick'
         ? _creations.where((draft) {
             final values = draft['values'];
             return term.isEmpty ||
@@ -363,6 +372,7 @@ class _NotesPageState extends State<NotesPage> {
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'all', child: Text('My notes')),
+              PopupMenuItem(value: 'quick', child: Text('Quick notes')),
               PopupMenuItem(value: 'pinned', child: Text('Pinned')),
               PopupMenuItem(value: 'favorites', child: Text('Favorites')),
               PopupMenuItem(value: 'shared', child: Text('Shared with me')),

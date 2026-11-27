@@ -753,6 +753,7 @@ void main() {
           'can_edit': true,
           'visibility_scope': 'private',
           'visibility': 'private',
+          if (id == 1) 'folder_id': 42,
           flag: true,
         },
     ]);
@@ -773,6 +774,7 @@ void main() {
     for (final (view, visible, hidden) in [
       ('Pinned', 'Top note', 'Starred note'),
       ('Favorites', 'Starred note', 'Top note'),
+      ('Quick notes', 'Starred note', 'Top note'),
     ]) {
       await tester.tap(find.byTooltip('Filter notes'));
       await tester.pumpAndSettle();
