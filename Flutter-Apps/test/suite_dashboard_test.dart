@@ -2604,6 +2604,71 @@ void main() {
     expect(find.text('9.250 EA'), findsOneWidget);
     expect(find.text('MOV-12'), findsOneWidget);
   });
+  testWidgets('inventory records a stock movement in the selected branch', (
+    tester,
+  ) async {
+    var recorded = false;
+    var productReads = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '3');
+          if (request.path == '/srm/inventory/warehouses') {
+            return response({
+              'items': [
+                {'id': 4, 'warehouse_name': 'Main warehouse'},
+              ],
+            });
+          }
+          if (request.method == 'POST') {
+            expect(request.path, '/srm/inventory/stock-movements');
+            expect(request.data, {
+              'product_id': 12,
+              'warehouse_id': 4,
+              'movement_type': 'stock_in',
+              'quantity': '2.5',
+            });
+            recorded = true;
+            return response({}, 201);
+          }
+          expect(request.path, '/srm/inventory/items/12');
+          productReads++;
+          return response({
+            'item_name': 'Test product',
+            'current_quantity': recorded ? 8.5 : 6,
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryProductPage(
+          api: api,
+          summary: const {'id': 12},
+          offline: false,
+          canRecordStock: true,
+          scopeHeaders: const {'X-Suite-Branch': '3'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Record stock movement'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Main warehouse').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Quantity'),
+      '2.5',
+    );
+    await tester.tap(find.text('Save movement'));
+    await tester.pumpAndSettle();
+    expect(recorded, isTrue);
+    expect(productReads, 2);
+    expect(find.text('8.5'), findsOneWidget);
+  });
   testWidgets(
     'native launcher opens authenticated module and settings routes',
     (tester) async {

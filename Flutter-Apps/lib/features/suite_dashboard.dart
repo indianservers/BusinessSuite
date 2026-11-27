@@ -32,6 +32,7 @@ import 'finance_party_page.dart';
 import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
+import 'inventory_stock_movement_page.dart';
 
 typedef _App = ({
   String key,
@@ -1834,6 +1835,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path: InventoryOfflineCreates.itemsEndpoint,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
+                  canCreateOrder: widget.canCreateOrder,
                   offlineOnly: _offlineOnly,
                 ),
               ),
@@ -2296,6 +2298,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             summary: item,
                                             cacheScope: widget.cachePrefix,
                                             scopeHeaders: widget.scopeHeaders,
+                                            canRecordStock:
+                                                _inventory &&
+                                                widget.canCreateOrder,
+                                            onStockChanged: _refresh,
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
@@ -2444,12 +2450,16 @@ class InventoryProductPage extends StatefulWidget {
     required this.offline,
     this.cacheScope,
     this.scopeHeaders = const {},
+    this.canRecordStock = false,
+    this.onStockChanged,
   });
   final ApiClient api;
   final Json summary;
   final bool offline;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
+  final bool canRecordStock;
+  final VoidCallback? onStockChanged;
 
   @override
   State<InventoryProductPage> createState() => _InventoryProductPageState();
@@ -2487,6 +2497,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
           setState(() => _saved = saved);
           if (!reconnect &&
               !_offline &&
+              !widget.canRecordStock &&
               saved != null &&
               snapshot != null &&
               !snapshot.invalidated) {
@@ -2573,9 +2584,36 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
     _product = _load(reconnect: true);
   });
 
+  Future<void> _recordStock() async {
+    final id = widget.summary['id'];
+    if (id is! int) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => InventoryStockMovementPage(
+          api: widget.api,
+          productId: id,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (mounted && changed == true) {
+      widget.onStockChanged?.call();
+      _refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Product details')),
+    appBar: AppBar(
+      title: const Text('Product details'),
+      actions: [
+        IconButton(
+          tooltip: 'Refresh product',
+          onPressed: _refresh,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    ),
     body: FutureBuilder<Json?>(
       future: _product,
       builder: (context, snapshot) {
@@ -2603,6 +2641,12 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (pending) const LinearProgressIndicator(),
+            if (widget.canRecordStock && !pending && snapshot.data != null)
+              OutlinedButton.icon(
+                onPressed: _recordStock,
+                icon: const Icon(LucideIcons.packagePlus),
+                label: const Text('Record stock movement'),
+              ),
             if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
