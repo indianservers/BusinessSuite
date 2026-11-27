@@ -168,6 +168,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
     required this.scopeHeaders,
     required this.cacheScope,
     required this.offline,
+    this.initialFilters = const {},
   });
 
   final ApiClient api;
@@ -175,6 +176,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
   final bool offline;
+  final Map<String, String> initialFilters;
 
   @override
   State<InventoryFinanceReportPage> createState() =>
@@ -188,7 +190,7 @@ class _InventoryFinanceReportPageState
   int _pageSize = 25;
   int _page = 1;
   String _search = '';
-  Map<String, String> _filters = const {};
+  late Map<String, String> _filters = widget.initialFilters;
   late bool _offline = widget.offline;
   bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
   late var _report = _load(offline: widget.offline);

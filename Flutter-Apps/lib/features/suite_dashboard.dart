@@ -2004,6 +2004,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 'address',
               ],
               if (_warehouseStock) ...[
+                'stock_item_id',
+                'warehouse_id',
                 'warehouse_name',
                 'quantity',
                 'average_cost',
@@ -2386,6 +2388,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _page += offset;
       _records = _startLoad();
     });
+  }
+
+  void _openStockLedger([Map<String, String> filters = const {}]) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InventoryFinanceReportPage(
+          api: widget.controller.api,
+          report: InventoryFinanceReport.stockLedger,
+          scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cachePrefix,
+          offline: _offlineOnly || _usedSavedFallback,
+          initialFilters: filters,
+        ),
+      ),
+    );
   }
 
   @override
@@ -2974,17 +2991,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           IconButton(
             tooltip: 'Stock Ledger',
             icon: const Icon(LucideIcons.bookOpen),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => InventoryFinanceReportPage(
-                  api: widget.controller.api,
-                  report: InventoryFinanceReport.stockLedger,
-                  scopeHeaders: widget.scopeHeaders,
-                  cacheScope: widget.cachePrefix,
-                  offline: _offlineOnly || _usedSavedFallback,
-                ),
-              ),
-            ),
+            onPressed: _openStockLedger,
           ),
         if (_stockSummary)
           PopupMenuButton<String>(
@@ -3777,8 +3784,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         if (_warehouseStock || _valuation || _stockSummary) {
                           final currency =
                               item['currency'] ?? 'Currency unavailable';
+                          final product =
+                              item[_warehouseStock ? 'stock_item_id' : 'id'];
+                          final warehouse = _warehouseStock
+                              ? item['warehouse_id']
+                              : null;
                           return ListTile(
                             title: Text('$label'),
+                            trailing: product is int
+                                ? IconButton(
+                                    tooltip: 'Stock ledger for $label',
+                                    icon: const Icon(LucideIcons.bookOpen),
+                                    onPressed: () => _openStockLedger({
+                                      'product_id': '$product',
+                                      if (warehouse is int)
+                                        'warehouse_id': '$warehouse',
+                                    }),
+                                  )
+                                : null,
                             subtitle: Text(
                               [
                                 subtitle,

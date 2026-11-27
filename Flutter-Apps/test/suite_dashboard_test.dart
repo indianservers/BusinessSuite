@@ -5271,6 +5271,8 @@ void main() {
               'items': [
                 {
                   'id': 80,
+                  'stock_item_id': 12,
+                  'warehouse_id': 4,
                   'warehouse_name': 'Main warehouse',
                   'sku': 'STOCK-1',
                   'item_name': 'Sample product',
@@ -5465,6 +5467,12 @@ void main() {
                   'quantity_out': 4,
                   'movement_class': 'slow',
                 },
+              ],
+            }),
+            '/srm/inventory/reports' => response({
+              'total': 1,
+              'items': [
+                {'movement_number': 'Filtered stock movement'},
               ],
             }),
             '/srm/inventory/reports/stock-summary' => response({
@@ -5900,6 +5908,12 @@ void main() {
           expect(find.text('Healthy product'), findsOneWidget);
           expect(find.textContaining('Quantity 10'), findsOneWidget);
           expect(find.textContaining('Stock value 240 INR'), findsOneWidget);
+          await tester.tap(find.byTooltip('Stock ledger for Healthy product'));
+          await tester.pumpAndSettle();
+          expect(find.text('Filtered stock movement'), findsOneWidget);
+          expect(calls.last.queryParameters['product_id'], '13');
+          expect(calls.last.queryParameters['warehouse_id'], isNull);
+          await back();
           for (final (title, path, detail) in [
             ('Stock Aging', 'stock-aging', 'Days since last movement 101'),
             ('Dead Stock', 'dead-stock', 'Last movement 2026-01-05'),
@@ -5924,6 +5938,12 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.text('Sample product'), findsOneWidget);
           expect(find.textContaining('Stock value 60 INR'), findsOneWidget);
+          await tester.tap(find.byTooltip('Stock ledger for Sample product'));
+          await tester.pumpAndSettle();
+          expect(find.text('Filtered stock movement'), findsOneWidget);
+          expect(calls.last.queryParameters['product_id'], '12');
+          expect(calls.last.queryParameters['warehouse_id'], '4');
+          await back();
           await tester.enterText(find.byType(TextField), 'Other warehouse');
           await tester.pumpAndSettle();
           expect(find.text('Sample product'), findsNothing);
