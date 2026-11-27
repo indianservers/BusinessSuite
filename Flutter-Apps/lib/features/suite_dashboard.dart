@@ -1353,6 +1353,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       InventoryStockReceipts.warehouseStockEndpoint;
   bool get _warehouses => widget.path == _warehousesPath;
   bool get _warehouseStock => widget.path == _warehouseStockPath;
+  static const _valuationPath = InventoryStockReceipts.valuationEndpoint;
+  bool get _valuation => widget.path == _valuationPath;
   bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
@@ -1467,6 +1469,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               (_inventory ||
                   _warehouses ||
                   _warehouseStock ||
+                  _valuation ||
                   path == '/srm/sales-orders' ||
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
@@ -1569,6 +1572,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       );
     }
     final records = rows.cast<Json>();
+    if (_valuation && data is Json && records.isNotEmpty) {
+      records[0] = {
+        ...records.first,
+        'totals_by_currency': data['totals_by_currency'],
+        'unpriced_currency_items': data['unpriced_currency_items'],
+      };
+    }
     if (api.sessionRevision != revision) {
       throw ApiFailure('Your session ended. Sign in again.', 401);
     }
@@ -1628,6 +1638,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 'average_cost',
                 'stock_value',
               ],
+              if (_valuation) ...['stock_value', 'unpriced_currency_items'],
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
               if (path == FinancePartyPage.endpoint)
@@ -1635,6 +1646,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ])
               if (record[field] is String || record[field] is num)
                 field: record[field],
+            if (_valuation && record['totals_by_currency'] is List)
+              'totals_by_currency': record['totals_by_currency'],
           },
       ];
       try {
@@ -1679,6 +1692,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
           SuiteReadCache.invalidate('$scope:$_stockSummaryCachePath'),
           SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
+          SuiteReadCache.invalidate('$scope:$_valuationPath'),
         ]);
       } catch (_) {
         // Refresh the online list even if the device cache is unavailable.
@@ -1905,6 +1919,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
+        if (_warehouseStock)
+          IconButton(
+            tooltip: 'Inventory Valuation',
+            icon: const Icon(LucideIcons.chartNoAxesColumn),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Inventory Valuation',
+                  controller: widget.controller,
+                  path: _valuationPath,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
         if (_inventoryDrafts != null)
           IconButton(
             tooltip: 'Product drafts',
@@ -2016,6 +2047,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _stockAlerts ||
                   _warehouses ||
                   _warehouseStock ||
+                  _valuation ||
                   _appointments ||
                   widget.path == GstInvoicePage.listEndpoint ||
                   widget.path == FinancePartyPage.endpoint;
@@ -2155,6 +2187,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         'Stock at or below the reorder threshold',
                       ),
                     ),
+                  if (_valuation && rows.isNotEmpty)
+                    ExpansionTile(
+                      title: const Text('Inventory value by currency'),
+                      children: [
+                        for (final total
+                            in (rows.first['totals_by_currency'] as List? ??
+                                    const [])
+                                .whereType<Json>())
+                          ListTile(
+                            title: Text('${total['currency']}'),
+                            trailing: Text('${total['total_inventory_value']}'),
+                          ),
+                        if ((rows.first['unpriced_currency_items'] as int? ??
+                                0) >
+                            0)
+                          ListTile(
+                            title: Text(
+                              "${rows.first['unpriced_currency_items']} items have no currency",
+                            ),
+                          ),
+                      ],
+                    ),
                   if (search)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -2174,6 +2228,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   _warehousesPath => 'Search warehouses',
                                   _warehouseStockPath =>
                                     'Search products or warehouses',
+                                  _valuationPath => 'Search products',
                                   GstInvoicePage.listEndpoint =>
                                     'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
@@ -2316,16 +2371,17 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 : null,
                           );
                         }
-                        if (_warehouseStock) {
-                          final currency = item['currency'] ?? '';
+                        if (_warehouseStock || _valuation) {
+                          final currency =
+                              item['currency'] ?? 'Currency unavailable';
                           return ListTile(
                             title: Text('$label'),
                             subtitle: Text(
                               [
                                 subtitle,
-                                'Quantity ${item['quantity'] ?? '—'}',
-                                'Average cost ${item['average_cost'] ?? '—'} $currency'
-                                    .trim(),
+                                'Quantity ${item[_valuation ? 'current_quantity' : 'quantity'] ?? '—'}',
+                                if (_warehouseStock)
+                                  'Average cost ${item['average_cost'] ?? '—'} $currency',
                                 'Stock value ${item['stock_value'] ?? '—'} $currency'
                                     .trim(),
                               ].where((text) => text.isNotEmpty).join('\n'),

@@ -14,6 +14,7 @@ class InventoryStockReceipts {
   static const endpoint = '/srm/inventory/stock-movements/offline-create';
   static const warehouseStockEndpoint =
       '/srm/inventory/reports/warehouse-stock';
+  static const valuationEndpoint = '/srm/inventory/reports/valuation';
   static final Map<String, Future<void>> _operations = {};
 
   String get _prefix => 'stock_receipt_${Uri.encodeComponent('$scope:')}';
@@ -89,6 +90,7 @@ class InventoryStockReceipts {
       '$scope:/srm/inventory/reports/reorder',
       '$scope:/srm/inventory/reports/stock-summary',
       '$scope:$warehouseStockEndpoint',
+      '$scope:$valuationEndpoint',
     ]) {
       try {
         await SuiteReadCache.invalidate(key);

@@ -2970,6 +2970,23 @@ void main() {
                 },
               ],
             }),
+            '/srm/inventory/reports/valuation' => response({
+              'items': [
+                {
+                  'id': 12,
+                  'sku': 'STOCK-1',
+                  'item_name': 'Sample product',
+                  'current_quantity': 3,
+                  'stock_value': 60,
+                  'currency': 'INR',
+                },
+              ],
+              'totals_by_currency': [
+                {'currency': 'INR', 'total_inventory_value': 60},
+                {'currency': 'USD', 'total_inventory_value': 50},
+              ],
+              'unpriced_currency_items': 1,
+            }),
             '/srm/inventory/reports/reorder' => response({
               'items': [
                 {
@@ -3247,6 +3264,14 @@ void main() {
           await tester.enterText(find.byType(TextField), 'Main warehouse');
           await tester.pumpAndSettle();
           expect(find.text('Sample product'), findsOneWidget);
+          await tester.tap(find.byTooltip('Inventory Valuation'));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('Stock value 60 INR'), findsOneWidget);
+          await open('Inventory value by currency');
+          expect(find.text('USD'), findsOneWidget);
+          expect(find.text('50'), findsOneWidget);
+          expect(find.text('1 items have no currency'), findsOneWidget);
+          await back();
           await back();
           await back();
           await back();
