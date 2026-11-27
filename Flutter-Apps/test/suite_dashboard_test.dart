@@ -3272,6 +3272,21 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/project-management/tasks' => response({
+              'items': [
+                {
+                  'id': 84,
+                  'title': 'Sample CRM follow-up',
+                  'due_date': '2026-11-29',
+                },
+              ],
+              'pages': 1,
+            }),
+            '/project-management/tasks/84' => response({
+              'id': 84,
+              'title': 'Sample CRM follow-up',
+              'description': 'Prepare renewal proposal',
+            }),
             '/master-data/company-directory/query' => response({
               'rows': [
                 {'id': 82, 'name': 'Sample customer', 'entityKind': 'Company'},
@@ -3671,6 +3686,20 @@ void main() {
           await back();
         }
         if (entry.key == 'VyaparaCRM') {
+          await tester.tap(find.byTooltip('CRM tasks'));
+          await tester.pumpAndSettle();
+          expect(
+            calls.any(
+              (request) =>
+                  request.path == '/project-management/tasks' &&
+                  request.queryParameters['sourceModule'] == 'crm',
+            ),
+            isTrue,
+          );
+          await open('Sample CRM follow-up');
+          expect(find.text('Prepare renewal proposal'), findsOneWidget);
+          await back();
+          await back();
           await tester.tap(find.byTooltip('Customers'));
           await tester.pumpAndSettle();
           await tester.tap(find.byTooltip('New customer'));
