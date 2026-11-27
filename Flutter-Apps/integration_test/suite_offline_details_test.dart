@@ -932,7 +932,7 @@ void main() {
     await tester.tap(find.text('Order drafts'));
     await waitFor(find.text('Awaiting sync'));
     connected = true;
-    await tester.tap(find.byTooltip('Sync order drafts'));
+    await tester.tap(find.text('Sync order drafts').hitTestable());
     await waitFor(find.text('No saved order drafts'));
     expect(submitted, hasLength(1));
     expect(submitted.single.headers['X-Offline-Operation'], saved['operation']);

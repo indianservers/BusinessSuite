@@ -612,8 +612,7 @@ class SalesOrderDraftsPage extends StatefulWidget {
   final SalesOrderDrafts drafts;
   final VoidCallback? onSynced;
   final Widget Function(Json draft)? correctPurchaseDraft;
-  final Future<void> Function(BuildContext context, Json draft)?
-  editGstDraft;
+  final Future<void> Function(BuildContext context, Json draft)? editGstDraft;
 
   @override
   State<SalesOrderDraftsPage> createState() => _SalesOrderDraftsPageState();
@@ -722,13 +721,6 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
             ? 'Purchase order drafts'
             : 'Sales order drafts',
       ),
-      actions: [
-        IconButton(
-          tooltip: widget.drafts.gst ? 'Sync GST drafts' : 'Sync order drafts',
-          onPressed: _syncing ? null : _sync,
-          icon: const Icon(Icons.sync),
-        ),
-      ],
     ),
     body: FutureBuilder<List<Json>>(
       future: _entries,
@@ -749,6 +741,16 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
         }
         return ListView(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: FilledButton.icon(
+                onPressed: _sync,
+                icon: const Icon(Icons.sync),
+                label: Text(
+                  widget.drafts.gst ? 'Sync GST drafts' : 'Sync order drafts',
+                ),
+              ),
+            ),
             for (final row in rows)
               ListTile(
                 title: Text(
