@@ -14,80 +14,97 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Refreshing the GST list does not wait for SQLite', (
-    tester,
-  ) async {
-    const channel = MethodChannel('com.tekartik.sqflite');
-    final messenger = tester.binding.defaultBinaryMessenger;
-    databaseFactory = databaseFactorySqflitePlugin;
-    final opening = Completer<String>();
-    var holdCache = false;
-    var cacheWaiting = false;
-    messenger.setMockMethodCallHandler(channel, (call) async {
-      expect(call.method, 'getDatabasesPath');
-      if (!holdCache) throw PlatformException(code: 'cache_unavailable');
-      cacheWaiting = true;
-      return opening.future;
-    });
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(channel, null);
-      databaseFactory = null;
-    });
-    var requests = 0;
-    final api = ApiClient(
-      baseUrl: 'https://example.test/api/v1',
-      store: MemoryStore(),
-      transport: Dio()
-        ..httpClientAdapter = FakeAdapter((request) async {
-          return switch (request.path) {
-            '/access/me' => response({
-              'companyId': 7,
-              'grants': {
-                'srm': {'enabled': true},
-              },
+  for (final gst in [true, false]) {
+    testWidgets(
+      'Refreshing the ${gst ? 'GST' : 'Sales Orders'} list does not wait for SQLite',
+      (tester) async {
+        const channel = MethodChannel('com.tekartik.sqflite');
+        final messenger = tester.binding.defaultBinaryMessenger;
+        databaseFactory = databaseFactorySqflitePlugin;
+        final opening = Completer<String>();
+        var holdCache = false;
+        var cacheWaiting = false;
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, 'getDatabasesPath');
+          if (!holdCache) throw PlatformException(code: 'cache_unavailable');
+          cacheWaiting = true;
+          return opening.future;
+        });
+        addTearDown(() {
+          messenger.setMockMethodCallHandler(channel, null);
+          databaseFactory = null;
+        });
+        var requests = 0;
+        final api = ApiClient(
+          baseUrl: 'https://example.test/api/v1',
+          store: MemoryStore(),
+          transport: Dio()
+            ..httpClientAdapter = FakeAdapter((request) async {
+              return switch (request.path) {
+                '/access/me' => response({
+                  'companyId': 7,
+                  'grants': {
+                    'srm': {'enabled': true},
+                  },
+                }),
+                '/access/launcher-preferences' => response({'favorites': []}),
+                '/notifications/unread-count' => response({'unread': 0}),
+                '/srm/sales-orders' => response([
+                  if (!gst)
+                    {
+                      'id': 6,
+                      'order_number': 'ORDER-${++requests}',
+                      'status': 'draft',
+                    },
+                ]),
+                '/srm/invoices' => response([
+                  {
+                    'id': 7,
+                    'invoice_number': 'GST-${++requests}',
+                    'status': 'draft',
+                  },
+                ]),
+                _ => throw StateError('Unexpected request ${request.path}'),
+              };
             }),
-            '/access/launcher-preferences' => response({'favorites': []}),
-            '/notifications/unread-count' => response({'unread': 0}),
-            '/srm/sales-orders' => response([]),
-            '/srm/invoices' => response([
-              {
-                'id': 7,
-                'invoice_number': 'GST-${++requests}',
-                'status': 'draft',
-              },
-            ]),
-            _ => throw StateError('Unexpected request ${request.path}'),
-          };
-        }),
+        );
+        final controller = AppController(api, suiteLogin: true)
+          ..loading = false
+          ..user = SessionUser.fromJson({
+            'id': 5,
+            'email': 'test@example.test',
+          });
+        try {
+          await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+          await tester.pumpAndSettle();
+          final sales = find.text('Sales & POS');
+          await tester.ensureVisible(sales);
+          await tester.tap(sales);
+          await tester.pumpAndSettle();
+          if (gst) {
+            await tester.tap(find.byTooltip('GST Billing'));
+            await tester.pumpAndSettle();
+          }
+          final prefix = gst ? 'GST' : 'ORDER';
+          expect(find.text('$prefix-1'), findsOneWidget);
+          holdCache = true;
+          await tester.tap(find.byTooltip('Refresh'));
+          await tester.pumpAndSettle();
+          expect(cacheWaiting, isTrue);
+          expect(opening.isCompleted, isFalse);
+          expect(find.text('$prefix-2'), findsOneWidget);
+        } finally {
+          if (cacheWaiting) {
+            opening.completeError(PlatformException(code: 'cache_unavailable'));
+          }
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpAndSettle();
+          controller.dispose();
+        }
+      },
+      variant: TargetPlatformVariant({TargetPlatform.android}),
     );
-    final controller = AppController(api, suiteLogin: true)
-      ..loading = false
-      ..user = SessionUser.fromJson({'id': 5, 'email': 'test@example.test'});
-    try {
-      await tester.pumpWidget(BusinessSuiteApp(controller: controller));
-      await tester.pumpAndSettle();
-      final sales = find.text('Sales & POS');
-      await tester.ensureVisible(sales);
-      await tester.tap(sales);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('GST Billing'));
-      await tester.pumpAndSettle();
-      expect(find.text('GST-1'), findsOneWidget);
-      holdCache = true;
-      await tester.tap(find.byTooltip('Refresh'));
-      await tester.pumpAndSettle();
-      expect(cacheWaiting, isTrue);
-      expect(opening.isCompleted, isFalse);
-      expect(find.text('GST-2'), findsOneWidget);
-    } finally {
-      if (cacheWaiting) {
-        opening.completeError(PlatformException(code: 'cache_unavailable'));
-      }
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pumpAndSettle();
-      controller.dispose();
-    }
-  }, variant: TargetPlatformVariant({TargetPlatform.android}));
+  }
 
   testWidgets('Live GST invoice opens while SQLite is still starting', (
     tester,

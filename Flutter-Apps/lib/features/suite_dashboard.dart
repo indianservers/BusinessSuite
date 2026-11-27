@@ -1759,8 +1759,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       return null;
     }
 
+    final refreshWithoutCache =
+        reconnect &&
+        (path == GstInvoicePage.listEndpoint ||
+            path == SalesOrderDrafts.endpoint);
     final savedSnapshot = loadSavedSnapshot();
-    if (!reconnect || path != GstInvoicePage.listEndpoint) {
+    if (!refreshWithoutCache) {
       final fresh = await savedSnapshot;
       if (fresh != null) return fresh;
     }
@@ -2002,7 +2006,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         } catch (_) {}
       }
 
-      if (path == GstInvoicePage.listEndpoint) {
+      if (refreshWithoutCache || path == GstInvoicePage.listEndpoint) {
         _cached = projection;
         unawaited(saveProjection());
       } else {
