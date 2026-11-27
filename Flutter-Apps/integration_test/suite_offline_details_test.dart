@@ -26,6 +26,7 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final stockConnections = ValueVariant({'offline', 'interrupted'});
 
   testWidgets('Android saves a stock movement offline and sends it later', (
     tester,
@@ -36,12 +37,23 @@ void main() {
       {'id': 4, 'warehouse_name': 'Offline QA warehouse'},
     ]);
     final calls = <RequestOptions>[];
+    final startsOffline = stockConnections.currentValue == 'offline';
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            return response({
+              'items': [
+                {'id': 4, 'warehouse_name': 'Offline QA warehouse'},
+              ],
+            });
+          }
           calls.add(request);
+          if (!startsOffline && calls.length == 1) {
+            return response({'detail': 'Unavailable'}, 503);
+          }
           return response({}, 201);
         }),
     );
@@ -66,8 +78,9 @@ void main() {
       expect(finder, findsOneWidget);
     }
 
-    await tester.pumpWidget(page(true));
-    await waitFor(find.text('Save for later'));
+    final save = find.text(startsOffline ? 'Save for later' : 'Save movement');
+    await tester.pumpWidget(page(startsOffline));
+    await waitFor(save);
     await tester.tap(find.byType(DropdownButtonFormField<int>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Offline QA warehouse').last);
@@ -76,9 +89,9 @@ void main() {
       find.widgetWithText(TextFormField, 'Quantity'),
       '2.5',
     );
-    await tester.tap(find.text('Save for later'));
+    await tester.tap(save);
     await waitFor(find.text('Pending stock movement'));
-    expect(calls, isEmpty);
+    expect(calls, hasLength(startsOffline ? 0 : 1));
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(page(false));
@@ -87,18 +100,23 @@ void main() {
     await Future.wait([receipts.sync(api), receipts.sync(api)]);
     await tester.tap(find.text('Retry same movement'));
     await tester.pumpAndSettle();
-    final sent = calls.single;
+    expect(calls, hasLength(startsOffline ? 1 : 2));
+    final sent = calls.last;
     expect(sent.path, '/srm/inventory/stock-movements/offline-create');
     expect(sent.headers['X-Suite-Branch'], '3');
     expect(sent.headers['X-Suite-Organization'], '7');
     expect(sent.headers['X-Offline-Operation'], isNotNull);
+    expect(
+      sent.headers['X-Offline-Operation'],
+      calls.first.headers['X-Offline-Operation'],
+    );
     expect(sent.data, {
       'product_id': 12,
       'warehouse_id': 4,
       'movement_type': 'stock_in',
       'quantity': '2.5',
     });
-  });
+  }, variant: stockConnections);
 
   const notesQaUrl = String.fromEnvironment('NOTES_QA_API_URL');
   const browserRun = String.fromEnvironment('NOTES_BROWSER_RUN');

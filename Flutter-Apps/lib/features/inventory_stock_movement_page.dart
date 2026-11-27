@@ -41,6 +41,7 @@ class _InventoryStockMovementPageState
   String _type = 'stock_in';
   String? _error;
   bool _saving = false;
+  bool _queued = false;
   ({String id, Json payload})? _uncertainAttempt;
   static const _storage = InventoryStockReceipts.storage;
   static const _warehousesPath = '/srm/inventory/warehouses';
@@ -65,6 +66,7 @@ class _InventoryStockMovementPageState
           payload: data['payload'] as Json,
         );
         _error = data['error'] as String?;
+        _queued = data['queuedBranch'] is String;
         return null;
       }
     }
@@ -172,6 +174,7 @@ class _InventoryStockMovementPageState
               payload: current['payload'] as Json,
             );
             _error = current['error'] as String?;
+            _queued = current['queuedBranch'] is String;
           });
           return;
         }
@@ -183,14 +186,16 @@ class _InventoryStockMovementPageState
             value: jsonEncode({
               'id': attempt.id,
               'payload': attempt.payload,
-              if (widget.offline)
-                'queuedBranch': widget.scopeHeaders['X-Suite-Branch'] ?? '',
+              'queuedBranch': widget.scopeHeaders['X-Suite-Branch'] ?? '',
             }),
           );
         }
         if (!mounted || session != widget.api.sessionRevision) return;
         if (widget.offline) {
-          setState(() => _uncertainAttempt = attempt);
+          setState(() {
+            _uncertainAttempt = attempt;
+            _queued = true;
+          });
           return;
         }
         await widget.api.request(
@@ -206,14 +211,19 @@ class _InventoryStockMovementPageState
         if (!mounted || session != widget.api.sessionRevision) return;
         Navigator.pop(context, true);
       } on ApiFailure catch (error) {
-        final uncertain = error.connectionFailure || (error.status ?? 0) >= 500;
+        final uncertain =
+            error.connectionFailure ||
+            error.status == 429 ||
+            (error.status ?? 0) >= 500;
         if (!retrying && !uncertain) await _clearReceipt(key);
         if (mounted) {
           setState(() {
             if (uncertain) {
               _uncertainAttempt = attempt;
-              _error =
-                  'Could not confirm the movement. Retry this same movement or check the product ledger.';
+              if (!retrying) _queued = key != null;
+              _error = _queued
+                  ? 'Could not confirm the movement. The app will retry when it can reach the server.'
+                  : 'Could not confirm the movement. Retry this same movement or check the product ledger.';
             } else {
               _error = error.message;
             }
@@ -268,11 +278,13 @@ class _InventoryStockMovementPageState
                 ),
                 if (_error != null) Text(_error!),
                 const SizedBox(height: 16),
-                if (widget.offline)
-                  const Text(
-                    'Saved on this device. It will sync when you reconnect.',
-                  )
-                else
+                if (widget.offline && _error == null)
+                  Text(
+                    _queued
+                        ? 'Saved on this device. It will sync when you reconnect.'
+                        : 'Saved on this device. Reconnect to retry.',
+                  ),
+                if (!widget.offline)
                   FilledButton(
                     onPressed: _saving ? null : _save,
                     child: Text(_saving ? 'Saving…' : 'Retry same movement'),
