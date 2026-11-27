@@ -2686,6 +2686,37 @@ void main() {
     }
   });
 
+  testWidgets('Notes keeps fresh results when local search finishes late', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = _DelayedNotesSummaries();
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((_) async {
+          return response([
+            {'id': 8, 'title': 'Fresh note from web'},
+          ]);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh note from web'), findsOneWidget);
+
+    cache.result.complete([
+      {'id': 8, 'title': 'Older saved note'},
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh note from web'), findsOneWidget);
+    expect(find.text('Older saved note'), findsNothing);
+  });
+
   testWidgets('Notes duplicates a saved note via the shared API', (
     tester,
   ) async {
@@ -6558,4 +6589,13 @@ void main() {
     },
     variant: TargetPlatformVariant({TargetPlatform.iOS}),
   );
+}
+
+class _DelayedNotesSummaries extends NotesOfflineCache {
+  _DelayedNotesSummaries() : super('["https://example.test/api/v1",9,7]');
+
+  final result = Completer<List<Json>>();
+
+  @override
+  Future<List<Json>> summaries() => result.future;
 }

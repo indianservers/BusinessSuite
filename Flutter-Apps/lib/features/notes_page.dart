@@ -165,9 +165,10 @@ class _NotesPageState extends State<NotesPage> {
       _loading = true;
       _error = null;
     });
-    List<Map<String, dynamic>>? saved;
-    Map<int, String>? savedBodies;
-    if (widget.cache case final cache?) {
+    var showSavedResults = true;
+    Future<void> loadSaved() async {
+      final cache = widget.cache;
+      if (cache == null) return;
       final pending = cache.pendingChanges().then(
         (value) => value,
         onError: (Object _) => (edits: <int, Json>{}, creations: <Json>[]),
@@ -180,20 +181,15 @@ class _NotesPageState extends State<NotesPage> {
         pending,
       ).wait;
       if (!current()) return;
-      saved = summaries;
-      savedBodies = bodies;
       setState(() {
         _creations = changes.creations;
         _pendingEdits = changes.edits;
       });
-    }
-    if (!current()) return;
-    final savedNotes = saved;
-    if (savedNotes != null && savedNotes.isNotEmpty) {
+      if (!showSavedResults || summaries.isEmpty) return;
       final term = query.toLowerCase();
       setState(() {
         _savedView = true;
-        _notes = savedNotes.where((note) {
+        _notes = summaries.where((note) {
           final edits = _pendingFor(note)?['values'];
           if (view == 'quick' &&
               (note['project_id'] != null || note['folder_id'] != null)) {
@@ -207,13 +203,15 @@ class _NotesPageState extends State<NotesPage> {
               (edits?['favorite'] ?? note['favorite']) != true) {
             return false;
           }
-          final body = edits?['content'] ?? savedBodies?[note['id']] ?? '';
+          final body = edits?['content'] ?? bodies[note['id']] ?? '';
           return '${_titleFor(note)} ${_previewFor(note)} $body ${edits?['tags'] ?? note['tags'] ?? ''}'
               .toLowerCase()
               .contains(term);
         }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
       });
     }
+
+    final local = loadSaved();
     try {
       if (_unreachable && !reconnect) {
         throw ApiFailure('Connect to see the latest notes.');
@@ -231,6 +229,7 @@ class _NotesPageState extends State<NotesPage> {
               as List;
       if (!current()) return;
       final notes = result.cast<Map<String, dynamic>>();
+      showSavedResults = false;
       setState(() {
         _notes = notes;
         _unreachable = false;
@@ -249,6 +248,7 @@ class _NotesPageState extends State<NotesPage> {
       if (!current()) return;
       final denied =
           error is ApiFailure && const {401, 403, 404}.contains(error.status);
+      if (denied) showSavedResults = false;
       setState(() {
         _unreachable =
             _unreachable && !reconnect ||
@@ -263,6 +263,7 @@ class _NotesPageState extends State<NotesPage> {
       });
       if (denied) await widget.cache?.clear();
     } finally {
+      await local;
       if (current()) {
         try {
           final changes = await widget.cache?.pendingChanges();
