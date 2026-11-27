@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
@@ -31,7 +32,8 @@ class _InventoryStockMovementPageState
   String _type = 'stock_in';
   String? _error;
   bool _saving = false;
-  bool _unknownOutcome = false;
+  ({String id, Json payload})? _uncertainAttempt;
+  bool get _locked => _saving || _uncertainAttempt != null;
 
   Future<dynamic> _loadWarehouses() => widget.api.request(
     'GET',
@@ -40,8 +42,22 @@ class _InventoryStockMovementPageState
   );
 
   Future<void> _save() async {
-    if (_saving || _unknownOutcome || !_form.currentState!.validate()) return;
+    if (_saving || !_form.currentState!.validate()) return;
     final session = widget.api.sessionRevision;
+    final attempt =
+        _uncertainAttempt ??
+        (
+          id: const Uuid().v4(),
+          payload: <String, dynamic>{
+            'product_id': widget.productId,
+            'warehouse_id': _warehouse,
+            'movement_type': _type,
+            'quantity': _quantity.text.trim(),
+            if (_rate.text.trim().isNotEmpty) 'rate': _rate.text.trim(),
+            if (_reference.text.trim().isNotEmpty)
+              'reference_number': _reference.text.trim(),
+          },
+        );
     setState(() {
       _saving = true;
       _error = null;
@@ -49,28 +65,25 @@ class _InventoryStockMovementPageState
     try {
       await widget.api.request(
         'POST',
-        '/srm/inventory/stock-movements',
-        scopeHeaders: widget.scopeHeaders,
-        data: {
-          'product_id': widget.productId,
-          'warehouse_id': _warehouse,
-          'movement_type': _type,
-          'quantity': _quantity.text.trim(),
-          if (_rate.text.trim().isNotEmpty) 'rate': _rate.text.trim(),
-          if (_reference.text.trim().isNotEmpty)
-            'reference_number': _reference.text.trim(),
+        '/srm/inventory/stock-movements/offline-create',
+        scopeHeaders: {
+          ...widget.scopeHeaders,
+          'X-Offline-Operation': attempt.id,
         },
+        data: attempt.payload,
       );
       if (!mounted || session != widget.api.sessionRevision) return;
       Navigator.pop(context, true);
     } on ApiFailure catch (error) {
       if (mounted) {
         setState(() {
-          _unknownOutcome =
-              error.connectionFailure || (error.status ?? 0) >= 500;
-          _error = _unknownOutcome
-              ? 'Could not confirm the movement. Refresh the product ledger before submitting again.'
-              : error.message;
+          if (error.connectionFailure || (error.status ?? 0) >= 500) {
+            _uncertainAttempt = attempt;
+            _error =
+                'Could not confirm the movement. Retry this same movement or check the product ledger.';
+          } else {
+            _error = error.message;
+          }
         });
       }
     } finally {
@@ -130,7 +143,7 @@ class _InventoryStockMovementPageState
                       child: Text('Stock out'),
                     ),
                   ],
-                  onChanged: _saving
+                  onChanged: _locked
                       ? null
                       : (value) => setState(() => _type = value!),
                 ),
@@ -146,11 +159,11 @@ class _InventoryStockMovementPageState
                   ],
                   validator: (value) =>
                       value == null ? 'Choose a warehouse' : null,
-                  onChanged: _saving ? null : (value) => _warehouse = value,
+                  onChanged: _locked ? null : (value) => _warehouse = value,
                 ),
                 TextFormField(
                   controller: _quantity,
-                  enabled: !_saving,
+                  enabled: !_locked,
                   decoration: const InputDecoration(labelText: 'Quantity'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -164,7 +177,7 @@ class _InventoryStockMovementPageState
                 ),
                 TextFormField(
                   controller: _rate,
-                  enabled: !_saving,
+                  enabled: !_locked,
                   decoration: const InputDecoration(
                     labelText: 'Rate (optional)',
                   ),
@@ -181,7 +194,7 @@ class _InventoryStockMovementPageState
                 ),
                 TextFormField(
                   controller: _reference,
-                  enabled: !_saving,
+                  enabled: !_locked,
                   decoration: const InputDecoration(
                     labelText: 'Reference (optional)',
                   ),
@@ -189,8 +202,14 @@ class _InventoryStockMovementPageState
                 if (_error != null) Text(_error!),
                 const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: _saving || _unknownOutcome ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Save movement'),
+                  onPressed: _saving ? null : _save,
+                  child: Text(
+                    _saving
+                        ? 'Saving…'
+                        : _uncertainAttempt == null
+                        ? 'Save movement'
+                        : 'Retry same movement',
+                  ),
                 ),
               ],
             ),

@@ -2609,6 +2609,7 @@ void main() {
   ) async {
     var recorded = false;
     var productReads = 0;
+    final receipts = <Object?>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -2623,13 +2624,20 @@ void main() {
             });
           }
           if (request.method == 'POST') {
-            expect(request.path, '/srm/inventory/stock-movements');
+            expect(
+              request.path,
+              '/srm/inventory/stock-movements/offline-create',
+            );
             expect(request.data, {
               'product_id': 12,
               'warehouse_id': 4,
               'movement_type': 'stock_in',
               'quantity': '2.5',
             });
+            receipts.add(request.headers['X-Offline-Operation']);
+            if (receipts.length == 1) {
+              return response({'detail': 'Unavailable'}, 503);
+            }
             recorded = true;
             return response({}, 201);
           }
@@ -2665,6 +2673,11 @@ void main() {
     );
     await tester.tap(find.text('Save movement'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Retry same movement'));
+    await tester.pumpAndSettle();
+    expect(receipts, hasLength(2));
+    expect(receipts.first, isNotNull);
+    expect(receipts.last, receipts.first);
     expect(recorded, isTrue);
     expect(productReads, 2);
     expect(find.text('8.5'), findsOneWidget);

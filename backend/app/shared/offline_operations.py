@@ -27,19 +27,22 @@ def perform_offline_operation(db, actor, operation_id, action, payload, apply, c
     ]), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     key = receipts.c.actor_id == actor.id, receipts.c.operation_id == str(operation_id)
     insert = postgres_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
-    reserved = db.execute(insert(receipts).values(
+    # The receipt table is internal. Keep its actor-scoped statements on the
+    # same transaction while the business write uses the guarded ORM session.
+    connection = db.connection()
+    reserved = connection.execute(insert(receipts).values(
         actor_id=actor.id, operation_id=str(operation_id), fingerprint=fingerprint,
     ).on_conflict_do_nothing(
         index_elements=["actor_id", "operation_id"],
     ).returning(receipts.c.operation_id)).scalar_one_or_none()
     if reserved is None:
-        previous = db.execute(select(receipts).where(*key)).mappings().one()
+        previous = connection.execute(select(receipts).where(*key)).mappings().one()
         if previous["fingerprint"] != fingerprint or previous["result"] is None:
             raise HTTPException(409, "This offline operation belongs to a different request.")
         check_replay(previous["result"])
         return previous["result"]
     result = jsonable_encoder(apply())
-    db.execute(update(receipts).where(*key).values(result=result))
+    connection.execute(update(receipts).where(*key).values(result=result))
     db.commit()
     if after_commit is not None:
         after_commit(result)

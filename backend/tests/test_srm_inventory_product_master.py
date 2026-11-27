@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 from app.apps.business_os.services.module_service import ensure_business_os_seed
 from app.main import app
+from app.shared.offline_operations import receipts
 from tests.srm_test_utils import auth_headers_for
 
 
@@ -107,13 +110,20 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
         )
         assert ops_opening.status_code == 201, ops_opening.text
 
-        stock_in = client.post(
-            "/api/v1/srm/inventory/stock-movements",
-            headers=headers,
-            json={"product_id": ops_product.json()["id"], "warehouse_id": warehouse.json()["id"], "movement_type": "stock_in", "quantity": 5, "rate": 21, "reference_number": "ADHOC-IN"},
-        )
+        receipts.create(db.connection(), checkfirst=True)
+        movement_path = "/api/v1/srm/inventory/stock-movements/offline-create"
+        receipt_headers = {**headers, "X-Offline-Operation": str(uuid4())}
+        stock_in_payload = {"product_id": ops_product.json()["id"], "warehouse_id": warehouse.json()["id"], "movement_type": "stock_in", "quantity": 5, "rate": 21, "reference_number": "ADHOC-IN"}
+        missing_receipt = client.post(movement_path, headers=headers, json=stock_in_payload)
+        assert missing_receipt.status_code == 422, missing_receipt.text
+        stock_in = client.post(movement_path, headers=receipt_headers, json=stock_in_payload)
         assert stock_in.status_code == 201, stock_in.text
         assert stock_in.json()["product"]["current_quantity"] == 15.0
+        replay = client.post(movement_path, headers=receipt_headers, json=stock_in_payload)
+        assert replay.status_code == 201, replay.text
+        assert replay.json() == stock_in.json()
+        mismatch = client.post(movement_path, headers=receipt_headers, json={**stock_in_payload, "quantity": 6})
+        assert mismatch.status_code == 409, mismatch.text
 
         stock_out = client.post(
             "/api/v1/srm/inventory/stock-movements",

@@ -1710,7 +1710,25 @@ def create_srm_opening_stock(data: SRMOpeningStockCreate, db: Session = Depends(
 
 
 @router.post("/inventory/stock-movements", status_code=201)
-def create_srm_stock_movement(data: SRMStockMovementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+def create_srm_stock_movement(
+    data: SRMStockMovementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("srm_manage", "srm_admin")),
+):
+    return _create_stock_movement(data, db, current_user)
+
+
+@router.post("/inventory/stock-movements/offline-create", status_code=201)
+def create_srm_stock_movement_with_receipt(
+    data: SRMStockMovementCreate,
+    offline_operation: UUID = Header(alias="X-Offline-Operation"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("srm_manage", "srm_admin")),
+):
+    return _create_stock_movement(data, db, current_user, offline_operation)
+
+
+def _create_stock_movement(data, db, current_user, offline_operation=None):
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db, current_user)
     org_id = _org(current_user)
@@ -1721,24 +1739,35 @@ def create_srm_stock_movement(data: SRMStockMovementCreate, db: Session = Depend
     warehouse = _warehouse_or_404(db, org_id, data.warehouse_id)
     quantity_in = data.quantity if movement_type in {"stock_in", "purchase_receipt"} else Decimal("0")
     quantity_out = data.quantity if movement_type in {"stock_out", "delivery_note"} else Decimal("0")
-    movement = _post_stock_movement(
-        db,
-        org_id,
-        product,
-        warehouse.id,
-        movement_type,
-        quantity_in,
-        quantity_out,
-        data.rate,
-        data.movement_date or date.today(),
-        data.reference_number,
-        data.notes,
-        current_user,
-    )
-    _audit(db, current_user, "inventory_movement", movement.id, movement_type.upper(), None, _serialize(movement))
+    def record():
+        movement = _post_stock_movement(
+            db, org_id, product, warehouse.id, movement_type, quantity_in,
+            quantity_out, data.rate, data.movement_date or date.today(),
+            data.reference_number, data.notes, current_user,
+        )
+        _audit(db, current_user, "inventory_movement", movement.id, movement_type.upper(), None, _serialize(movement))
+        db.flush()
+        db.refresh(product)
+        return {"movement": _serialize(movement), "product": _product_payload(product)}
+
+    if isinstance(offline_operation, UUID):
+        from app.access.service import check_background_access
+        from app.shared.offline_operations import perform_offline_operation
+
+        check_background_access(db, current_user, "srm", "create")
+
+        def check_replay(receipt):
+            movement = db.get(SRMInventoryMovement, receipt["movement"]["id"])
+            if movement is None or movement.organization_id != org_id:
+                raise HTTPException(404, "Stock movement not found")
+
+        return perform_offline_operation(
+            db, current_user, offline_operation, ("create_stock_movement", org_id),
+            data.model_dump(mode="json"), record, check_replay,
+        )
+    result = record()
     db.commit()
-    db.refresh(product)
-    return {"movement": _serialize(movement), "product": _product_payload(product)}
+    return result
 
 
 @router.post("/inventory/stock-transfers", status_code=201)
