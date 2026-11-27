@@ -69,13 +69,20 @@ def test_purchase_order_draft_requires_issue_before_receiving(client, procuremen
     headers, line, existing = procurement
     assert existing["status"] == "ordered"
     orders = "/api/v1/srm/procurement/purchase-orders"
-    draft = client.post(f"{orders}/drafts", headers=headers, json={"lines": [line]})
+    draft = client.post(
+        f"{orders}/drafts",
+        headers=headers,
+        json={"lines": [line, {**line, "quantity": 3}]},
+    )
     assert draft.status_code == 201, draft.text
     record = draft.json()
     assert record["status"] == "draft"
     receipt = {
         "purchase_order_id": record["id"],
-        "lines": [{"purchase_order_line_id": record["lines"][0]["id"], "quantity": 1}],
+        "lines": [
+            {"purchase_order_line_id": order_line["id"], "quantity": quantity}
+            for order_line, quantity in zip(record["lines"], [1, 2], strict=True)
+        ],
     }
     assert client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt).status_code == 409
     document = f"/api/v1/srm/documents/purchase-orders/{record['id']}"
@@ -86,4 +93,7 @@ def test_purchase_order_draft_requires_issue_before_receiving(client, procuremen
     )
     assert issued.status_code == 200, issued.text
     assert issued.json()["record"]["status"] == "ordered"
-    assert client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt).status_code == 201
+    received = client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt)
+    assert received.status_code == 201, received.text
+    assert len(received.json()["lines"]) == 2
+    assert client.get(f"/api/v1/srm/inventory/items/{line['product_id']}", headers=headers).json()["current_quantity"] == 3

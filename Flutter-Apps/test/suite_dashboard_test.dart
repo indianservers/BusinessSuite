@@ -198,6 +198,12 @@ void main() {
                   'quantity': 2,
                   'received_quantity': writes.isEmpty ? 0 : 1.25,
                 },
+                {
+                  'id': 20,
+                  'description': 'Ink cartridge',
+                  'quantity': 5,
+                  'received_quantity': writes.isEmpty ? 0 : 2,
+                },
               ],
             }),
             '/srm/procurement/grn/80' => response({
@@ -266,6 +272,19 @@ void main() {
       find.widgetWithText(TextFormField, 'Rejected quantity'),
       '0.25',
     );
+    final addLine = find.text('Add receipt item');
+    await tester.ensureVisible(addLine);
+    await tester.tap(addLine);
+    await tester.pumpAndSettle();
+    final chooseLine = find.text('Purchase order line').last;
+    await tester.ensureVisible(chooseLine);
+    await tester.tap(chooseLine);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ink cartridge').last);
+    await tester.pumpAndSettle();
+    final second = find.widgetWithText(TextFormField, 'Accepted quantity').last;
+    await tester.ensureVisible(second);
+    await tester.enterText(second, '2');
     await tester.ensureVisible(post);
     await tester.tap(post);
     await tester.pumpAndSettle();
@@ -278,6 +297,13 @@ void main() {
           'quantity': '1.500',
           'accepted_quantity': '1.25',
           'rejected_quantity': '0.25',
+          'tax_amount': '0',
+        },
+        {
+          'purchase_order_line_id': 20,
+          'quantity': '2.000',
+          'accepted_quantity': '2',
+          'rejected_quantity': '0',
           'tax_amount': '0',
         },
       ],
