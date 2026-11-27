@@ -457,12 +457,14 @@ void main() {
     expect(requests, hasLength(1));
   });
 
+  final customerConflict = ValueVariant<bool>({false, true});
   testWidgets('Android retains CRM contact, deal, and customer details offline', (
     tester,
   ) async {
     final scope =
         '["https://example.test/api/v1",${DateTime.now().microsecondsSinceEpoch},7]';
     var connected = true;
+    final conflict = customerConflict.currentValue!;
     var customerName = 'Cached customer';
     var version = 'customer-v1';
     final requests = <String>[];
@@ -480,8 +482,13 @@ void main() {
             expect(request.queryParameters['source'], 'crm');
             expect(request.data, {
               'name': 'Offline customer edit',
-              'version': version,
+              'version': 'customer-v1',
             });
+            if (version != 'customer-v1') {
+              return response({
+                'detail': 'Customer changed on the server',
+              }, 409);
+            }
             customerName = 'Offline customer edit';
             version = 'customer-v2';
             return response({
@@ -584,13 +591,31 @@ void main() {
     expect(find.text('Customer edit saved · awaiting sync'), findsOneWidget);
     expect(customerName, 'Cached customer');
     expect(requests, hasLength(3));
+    if (conflict) {
+      customerName = 'Customer edited in web';
+      version = 'customer-web-v2';
+    }
     connected = true;
     await tester.tap(find.text('Sync now').hitTestable());
     await tester.pumpAndSettle();
-    expect(customerName, 'Offline customer edit');
-    expect(find.text('Offline customer edit'), findsOneWidget);
+    expect(
+      customerName,
+      conflict ? 'Customer edited in web' : 'Offline customer edit',
+    );
+    expect(find.text(customerName), findsOneWidget);
+    if (conflict) {
+      expect(find.text('Saved customer edit needs review'), findsOneWidget);
+      expect(
+        (await CrmOfflineEdits(scope).pendingCustomer(7))?['body']['name'],
+        'Offline customer edit',
+      );
+      await tester.tap(find.text('Discard').hitTestable());
+      await tester.pumpAndSettle();
+      expect(find.text('Customer edited in web'), findsOneWidget);
+      expect(find.text('Saved customer edit needs review'), findsNothing);
+    }
     expect(find.text('Customer edit saved · awaiting sync'), findsNothing);
-  });
+  }, variant: customerConflict);
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
     var connected = true;
