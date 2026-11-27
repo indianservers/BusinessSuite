@@ -1,4 +1,5 @@
 import { useBusinessTerms } from '@/hooks/use-business-terms';
+import { useRecordScope } from "@/lib/record-scope";
 import { syncScope } from "@/shared/record-sync/store";
 import { useMobile } from "@/components/mobile/useMobile";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
 
 export default function NotesPage(){
   const { term: businessTerm } = useBusinessTerms();
+  const recordScope=useRecordScope();
   const phone=useMobile(480);
   const canCreate=useModuleAction("create"),canEdit=useModuleAction("edit"),canDelete=useModuleAction("delete"),canExport=useModuleAction("export"),canAssign=useModuleAction("assign");
   const user=useAuthStore(state=>state.user);const {projectId}=useParams();const [params,setParams]=useSearchParams();
@@ -67,7 +69,7 @@ export default function NotesPage(){
   useEffect(()=>{if(!params.size&&!projectId&&initialPreferences.noteId){setParams({note:String(initialPreferences.noteId)},{replace:true});}},[]);
   const listParams={modified_after:filters.after||undefined,modified_before:filters.before||undefined,has_attachments:filters.attachments,view:["favorites","recent","shared","archive","trash","quick"].includes(scope.kind)?scope.kind:"all",q:search,sort,tag,personal:scope.kind==="personal",project_id:initialProject||scope.project_id||undefined,task_id:scope.task_id||undefined,folder_id:scope.folder_id||undefined};
   const refresh=useCallback(async()=>{const [listing,summary,tree]=await Promise.all([api.get<NoteRecord[]>(noteBase,{params:listParams}),api.get<NoteRecord[]>(noteBase),api.get<NoteFolder[]>("/project-management/note-folders")]);setNotes(listing.data);setAllNotes(summary.data);setFolders(tree.data);},[JSON.stringify(listParams)]);
-  useEffect(()=>{let active=true;setLoading(true);const timer=setTimeout(()=>{void api.get<NoteRecord[]>(noteBase,{params:listParams}).then(({data})=>{if(active)setNotes(data);}).catch(e=>{if(active)setError(workspaceError(e));}).finally(()=>{if(active)setLoading(false);});},180);return()=>{active=false;clearTimeout(timer);};},[JSON.stringify(listParams)]);
+  useEffect(()=>{let active=true;setLoading(true);const timer=setTimeout(()=>{void api.get<NoteRecord[]>(noteBase,{params:listParams}).then(({data})=>{if(active)setNotes(data);}).catch(e=>{if(active)setError(workspaceError(e));}).finally(()=>{if(active)setLoading(false);});},180);return()=>{active=false;clearTimeout(timer);};},[JSON.stringify(listParams),recordScope]);
   useEffect(()=>{void Promise.all([projectsAPI.list(),api.get<NoteRecord[]>(noteBase),api.get<NoteFolder[]>("/project-management/note-folders")]).then(([p,n,f])=>{setProjects(p);setAllNotes(n.data);setFolders(f.data);}).catch(e=>setError(workspaceError(e)));},[]);
   useEffect(()=>{let active=true;setTasks([]);if(draft.project_id)void tasksAPI.list(draft.project_id).then(data=>{if(active)setTasks(data);}).catch(e=>setError(workspaceError(e)));return()=>{active=false;};},[draft.project_id]);
   useEffect(()=>{const handler=(e:BeforeUnloadEvent)=>{if(dirtyRef.current){e.preventDefault();e.returnValue="";}};window.addEventListener("beforeunload",handler);return()=>window.removeEventListener("beforeunload",handler);},[]);
@@ -76,7 +78,7 @@ export default function NotesPage(){
   function mayLeave(){return !lock.current&&(!dirtyRef.current||window.confirm("Leave this note? Your unsaved draft will be kept for recovery."));}
   async function open(id:number,updateUrl=true){if(!mayLeave()){if(!updateUrl&&noteRef.current){const next=new URLSearchParams(params);next.set("note",String(noteRef.current.id));setParams(next,{replace:true});}return;}lock.current=true;setBusy(true);try{const loaded=(await api.get<NoteRecord>(`${noteBase}/${id}`)).data;apply(loaded);if(firstOpen.current){firstOpen.current=false;if(!scopeContainsNote(scope,loaded))setScope(loaded.deleted_at?{kind:"trash",title:"Trash"}:loaded.archived?{kind:"archive",title:"Archived"}:loaded.can_edit===false?{kind:"shared",title:"Shared With Me"}:{kind:"all",title:"All Notes"});}if(updateUrl){const next=new URLSearchParams(params);next.set("note",String(id));next.delete("new");setParams(next);}}catch(e){setError(workspaceError(e));}finally{lock.current=false;setBusy(false);}}
   const requested=Number(params.get("note"));
-  useEffect(()=>{if(requested&&requested!==noteRef.current?.id)void open(requested,false);},[requested]);
+  useEffect(()=>{if(requested&&requested!==noteRef.current?.id)void open(requested,false);},[requested,recordScope]);
   useEffect(()=>{if(!requested&&!editingRef.current&&!loading&&notes[0])void open(notes[0].id);},[loading,notes.length]);
   function create(target:NoteScope=scope,template=templates[0]){if(!canCreate||!mayLeave())return;setNoteUpdates(updates=>Object.fromEntries(Object.entries(updates).filter(([id])=>Number(id)>0)));editingRef.current=true;const empty=blankNote(target);empty.title=template.content?template.name:"";empty.content=template.content?RICH_TEXT_PREFIX+template.content:"";noteRef.current=null;setNote(null);setDraft(empty);setSaved(blankNote(target));setEditing(true);setEditorSession(v=>v+1);setSelection("");setError("");setStatus("New note");setRecovery(null);setMobile("editor");setModal(null);const next=new URLSearchParams(params);next.delete("note");next.set("new","1");setParams(next,{replace:true});if(!template.content){try{const stored=JSON.parse(sessionStorage.getItem(draftKey())||"null");if(stored)setRecovery(stored);}catch{/* Ignore unavailable local state or invalid drag data. */}}}
   useEffect(()=>{if(params.has("new")&&!lock.current&&!dirtyRef.current)create(scope);},[params.get("new")]);
