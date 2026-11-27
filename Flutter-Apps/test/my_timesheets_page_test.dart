@@ -181,5 +181,8 @@ void main() {
     await tap('Submit');
     expect(find.textContaining('Submitted · 8 h'), findsOneWidget);
     expect(find.text('Add entry'), findsNothing);
+    await tester.tap(find.byTooltip('Refresh timesheets'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Submitted · 8 h'), findsOneWidget);
   });
 }

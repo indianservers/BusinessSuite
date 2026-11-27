@@ -1414,7 +1414,9 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
       );
       if (!mounted || api.sessionRevision != session) return;
       widget.onChanged();
-      setState(() => _details = _load());
+      setState(() {
+        _details = _load();
+      });
     } on ApiFailure catch (error) {
       if (mounted) {
         setState(() {
@@ -1545,9 +1547,9 @@ class _AppointmentDetailsState extends State<_AppointmentDetails> {
                                         );
                                     if (!mounted || moved == null) return;
                                     widget.onChanged();
-                                    setState(
-                                      () => _details = Future.value(moved),
-                                    );
+                                    setState(() {
+                                      _details = Future.value(moved);
+                                    });
                                   },
                             child: const Text('Reschedule'),
                           ),

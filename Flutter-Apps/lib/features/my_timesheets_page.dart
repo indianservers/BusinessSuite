@@ -368,7 +368,11 @@ class _MyTimesheetsPageState extends State<MyTimesheetsPage> {
         IconButton(
           tooltip: 'Refresh timesheets',
           icon: const Icon(LucideIcons.refreshCw),
-          onPressed: _busy ? null : () => setState(() => _data = _load()),
+          onPressed: _busy
+              ? null
+              : () => setState(() {
+                  _data = _load();
+                }),
         ),
       ],
     ),
