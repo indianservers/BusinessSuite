@@ -93,6 +93,10 @@ def test_purchase_order_draft_requires_issue_before_receiving(client, procuremen
     )
     assert issued.status_code == 200, issued.text
     assert issued.json()["record"]["status"] == "ordered"
+    pdf = client.get(f"{document}/pdf", headers=headers)
+    assert pdf.status_code == 200
+    assert pdf.headers["content-type"] == "application/pdf"
+    assert pdf.content.startswith(b"%PDF-")
     received = client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt)
     assert received.status_code == 201, received.text
     assert len(received.json()["lines"]) == 2

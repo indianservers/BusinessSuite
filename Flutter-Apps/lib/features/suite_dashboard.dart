@@ -606,7 +606,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                           const {'srm_invoice_create', 'srm_admin'}.contains,
                         ) ==
                         true)),
-        canExportInvoices: allowsSalesAction('export'),
+        canExportSalesDocuments: allowsSalesAction('export'),
         canIssueInvoices:
             allowsSalesAction('approve') &&
             (controller.user?.isSuperuser == true ||
@@ -1394,7 +1394,7 @@ class _SuiteRecords extends StatefulWidget {
     this.cachePrefix,
     this.showInventory = false,
     this.canViewFinanceInventory = false,
-    this.canExportInvoices = false,
+    this.canExportSalesDocuments = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
     this.canEditWarehouses = false,
@@ -1423,7 +1423,7 @@ class _SuiteRecords extends StatefulWidget {
   final String? cachePrefix;
   final bool showInventory;
   final bool canViewFinanceInventory;
-  final bool canExportInvoices;
+  final bool canExportSalesDocuments;
   final bool canIssueInvoices;
   final bool canEditOrders;
   final bool canEditWarehouses;
@@ -2007,6 +2007,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             kind: kind,
             canReceive: widget.canCreateOrder,
             canIssue: widget.canEditOrders,
+            canExport: widget.canExportSalesDocuments,
             onReceived: _refreshStockLists,
             onIssued: _refreshCrmRecords,
             summary: row,
@@ -2518,6 +2519,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: kind.title,
                   controller: widget.controller,
                   path: kind.path,
+                  canExportSalesDocuments: widget.canExportSalesDocuments,
                   canCreateOrder: widget.canCreateOrder,
                   canEditOrders: widget.canEditOrders,
                   scopeHeaders: widget.scopeHeaders,
@@ -2735,7 +2737,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path: GstInvoicePage.listEndpoint,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
-                  canExportInvoices: widget.canExportInvoices,
+                  canExportSalesDocuments: widget.canExportSalesDocuments,
                   canIssueInvoices: widget.canIssueInvoices,
                   offlineOnly: _offlineOnly,
                 ),
@@ -2752,6 +2754,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Inventory',
                   controller: widget.controller,
                   path: InventoryOfflineCreates.itemsEndpoint,
+                  canExportSalesDocuments: widget.canExportSalesDocuments,
                   canViewFinanceInventory: widget.canViewFinanceInventory,
                   canEditOrders:
                       widget.canEditOrders && widget.canEditWarehouses,
@@ -3549,7 +3552,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                         widget.cachePrefix,
                                                     canEdit: true,
                                                     canExport: widget
-                                                        .canExportInvoices,
+                                                        .canExportSalesDocuments,
                                                     canIssue:
                                                         widget.canIssueInvoices,
                                                   )
@@ -3570,7 +3573,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             cacheScope: widget.cachePrefix,
                                             onChanged: _refresh,
                                             offline: _offlineOnly,
-                                            canExport: widget.canExportInvoices,
+                                            canExport:
+                                                widget.canExportSalesDocuments,
                                             canIssue: widget.canIssueInvoices,
                                             canEdit:
                                                 widget

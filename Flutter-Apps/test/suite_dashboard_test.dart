@@ -159,6 +159,7 @@ void main() {
   ) async {
     final writes = <RequestOptions>[];
     final issueRequests = <RequestOptions>[];
+    RequestOptions? pdfRequest;
     const document = '/srm/documents/purchase-orders/72';
     var issued = false;
     final version = 'a' * 64;
@@ -168,6 +169,10 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
+          if (request.path == '$document/pdf') {
+            pdfRequest = request;
+            return response({'message': 'Unexpected response'});
+          }
           if (request.path == '$document/issue') {
             expect(request.method, 'POST');
             issueRequests.add(request);
@@ -226,6 +231,7 @@ void main() {
           offline: false,
           canReceive: true,
           canIssue: true,
+          canExport: true,
         ),
       ),
     );
@@ -252,6 +258,14 @@ void main() {
     });
     expect(issueRequests.last.data, issueRequests.first.data);
     expect(find.text('Issue purchase order'), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save purchase order PDF'));
+    await tester.pumpAndSettle();
+    expect(pdfRequest?.responseType, ResponseType.bytes);
+    expect(find.text('The server did not return a PDF.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Receive goods'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Purchase order line'));

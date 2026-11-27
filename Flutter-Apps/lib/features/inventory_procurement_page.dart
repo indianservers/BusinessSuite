@@ -1,9 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_pdf.dart';
 import 'inventory_goods_receipt_form.dart';
 
 enum ProcurementRecord {
@@ -66,6 +68,7 @@ class InventoryProcurementPage extends StatefulWidget {
     required this.offline,
     this.canReceive = false,
     this.canIssue = false,
+    this.canExport = false,
     this.onReceived,
     this.onIssued,
   });
@@ -78,6 +81,7 @@ class InventoryProcurementPage extends StatefulWidget {
   final bool offline;
   final bool canReceive;
   final bool canIssue;
+  final bool canExport;
   final VoidCallback? onReceived;
   final VoidCallback? onIssued;
 
@@ -90,6 +94,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   Json? _cached;
   late var _record = _load(offline: widget.offline);
   bool _issuing = false;
+  bool _savingPdf = false;
   ({String reason, String version, String id})? _issueRequest;
 
   Iterable<Json> _lines(Json data) =>
@@ -99,11 +104,50 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     _record = _load();
   });
 
+  String get _documentPath =>
+      '/srm/documents/purchase-orders/${widget.summary['id']}';
+
+  Future<void> _savePdf(Json order) async {
+    if (_savingPdf) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    setState(() => _savingPdf = true);
+    try {
+      final bytes = await fetchSuitePdf(
+        api,
+        '$_documentPath/pdf',
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (!mounted || revision != api.sessionRevision) return;
+      final number = '${order['po_number'] ?? widget.summary['id']}'.replaceAll(
+        RegExp(r'[^A-Za-z0-9._-]'),
+        '_',
+      );
+      final saved = await FilePicker.saveFile(
+        fileName: 'Purchase-order-$number.pdf',
+        bytes: bytes,
+      );
+      if (mounted && saved != null && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Purchase order PDF saved.')),
+        );
+      }
+    } catch (error) {
+      if (mounted && revision == api.sessionRevision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _savingPdf = false);
+    }
+  }
+
   Future<void> _issue() async {
     if (_issuing) return;
     final api = widget.api;
     final revision = api.sessionRevision;
-    final path = '/srm/documents/purchase-orders/${widget.summary['id']}';
+    final path = _documentPath;
     setState(() => _issuing = true);
     try {
       final document = await api.request(
@@ -212,6 +256,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           offline: false,
           canReceive: widget.canReceive,
           canIssue: widget.canIssue,
+          canExport: widget.canExport,
           onReceived: widget.onReceived,
           onIssued: widget.onIssued,
         ),
@@ -311,6 +356,19 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                       onPressed: _issuing ? null : _issue,
                       child: const Text('Issue purchase order'),
                     ),
+                  if (widget.canExport &&
+                      kind == ProcurementRecord.order &&
+                      done &&
+                      snapshot.data?.live == true)
+                    OutlinedButton.icon(
+                      onPressed: _savingPdf ? null : () => _savePdf(row),
+                      icon: const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(
+                        _savingPdf
+                            ? 'Preparing PDF…'
+                            : 'Save purchase order PDF',
+                      ),
+                    ),
                   for (final field in kind.fields.entries)
                     if (row[field.key] case final Object value)
                       ListTile(
@@ -331,6 +389,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                             offline: snapshot.data?.live != true,
                             canReceive: widget.canReceive,
                             canIssue: widget.canIssue,
+                            canExport: widget.canExport,
                             onReceived: widget.onReceived,
                             onIssued: widget.onIssued,
                           ),
