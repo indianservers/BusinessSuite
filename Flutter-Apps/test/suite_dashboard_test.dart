@@ -26,6 +26,7 @@ import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
 import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
+import 'package:business_suite_mobile/features/my_roster_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
@@ -58,6 +59,56 @@ void mockUnavailableSqlite(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('My Roster loads only my shifts from the web roster API', (
+    tester,
+  ) async {
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/hrms/shift-roster');
+          expect(request.queryParameters['employeeId'], 27);
+          final from = DateTime.parse(request.queryParameters['from'] as String);
+          final to = DateTime.parse(request.queryParameters['to'] as String);
+          expect(
+            DateTime.utc(to.year, to.month, to.day)
+                .difference(DateTime.utc(from.year, from.month, from.day))
+                .inDays,
+            7,
+          );
+          return response({
+            'rosters': [
+              {
+                'employeeId': 27,
+                'rosterDate': '2026-11-27',
+                'shift': {'name': 'Morning', 'code': 'AM'},
+                'status': 'published',
+              },
+              {'employeeId': 27, 'rosterDate': '2026-11-28'},
+              {
+                'employeeId': 28,
+                'shift': {'name': 'Someone else’s shift'},
+              },
+            ],
+          });
+        }),
+    );
+    final user = SessionUser.fromJson({
+      'id': 2,
+      'email': 'employee@example.test',
+      'employee_id': 27,
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: MyRosterPage(api: api, employeeId: user.employeeId)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Morning'), findsOneWidget);
+    expect(find.text('2026-11-27 · AM'), findsOneWidget);
+    expect(find.text('Weekly Off'), findsOneWidget);
+    expect(find.text('Someone else’s shift'), findsNothing);
+  });
+
   test(
     'Queued purchase drafts preserve retry identity and replace rejections',
     () async {

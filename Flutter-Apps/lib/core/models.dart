@@ -72,6 +72,7 @@ class Overview {
 class SessionUser {
   SessionUser.fromJson(Json json)
     : id = json['id'] as int?,
+      employeeId = json['employee_id'] as int?,
       email = json['email'] as String,
       role = (json['role'] as Json?)?['name'] as String? ?? 'User',
       permissions = ((json['role'] as Json?)?['permissions'] as List? ?? [])
@@ -79,7 +80,7 @@ class SessionUser {
           .toSet(),
       isSuperuser = json['is_superuser'] == true;
   final String email, role;
-  final int? id;
+  final int? id, employeeId;
   final Set<String> permissions;
   final bool isSuperuser;
   bool get canCreateWorkspace =>

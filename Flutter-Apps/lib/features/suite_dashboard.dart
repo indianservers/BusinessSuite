@@ -42,6 +42,7 @@ import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
+import 'my_roster_page.dart';
 import 'finance_party_page.dart';
 import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
@@ -391,14 +392,14 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       final grants = access['grants'] as Json? ?? {};
       try {
         await controller.api.rememberSuite(
-          {'id': user.id, 'email': user.email},
+          {'id': user.id, 'email': user.email, 'employee_id': user.employeeId},
           {
             'companyId': access['companyId'],
             'companyName': access['companyName'],
             'canCreateLead': _canCreateLead(access),
             'canCreateOrder': _canCreateOrder(access),
             'grants': {
-              for (final key in ['crm', 'srm', 'fam', 'project_management'])
+              for (final key in ['crm', 'srm', 'fam', 'hrms', 'project_management'])
                 key: {
                   'enabled': _allowed(access, key) && grants.containsKey(key),
                 },
@@ -514,6 +515,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             ? const {'summary_only': true}
             : const {},
         cachePrefix: cache,
+        rosterCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
         canCreateContacts:
             app.grant == 'crm' &&
@@ -1402,6 +1404,7 @@ class _SuiteRecords extends StatefulWidget {
     this.query = const {},
     this.scopeHeaders = const {},
     this.cachePrefix,
+    this.rosterCacheScope,
     this.showInventory = false,
     this.canViewFinanceInventory = false,
     this.canExportSalesDocuments = false,
@@ -1432,6 +1435,7 @@ class _SuiteRecords extends StatefulWidget {
   final Map<String, dynamic> query;
   final Map<String, String> scopeHeaders;
   final String? cachePrefix;
+  final String? rosterCacheScope;
   final bool showInventory;
   final bool canViewFinanceInventory;
   final bool canExportSalesDocuments;
@@ -2538,6 +2542,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       _refresh();
                     }
                   },
+                ),
+              ),
+            ),
+          ),
+        if (widget.path == '/employees/')
+          IconButton(
+            tooltip: 'My Roster',
+            icon: const Icon(LucideIcons.calendarDays),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MyRosterPage(
+                  api: widget.controller.api,
+                  employeeId: widget.controller.user?.employeeId,
+                  cacheScope: widget.rosterCacheScope,
+                  offline: _offlineOnly,
                 ),
               ),
             ),
