@@ -37,6 +37,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   required Json Function(Json) project,
   Json query = const {},
   void Function(Json)? onCached,
+  bool reuseFresh = false,
 }) async {
   final revision = api.sessionRevision;
   final branch = headers['X-Suite-Branch'] ?? '';
@@ -48,12 +49,33 @@ Future<({Json? record, bool live})> loadCrmDetail({
   }
 
   var awaitingLive = !offline;
+  Future<({List<Json> rows, DateTime savedAt, bool invalidated})?>? snapshot;
+  if (key != null && reuseFresh && !offline) {
+    snapshot = SuiteReadCache.snapshot(
+      key,
+    ).then((value) => value, onError: (Object _) => null);
+    final saved = await snapshot.timeout(
+      const Duration(milliseconds: 120),
+      onTimeout: () => null,
+    );
+    checkSession();
+    if (saved != null && !saved.invalidated && saved.rows.isNotEmpty) {
+      final age = DateTime.now().difference(saved.savedAt);
+      if (!age.isNegative && age < SuiteReadCache.reuseWindow) {
+        return (record: saved.rows.first, live: false);
+      }
+    }
+  }
   Future<Json?> readCached() async {
     if (key == null) return null;
     Json? cached;
     try {
       final pending = await Future<Json?>.value(_pendingDetails[key]?.record);
-      cached = pending ?? (await SuiteReadCache.read(key))?.firstOrNull;
+      cached =
+          pending ??
+          (snapshot == null
+              ? (await SuiteReadCache.read(key))?.firstOrNull
+              : (await snapshot)?.rows.firstOrNull);
     } catch (_) {}
     if (awaitingLive && revision == api.sessionRevision && cached != null) {
       onCached?.call(cached);

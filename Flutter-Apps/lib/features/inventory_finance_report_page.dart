@@ -341,7 +341,10 @@ class _InventoryFinanceReportPageState
     if (widget.movementId case final int id) 'movement_id': id,
   };
 
-  Future<({Json? record, bool live})> _load({bool offline = false}) {
+  Future<({Json? record, bool live})> _load({
+    bool offline = false,
+    bool refresh = false,
+  }) {
     final request = ++_request;
     _cached = null;
     final scope = widget.cacheScope;
@@ -360,6 +363,7 @@ class _InventoryFinanceReportPageState
           : '$ledgerScope:$_pageSize:${Uri.encodeComponent(jsonEncode(_filters))}',
       headers: widget.scopeHeaders,
       offline: offline,
+      reuseFresh: _analysis && !refresh,
       query: _analysis ? _analysisQuery : const {},
       onCached: (saved) {
         if (mounted && request == _request) {
@@ -563,7 +567,7 @@ class _InventoryFinanceReportPageState
           tooltip: 'Refresh report',
           onPressed: () => setState(() {
             _offline = false;
-            _report = _load();
+            _report = _load(refresh: true);
           }),
           icon: const Icon(Icons.refresh),
         ),

@@ -100,6 +100,12 @@ void main() {
     await warehouse('6');
     expect(find.text('Movements for 6'), findsOneWidget);
     expect(snapshots, hasLength(2));
+    await warehouse('6');
+    expect(find.text('Movements for 6'), findsOneWidget);
+    expect(requests, 2);
+    await tester.tap(find.byTooltip('Refresh report'));
+    await tester.pumpAndSettle();
+    expect(requests, 3);
     await open(true);
     expect(find.text('Movements for all'), findsOneWidget);
     await warehouse('6');
@@ -108,6 +114,6 @@ void main() {
     await warehouse('7');
     expect(find.text('No saved report.'), findsOneWidget);
     expect(find.text('Movements for 6'), findsNothing);
-    expect(requests, 2);
+    expect(requests, 3);
   });
 }
