@@ -34,6 +34,7 @@ import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 import 'inventory_stock_movement_page.dart';
+import 'inventory_warehouse_form.dart';
 
 typedef _App = ({
   String key,
@@ -1339,6 +1340,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   static const _reorderPath = '/srm/inventory/reports/reorder';
   static const _stockSummaryCachePath = '/srm/inventory/reports/stock-summary';
+  static const _warehousesPath = InventoryWarehouseForm.endpoint;
+  bool get _warehouses => widget.path == _warehousesPath;
   bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
@@ -1451,6 +1454,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               !cached.invalidated &&
               searchTerm.isEmpty &&
               (_inventory ||
+                  _warehouses ||
                   path == '/srm/sales-orders' ||
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
@@ -1600,6 +1604,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'reorder_level',
               'reorder_threshold',
               'unit_code',
+              if (_warehouses) ...[
+                'warehouse_name',
+                'warehouse_code',
+                'branch',
+                'address',
+              ],
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
               if (path == FinancePartyPage.endpoint)
@@ -1794,6 +1804,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         ),
         if (_inventory)
           IconButton(
+            tooltip: 'Warehouses',
+            icon: const Icon(LucideIcons.warehouse),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Warehouses',
+                  controller: widget.controller,
+                  path: _warehousesPath,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  canCreateOrder: widget.canCreateOrder,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_inventory)
+          IconButton(
             tooltip: 'Low stock alerts',
             icon: const Icon(LucideIcons.bell),
             onPressed: () => Navigator.of(context).push(
@@ -1807,6 +1835,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_warehouses &&
+            !_offlineOnly &&
+            !_usedSavedFallback &&
+            widget.canCreateOrder)
+          IconButton(
+            tooltip: 'New warehouse',
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => InventoryWarehouseForm(
+                    api: widget.controller.api,
+                    scopeHeaders: widget.scopeHeaders,
+                  ),
+                ),
+              );
+              if (mounted && created == true) _refresh();
+            },
           ),
         if (_inventoryDrafts != null)
           IconButton(
@@ -1916,6 +1963,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _searchOnServer ||
                   widget.cachePrefix != null ||
                   _stockAlerts ||
+                  _warehouses ||
                   _appointments ||
                   widget.path == GstInvoicePage.listEndpoint ||
                   widget.path == FinancePartyPage.endpoint;
@@ -1956,6 +2004,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'barcode',
                                     'category_name',
                                     'item_name',
+                                    if (_warehouses) ...[
+                                      'warehouse_name',
+                                      'warehouse_code',
+                                      'branch',
+                                      'address',
+                                    ],
                                     'full_name',
                                     'company_name',
                                   ]
@@ -2064,6 +2118,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         : 'Search leads',
                                   '/srm/inventory/items' ||
                                   _reorderPath => 'Search products',
+                                  _warehousesPath => 'Search warehouses',
                                   GstInvoicePage.listEndpoint =>
                                     'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
@@ -2166,6 +2221,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           item['last_name'],
                         ].whereType<String>().join(' ');
                         final label =
+                            (_warehouses ? item['warehouse_name'] : null) ??
                             item['item_name'] ??
                             item['title'] ??
                             item['name'] ??
@@ -2177,6 +2233,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_warehouses) ...[
+                            item['warehouse_code'],
+                            item['branch'],
+                            item['address'],
+                          ],
                           item['sku'],
                           item['status'],
                           if (_stockAlerts)

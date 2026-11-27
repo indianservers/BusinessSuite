@@ -15,6 +15,7 @@ import 'package:business_suite_mobile/features/branch_membership_page.dart';
 import 'package:business_suite_mobile/features/lead_sources_panel.dart';
 import 'package:business_suite_mobile/features/starter_values_panel.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
+import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
@@ -33,6 +34,51 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Warehouse creation posts to scoped inventory API', (
+    tester,
+  ) async {
+    final requests = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          return response({'id': 2}, 201);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryWarehouseForm(
+          api: api,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+        ),
+      ),
+    );
+    final create = find.text('Create warehouse');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pump();
+    expect(requests, isEmpty);
+    final code = find.widgetWithText(TextFormField, 'Warehouse code');
+    await tester.ensureVisible(code);
+    await tester.enterText(code, ' MAIN ');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Warehouse name'),
+      'Main warehouse',
+    );
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(requests.single.path, '/srm/inventory/warehouses');
+    expect(requests.single.method, 'POST');
+    expect(requests.single.headers['X-Suite-Organization'], '7');
+    expect(requests.single.data, {
+      'warehouse_code': 'MAIN',
+      'warehouse_name': 'Main warehouse',
+    });
+  });
+
   testWidgets(
     'Sales corrects a rejected draft without losing its customer or lines',
     (tester) async {
