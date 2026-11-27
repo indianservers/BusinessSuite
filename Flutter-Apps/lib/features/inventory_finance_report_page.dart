@@ -204,6 +204,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
     this.initialFilters = const {},
     this.initialSearch = '',
     this.movementId,
+    this.financeMovement = false,
   });
 
   final ApiClient api;
@@ -214,6 +215,7 @@ class InventoryFinanceReportPage extends StatefulWidget {
   final Map<String, String> initialFilters;
   final String initialSearch;
   final int? movementId;
+  final bool financeMovement;
 
   @override
   State<InventoryFinanceReportPage> createState() =>
@@ -231,6 +233,9 @@ class _InventoryFinanceReportPageState
   late bool _offline = widget.offline;
   bool _exporting = false;
   bool get _ledger => widget.report.movementReport;
+  String get _endpoint => _ledger && widget.financeMovement
+      ? '/fam/inventory/reports'
+      : widget.report.endpoint;
   late var _report = _load(offline: widget.offline);
 
   Iterable<Json> _rows(Json? data) =>
@@ -238,6 +243,7 @@ class _InventoryFinanceReportPageState
 
   Json get _ledgerQuery => {
     'report': widget.report.slug,
+    if (widget.financeMovement) 'analysis': true,
     'page': _page,
     'per_page': _pageSize,
     if (_search.isNotEmpty) 'search': _search,
@@ -256,7 +262,7 @@ class _InventoryFinanceReportPageState
         '$scope:${widget.report.slug}$movement:$_page:${Uri.encodeComponent(_search)}';
     return loadCrmDetail(
       api: widget.api,
-      path: widget.report.endpoint,
+      path: _endpoint,
       scope: scope == null || !_ledger
           ? scope
           : _filters.isEmpty && _pageSize == 25
@@ -297,7 +303,7 @@ class _InventoryFinanceReportPageState
     if (_exporting || _offline) return;
     final api = widget.api;
     final revision = api.sessionRevision;
-    final path = widget.report.endpoint;
+    final path = _endpoint;
     final headers = widget.scopeHeaders;
     final query = {..._ledgerQuery, 'export_format': format};
     setState(() => _exporting = true);
@@ -307,7 +313,8 @@ class _InventoryFinanceReportPageState
           : await _fetchLedgerSpreadsheet(api, path, query, headers);
       if (!mounted || revision != api.sessionRevision) return;
       final saved = await FilePicker.saveFile(
-        fileName: 'inventory-srm-${widget.report.slug}.$format',
+        fileName:
+            'inventory-${widget.financeMovement ? 'fam' : 'srm'}-${widget.report.slug}.$format',
         bytes: bytes,
         mimeType: format == 'pdf'
             ? 'application/pdf'
@@ -370,6 +377,7 @@ class _InventoryFinanceReportPageState
           initialFilters: _filters,
           initialSearch: _search,
           movementId: id,
+          financeMovement: widget.financeMovement,
         ),
       ),
     );

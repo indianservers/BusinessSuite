@@ -5111,6 +5111,15 @@ void main() {
             '/crm/lead-management/leads' ||
             '/fam/parties' ||
             '/project-management/notes' => response([]),
+            '/fam/inventory/reports' => response({
+              'total': 1,
+              'items': [
+                {
+                  'movement_number': 'Finance stock movement',
+                  'movement_id': 19,
+                },
+              ],
+            }),
             '/fam/inventory/reports/gross-margin' => response({
               'attribution': {'currency': 'INR'},
               'items': [
@@ -5769,6 +5778,31 @@ void main() {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
         if (entry.key == 'Finance & Accounting') {
+          for (final (title, slug) in [
+            ('Stock Ledger', 'ledger'),
+            ('Sales Movement', 'sales'),
+            ('Purchase Movements', 'purchases'),
+            ('Stock Adjustments', 'adjustments'),
+            ('Stock Transfers', 'transfers'),
+          ]) {
+            await tester.tap(find.byTooltip('Inventory financial reports'));
+            await tester.pumpAndSettle();
+            await open(title);
+            expect(find.text('Finance stock movement'), findsOneWidget);
+            expect(calls.last.path, '/fam/inventory/reports');
+            expect(calls.last.queryParameters['analysis'], true);
+            expect(calls.last.queryParameters['report'], slug);
+            if (slug == 'sales') {
+              await tester.tap(find.byTooltip('View source movement'));
+              await tester.pumpAndSettle();
+              expect(calls.last.path, '/fam/inventory/reports');
+              expect(calls.last.queryParameters['analysis'], true);
+              expect(calls.last.queryParameters['report'], 'ledger');
+              expect(calls.last.queryParameters['movement_id'], 19);
+              await back();
+            }
+            await back();
+          }
           for (final (report, row, detail) in [
             ('Gross Margin', 'Sample product', 'Incomplete attribution'),
             ('COGS Report', 'OUT-1', 'Voucher posted: Yes'),
