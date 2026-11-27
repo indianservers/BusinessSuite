@@ -52,6 +52,8 @@ void main() {
                     'ledger_id': 8,
                     'debit_amount': '250.00',
                     'credit_amount': '0',
+                    'cost_center_id': 42,
+                    'narration': 'Bank deposit',
                   },
                   {
                     'ledger_id': 9,
@@ -100,6 +102,17 @@ void main() {
       await tester.ensureVisible(field);
       await tester.enterText(field, '250.00');
     }
+    for (final (label, value) in [
+      ('Cost center 1', '42'),
+      ('Line narration 1', 'Bank deposit'),
+    ]) {
+      final field = find.widgetWithText(TextFormField, label);
+      await tester.ensureVisible(field);
+      await tester.enterText(field, value);
+    }
+    await tester.pumpAndSettle();
+    expect(find.text('Debit 250.00 · Credit 250.00'), findsOneWidget);
+    expect(find.text('Difference 0.00'), findsOneWidget);
     await tap(find.text('Save voucher draft'));
     expect(created, isTrue);
     expect(find.text('V-007'), findsOneWidget);

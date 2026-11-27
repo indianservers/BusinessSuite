@@ -23,9 +23,12 @@ class _Entry {
   int? ledger;
   bool credit;
   String amount = '';
+  String costCenter = '';
+  String narration = '';
 }
 
 class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
+  static final _amountPattern = RegExp(r'^\d{1,12}(?:\.\d{1,2})?$');
   final _form = GlobalKey<FormState>();
   final _lines = [_Entry(), _Entry(credit: true)];
   late final _revision = widget.api.sessionRevision;
@@ -96,6 +99,9 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                 'ledger_id': line.ledger,
                 'debit_amount': line.credit ? '0' : line.amount,
                 'credit_amount': line.credit ? line.amount : '0',
+                if (line.costCenter.isNotEmpty)
+                  'cost_center_id': int.parse(line.costCenter),
+                if (line.narration.isNotEmpty) 'narration': line.narration,
               },
           ],
         },
@@ -138,6 +144,19 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
     onChanged: _saving ? null : onChanged,
     validator: (value) => value == null ? 'Choose a $label.' : null,
   );
+
+  int _totalCents(bool credit) =>
+      _lines.where((line) => line.credit == credit).fold(0, (total, line) {
+        if (!_amountPattern.hasMatch(line.amount)) return total;
+        final parts = line.amount.split('.');
+        final cents = parts.length == 2 ? parts.last : '';
+        return total +
+            int.parse(parts.first) * 100 +
+            int.parse(cents.padRight(2, '0'));
+      });
+
+  String _formatCents(int cents) =>
+      '${cents.isNegative ? '-' : ''}${cents.abs() ~/ 100}.${(cents.abs() % 100).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -226,15 +245,38 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                               decoration: InputDecoration(
                                 labelText: 'Amount ${index + 1}',
                               ),
-                              onChanged: (value) => line.amount = value.trim(),
+                              onChanged: (value) =>
+                                  setState(() => line.amount = value.trim()),
                               validator: (_) =>
-                                  RegExp(
-                                    r'^\d{1,12}(?:\.\d{1,2})?$',
-                                  ).hasMatch(line.amount)
+                                  _amountPattern.hasMatch(line.amount)
                                   ? null
                                   : 'Enter an amount with up to two decimal places.',
                             ),
-                            if (_lines.length > 1)
+                            TextFormField(
+                              enabled: !_saving,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Cost center ${index + 1}',
+                              ),
+                              onChanged: (value) =>
+                                  line.costCenter = value.trim(),
+                              validator: (_) {
+                                if (line.costCenter.isEmpty) return null;
+                                final id = int.tryParse(line.costCenter);
+                                return id != null && id > 0 && id <= 2147483647
+                                    ? null
+                                    : 'Enter a valid cost center ID.';
+                              },
+                            ),
+                            TextFormField(
+                              enabled: !_saving,
+                              decoration: InputDecoration(
+                                labelText: 'Line narration ${index + 1}',
+                              ),
+                              onChanged: (value) =>
+                                  line.narration = value.trim(),
+                            ),
+                            if (_lines.length > 2)
                               TextButton(
                                 onPressed: _saving
                                     ? null
@@ -250,6 +292,15 @@ class _FinanceVoucherFormState extends State<FinanceVoucherForm> {
                         ? null
                         : () => setState(() => _lines.add(_Entry())),
                     child: const Text('Add entry line'),
+                  ),
+                  ListTile(
+                    title: Text(
+                      'Debit ${_formatCents(_totalCents(false))} · '
+                      'Credit ${_formatCents(_totalCents(true))}',
+                    ),
+                    subtitle: Text(
+                      'Difference ${_formatCents(_totalCents(false) - _totalCents(true))}',
+                    ),
                   ),
                   if (_error != null) Text(_error!),
                   FilledButton(
