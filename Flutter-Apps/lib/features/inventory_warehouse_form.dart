@@ -3,6 +3,26 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/models.dart';
 
+Future<List<Json>> loadActiveInventoryWarehouses(
+  ApiClient api,
+  Map<String, String> scopeHeaders,
+) async {
+  final revision = api.sessionRevision;
+  final payload = await api.request(
+    'GET',
+    InventoryWarehouseForm.endpoint,
+    scopeHeaders: scopeHeaders,
+  );
+  if (api.sessionRevision != revision) {
+    throw ApiFailure('Your session ended. Sign in again.', 401);
+  }
+  final rows = payload is Json ? payload['items'] : payload;
+  return (rows as List)
+      .whereType<Json>()
+      .where((row) => row['id'] is int && row['active'] != false)
+      .toList();
+}
+
 class InventoryWarehouseForm extends StatefulWidget {
   const InventoryWarehouseForm({
     super.key,

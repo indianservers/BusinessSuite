@@ -22,6 +22,7 @@ import 'crm_pipeline_page.dart';
 import 'inventory_batch_page.dart';
 import 'inventory_finance_report_page.dart';
 import 'inventory_procurement_page.dart';
+import 'inventory_purchase_order_form.dart';
 import 'inventory_tracking_form.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
@@ -1998,6 +1999,40 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     ),
   );
 
+  void _openProcurementRecord(ProcurementRecord kind, Json row) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => InventoryProcurementPage(
+            api: widget.controller.api,
+            kind: kind,
+            canReceive: widget.canCreateOrder,
+            canIssue: widget.canEditOrders,
+            onReceived: _refreshStockLists,
+            onIssued: _refreshCrmRecords,
+            summary: row,
+            scopeHeaders: widget.scopeHeaders,
+            cacheScope: widget.cachePrefix,
+            offline: _offlineOnly || _usedSavedFallback,
+          ),
+        ),
+      );
+
+  Future<void> _createPurchaseOrder() async {
+    final api = widget.controller.api;
+    final revision = api.sessionRevision;
+    final saved = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => InventoryPurchaseOrderForm(
+          api: api,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || saved == null || revision != api.sessionRevision) return;
+    unawaited(_refreshCrmRecords());
+    _openProcurementRecord(ProcurementRecord.order, saved);
+  }
+
   Future<void> _createTrackingRecord() async {
     final saved = await Navigator.of(context).push<Json>(
       MaterialPageRoute(
@@ -2495,6 +2530,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               for (final kind in ProcurementRecord.values)
                 PopupMenuItem(value: kind, child: Text(kind.title)),
             ],
+          ),
+        if (_procurement == ProcurementRecord.order &&
+            widget.canCreateOrder &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New purchase order',
+            icon: const Icon(Icons.add),
+            onPressed: _createPurchaseOrder,
           ),
         if (_inventory)
           IconButton(
@@ -3194,22 +3238,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             title: Text('$label'),
                             subtitle: subtitle.isEmpty ? null : Text(subtitle),
                             trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => InventoryProcurementPage(
-                                  api: widget.controller.api,
-                                  kind: procurement,
-                                  canReceive: widget.canCreateOrder,
-                                  canIssue: widget.canEditOrders,
-                                  onReceived: _refreshStockLists,
-                                  onIssued: _refreshCrmRecords,
-                                  summary: item,
-                                  scopeHeaders: widget.scopeHeaders,
-                                  cacheScope: widget.cachePrefix,
-                                  offline: _offlineOnly || _usedSavedFallback,
-                                ),
-                              ),
-                            ),
+                            onTap: () =>
+                                _openProcurementRecord(procurement, item),
                           );
                         }
                         if (_batchTracking && item['id'] is int) {

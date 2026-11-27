@@ -368,6 +368,7 @@ class SalesRecordPicker extends StatefulWidget {
     this.scopeHeaders = const {},
     this.activeOnly = false,
     this.batchProductId,
+    this.vendor = false,
   });
   final ApiClient api;
   final SalesOrderDrafts? drafts;
@@ -376,6 +377,7 @@ class SalesRecordPicker extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final bool activeOnly;
   final int? batchProductId;
+  final bool vendor;
 
   @override
   State<SalesRecordPicker> createState() => _SalesRecordPickerState();
@@ -387,9 +389,11 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
   String _submittedSearch = '';
   int _page = 1;
   bool get _batch => widget.batchProductId != null;
-  bool get _paged => _batch || widget.activeOnly;
+  bool get _paged => _batch || widget.activeOnly || widget.vendor;
   String get _kind => _batch
       ? 'batch'
+      : widget.vendor
+      ? 'vendor'
       : widget.product
       ? 'product'
       : 'customer';
@@ -413,6 +417,8 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
               'GET',
               _batch
                   ? '/srm/inventory/batches'
+                  : widget.vendor
+                  ? '/master-data/companies'
                   : widget.product
                   ? SalesOrderDrafts.productsEndpoint
                   : SalesOrderDrafts.customersEndpoint,
@@ -422,6 +428,14 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
                       'product_id': widget.batchProductId,
                       'page': page,
                       'per_page': 30,
+                      if (search.isNotEmpty) 'search': search,
+                    }
+                  : widget.vendor
+                  ? {
+                      'source': 'srm',
+                      'entity_kind': 'all',
+                      'page': page,
+                      'per_page': 50,
                       if (search.isNotEmpty) 'search': search,
                     }
                   : widget.product
@@ -446,7 +460,9 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
       rows: rows,
       next:
           data['has_more'] == true ||
-          (widget.activeOnly && total is int && page * 50 < total),
+          ((widget.activeOnly || widget.vendor) &&
+              total is int &&
+              page * 50 < total),
     );
   }
 
@@ -476,6 +492,8 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
             decoration: InputDecoration(
               labelText: _batch
                   ? 'Batch number'
+                  : widget.vendor
+                  ? 'Vendor name'
                   : widget.product
                   ? 'Product name, SKU or barcode'
                   : 'Customer name',

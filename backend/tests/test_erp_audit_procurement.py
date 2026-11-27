@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 
 from app.apps.business_os.services.module_service import ensure_business_os_seed
@@ -61,3 +63,27 @@ def test_audit_receipt_posts_selected_order_line_and_updates_stock(client, procu
     assert response.status_code == 201
     assert response.json()["lines"][0]["purchase_order_line_id"] == order["lines"][0]["id"]
     assert client.get(f"/api/v1/srm/inventory/items/{line['product_id']}", headers=headers).json()["current_quantity"] == 2
+
+
+def test_purchase_order_draft_requires_issue_before_receiving(client, procurement):
+    headers, line, existing = procurement
+    assert existing["status"] == "ordered"
+    orders = "/api/v1/srm/procurement/purchase-orders"
+    draft = client.post(f"{orders}/drafts", headers=headers, json={"lines": [line]})
+    assert draft.status_code == 201, draft.text
+    record = draft.json()
+    assert record["status"] == "draft"
+    receipt = {
+        "purchase_order_id": record["id"],
+        "lines": [{"purchase_order_line_id": record["lines"][0]["id"], "quantity": 1}],
+    }
+    assert client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt).status_code == 409
+    document = f"/api/v1/srm/documents/purchase-orders/{record['id']}"
+    version = client.get(document, headers=headers).json()["version"]
+    issued = client.post(
+        f"{document}/issue", headers=headers,
+        json={"version": version, "reason": "Approved for purchasing", "request_id": str(uuid4())},
+    )
+    assert issued.status_code == 200, issued.text
+    assert issued.json()["record"]["status"] == "ordered"
+    assert client.post("/api/v1/srm/procurement/grn", headers=headers, json=receipt).status_code == 201

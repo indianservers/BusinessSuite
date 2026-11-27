@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/models.dart';
 import 'inventory_batch_page.dart';
+import 'inventory_warehouse_form.dart';
 import 'sales_order_drafts_page.dart';
 
 class InventoryTrackingForm extends StatefulWidget {
@@ -33,22 +34,8 @@ class _InventoryTrackingFormState extends State<InventoryTrackingForm> {
   bool _saving = false;
   String? _error;
 
-  Future<List<Json>> _loadWarehouses() async {
-    final revision = widget.api.sessionRevision;
-    final payload = await widget.api.request(
-      'GET',
-      '/srm/inventory/warehouses',
-      scopeHeaders: widget.scopeHeaders,
-    );
-    if (widget.api.sessionRevision != revision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
-    final rows = payload is Json ? payload['items'] : payload;
-    return (rows as List)
-        .whereType<Json>()
-        .where((row) => row['id'] is int && row['active'] != false)
-        .toList();
-  }
+  Future<List<Json>> _loadWarehouses() =>
+      loadActiveInventoryWarehouses(widget.api, widget.scopeHeaders);
 
   Future<void> _pick({bool batch = false}) async {
     final revision = widget.api.sessionRevision;

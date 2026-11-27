@@ -2109,6 +2109,15 @@ def list_purchase_orders(search: str | None = Query(default=None, max_length=220
 
 @router.post("/procurement/purchase-orders", status_code=201)
 def create_purchase_order(data: SRMPurchaseOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    return _create_purchase_order(data, db, current_user, draft=False)
+
+
+@router.post("/procurement/purchase-orders/drafts", status_code=201)
+def create_purchase_order_draft(data: SRMPurchaseOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    return _create_purchase_order(data, db, current_user, draft=True)
+
+
+def _create_purchase_order(data: SRMPurchaseOrderCreate, db: Session, current_user: User, *, draft: bool):
     from app.apps.srm.services.commercial import lock_tenant
     lock_tenant(db, current_user)
     org_id = _org(current_user)
@@ -2121,7 +2130,7 @@ def create_purchase_order(data: SRMPurchaseOrderCreate, db: Session = Depends(ge
         po_number=data.po_number or _next_number(db, SRMPurchaseOrder, "PO", "po_number", org_id, actor=current_user),
         vendor_id=data.vendor_id,
         vendor_name=data.vendor_name,
-        status="ordered",
+        status="draft" if draft else "ordered",
         order_date=data.order_date or date.today(),
         expected_date=data.expected_date,
         notes=data.notes,

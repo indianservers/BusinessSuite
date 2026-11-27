@@ -23,6 +23,7 @@ import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
 import 'package:business_suite_mobile/features/inventory_tracking_form.dart';
 import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
+import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
@@ -41,6 +42,94 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Purchase order form creates a draft with shared selections', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch (request.path) {
+            case '/master-data/companies':
+              expect(request.queryParameters['source'], 'srm');
+              return response({
+                'items': [
+                  {'id': 4, 'name': 'Paper supplier'},
+                ],
+              });
+            case '/srm/inventory/items':
+              return response({
+                'items': [
+                  {'id': 3, 'item_name': 'Office paper'},
+                ],
+              });
+            case '/srm/inventory/warehouses':
+              return response({
+                'items': [
+                  {'id': 6, 'warehouse_name': 'Main warehouse'},
+                ],
+              });
+            case '/srm/procurement/purchase-orders/drafts':
+              expect(request.method, 'POST');
+              writes.add(request);
+              return response({'id': 9, 'status': 'draft'}, 201);
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+    );
+    final saved = navigator.currentState!.push<Json>(
+      MaterialPageRoute(
+        builder: (_) => InventoryPurchaseOrderForm(
+          api: api,
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> tap(String label) async {
+      final finder = find.text(label).last;
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Choose vendor');
+    await tap('Paper supplier');
+    await tap('Choose product');
+    await tap('Office paper');
+    await tap('Warehouse');
+    await tap('Main warehouse');
+    final quantity = find.widgetWithText(TextFormField, 'Order quantity');
+    await tester.enterText(quantity, '0');
+    await tap('Create purchase order draft');
+    expect(writes, isEmpty);
+    await tester.ensureVisible(quantity);
+    await tester.enterText(quantity, '4');
+    await tap('Create purchase order draft');
+    expect(await saved, {'id': 9, 'status': 'draft'});
+    expect(writes.single.data, {
+      'vendor_id': 4,
+      'vendor_name': 'Paper supplier',
+      'lines': [
+        {
+          'product_id': 3,
+          'warehouse_id': 6,
+          'quantity': '4',
+          'unit_price': '0',
+          'tax_amount': '0',
+        },
+      ],
+    });
+  });
+
   testWidgets('A purchase order can be issued and receive linked goods', (
     tester,
   ) async {
