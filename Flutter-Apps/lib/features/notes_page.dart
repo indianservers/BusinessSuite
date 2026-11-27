@@ -246,7 +246,7 @@ class _NotesPageState extends State<NotesPage> {
         ? _creations.where((draft) {
             final values = draft['values'];
             return term.isEmpty ||
-                '${values['title']} ${values['content']}'
+                '${values['title']} ${values['content']} ${values['tags'] ?? ''}'
                     .toLowerCase()
                     .contains(term);
           }).toList()

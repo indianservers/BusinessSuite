@@ -548,8 +548,15 @@ void main() {
       'Offline created note',
     );
     await tester.enterText(find.byType(TextField).last, 'Warehouse checklist');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Tags'),
+      'cycle count',
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Offline created note'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'cycle count');
     await tester.pumpAndSettle();
     expect(find.text('Offline created note'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, 'checklist');
@@ -571,6 +578,7 @@ void main() {
       expect(request.path, '/project-management/notes/offline-create');
       expect(request.method, 'POST');
       expect(request.data['title'], 'Offline created note');
+      expect(request.data['tags'], ['cycle count']);
       operations.add(request.headers['X-Offline-Operation']);
       return switch (operations.length) {
         1 => response({'detail': 'Method Not Allowed'}, 405),
