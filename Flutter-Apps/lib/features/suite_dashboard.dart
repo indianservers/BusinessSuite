@@ -529,6 +529,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               }),
             ),
         canViewQuoteSalesOrders: app.grant == 'crm' && _allowed(access, 'srm'),
+        canCreateQuotes:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'create', const {
+              'crm_quotes_manage',
+              'crm_manage',
+              'crm_admin',
+            }),
         canApproveQuotes:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'approve', const {
@@ -1357,6 +1364,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canMoveDeals = false,
     this.canCreateDeals = false,
     this.canManageQuotes = false,
+    this.canCreateQuotes = false,
     this.canViewQuoteSalesOrders = false,
     this.canApproveQuotes = false,
     this.canCreateOrder = false,
@@ -1380,6 +1388,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canMoveDeals;
   final bool canCreateDeals;
   final bool canManageQuotes;
+  final bool canCreateQuotes;
   final bool canViewQuoteSalesOrders;
   final bool canApproveQuotes;
   final bool canCreateOrder;
@@ -2000,6 +2009,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canMoveDeals: widget.canMoveDeals,
                   canCreateDeals: widget.canCreateDeals,
                   canManageQuotes: widget.canManageQuotes,
+                  canCreateQuotes: widget.canCreateQuotes,
                   canViewQuoteSalesOrders: widget.canViewQuoteSalesOrders,
                   canApproveQuotes: widget.canApproveQuotes,
                   scopeHeaders: widget.scopeHeaders,
@@ -2953,6 +2963,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             scopeHeaders: widget.scopeHeaders,
                                             canMove: widget.canMoveDeals,
                                             onChanged: _refreshCrmRecords,
+                                            quotationBuilder:
+                                                !widget.canCreateQuotes
+                                                ? null
+                                                : (quote) => CrmQuotationPage(
+                                                    api: widget.controller.api,
+                                                    summary: quote,
+                                                    offline: false,
+                                                    cacheScope:
+                                                        widget.cachePrefix,
+                                                    scopeHeaders:
+                                                        widget.scopeHeaders,
+                                                    canManage:
+                                                        widget.canManageQuotes,
+                                                    canApprove:
+                                                        widget.canApproveQuotes,
+                                                    canViewSalesOrder: widget
+                                                        .canViewQuoteSalesOrders,
+                                                  ),
                                           )
                                         : _crmContacts
                                         ? CrmContactPage(

@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_deal_stage_page.dart';
+import 'crm_quotation_draft_page.dart';
 
 class CrmDealPage extends StatefulWidget {
   const CrmDealPage({
@@ -15,6 +16,7 @@ class CrmDealPage extends StatefulWidget {
     this.cacheScope,
     this.canMove = false,
     this.onChanged,
+    this.quotationBuilder,
   });
 
   static const endpoint = '/crm/deal-workspace/query';
@@ -34,6 +36,7 @@ class CrmDealPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final bool canMove;
   final VoidCallback? onChanged;
+  final Widget Function(Json)? quotationBuilder;
 
   @override
   State<CrmDealPage> createState() => _CrmDealPageState();
@@ -102,6 +105,24 @@ class _CrmDealPageState extends State<CrmDealPage> {
     if (!mounted || changed != true) return;
     _refresh();
     widget.onChanged?.call();
+  }
+
+  Future<void> _createQuotation(Json deal) async {
+    final created = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => CrmQuotationDraftPage(
+          api: widget.api,
+          deal: deal,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || created?['id'] is! int) return;
+    final buildQuote = widget.quotationBuilder;
+    if (buildQuote == null) return;
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => buildQuote(created!)));
   }
 
   @override
@@ -185,6 +206,16 @@ class _CrmDealPageState extends State<CrmDealPage> {
                     child: const Text('Review stage move'),
                   ),
                 ],
+              ),
+            if (widget.quotationBuilder != null &&
+                snapshot.connectionState == ConnectionState.done &&
+                snapshot.data?.live == true)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: () => _createQuotation(data),
+                  child: const Text('New quotation'),
+                ),
               ),
             for (final field in fields.entries)
               if (field.value != null && field.value.toString().isNotEmpty)

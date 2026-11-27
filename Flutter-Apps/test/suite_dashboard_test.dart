@@ -38,6 +38,82 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('A quotation draft opens with its shared CRM deal link', (
+    tester,
+  ) async {
+    final requests = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          if (request.path == '/crm/deal-workspace/18/record') {
+            return response({
+              'id': 18,
+              'name': 'Renewal',
+              'company_id': 5,
+              'currency': 'INR',
+            });
+          }
+          return response({
+            'id': 44,
+            'quote_number': 'QT-RENEWAL',
+            'status': 'Draft',
+          });
+        }),
+    );
+    const scope = {'X-Suite-Organization': '7'};
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmDealPage(
+          api: api,
+          summary: const {'id': 18},
+          offline: false,
+          scopeHeaders: scope,
+          quotationBuilder: (record) => CrmQuotationPage(
+            api: api,
+            summary: record,
+            offline: false,
+            scopeHeaders: scope,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New quotation'));
+    await tester.pumpAndSettle();
+    final create = find.text('Create draft quotation');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pump();
+    expect(requests.where((request) => request.method == 'POST'), isEmpty);
+    for (final (label, value) in [
+      ('Quotation number', 'QT-RENEWAL'),
+      ('Issue date', '2026-11-27'),
+      ('Expiry date', '2026-12-27'),
+    ]) {
+      await tester.enterText(find.widgetWithText(TextFormField, label), value);
+    }
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    final created = requests.singleWhere((request) => request.method == 'POST');
+    expect(created.path, '/crm/quotations');
+    expect(created.headers['X-Suite-Organization'], '7');
+    expect(created.data, {
+      'quote_number': 'QT-RENEWAL',
+      'issue_date': '2026-11-27',
+      'expiry_date': '2026-12-27',
+      'deal_id': 18,
+      'company_id': 5,
+      'currency': 'INR',
+      'status': 'Draft',
+    });
+    expect(requests.last.path, '/crm/quotations/44');
+    expect(find.text('QT-RENEWAL'), findsOneWidget);
+  });
+
   testWidgets('Quotation approval and conversion use the shared workflow', (
     tester,
   ) async {
