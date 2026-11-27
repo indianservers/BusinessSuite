@@ -1128,6 +1128,8 @@ class _SuiteRecords extends StatefulWidget {
 }
 
 class _SuiteRecordsState extends State<_SuiteRecords> {
+  bool get _appointments => widget.query['kind'] == 'appointment';
+  String _appointmentStatus = '';
   static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
   static const _listReuseWindow = Duration(seconds: 15);
   bool get _stockAlerts => widget.path == _stockSummaryPath;
@@ -1679,6 +1681,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _searchOnServer ||
                   widget.cachePrefix != null ||
                   _stockAlerts ||
+                  _appointments ||
                   widget.path == GstInvoicePage.listEndpoint ||
                   widget.path == FinancePartyPage.endpoint;
               final candidates = _stockAlerts
@@ -1687,6 +1690,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         a['current_quantity'],
                       )!.compareTo(_stockNumber(b['current_quantity'])!),
                     ))
+                  : _appointments && _appointmentStatus.isNotEmpty
+                  ? rows
+                        .where((row) => row['status'] == _appointmentStatus)
+                        .toList()
                   : rows;
               final hasServerResults =
                   _searchOnServer &&
@@ -1718,6 +1725,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'company_name',
                                   ]
                                   .map((key) => item[key] ?? '')
+                                  .followedBy([
+                                    if (_appointments && item['data'] is Json)
+                                      (item['data'] as Json)['customer_name'] ??
+                                          '',
+                                  ])
                                   .join(' ')
                                   .toLowerCase()
                                   .contains(_term.toLowerCase()),
@@ -1744,19 +1756,49 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         onChanged: _changeSearch,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(LucideIcons.search),
-                          labelText: switch (widget.path) {
-                            CrmLeadPage.endpoint =>
-                              cached ? 'Search saved leads' : 'Search leads',
-                            '/srm/inventory/items' ||
-                            _stockSummaryPath => 'Search products',
-                            GstInvoicePage.listEndpoint => 'Search invoices',
-                            FinancePartyPage.endpoint => 'Search parties',
-                            '/employees/' => 'Search employees',
-                            '/srm/sales-orders' =>
-                              cached ? 'Search saved orders' : 'Search orders',
-                            _ => 'Search saved orders',
-                          },
+                          labelText: _appointments
+                              ? 'Search customer'
+                              : switch (widget.path) {
+                                  CrmLeadPage.endpoint =>
+                                    cached
+                                        ? 'Search saved leads'
+                                        : 'Search leads',
+                                  '/srm/inventory/items' ||
+                                  _stockSummaryPath => 'Search products',
+                                  GstInvoicePage.listEndpoint =>
+                                    'Search invoices',
+                                  FinancePartyPage.endpoint => 'Search parties',
+                                  '/employees/' => 'Search employees',
+                                  '/srm/sales-orders' =>
+                                    cached
+                                        ? 'Search saved orders'
+                                        : 'Search orders',
+                                  _ => 'Search saved orders',
+                                },
                         ),
+                      ),
+                    ),
+                  if (_appointments)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _appointmentStatus,
+                        decoration: const InputDecoration(labelText: 'Status'),
+                        items: [
+                          for (final (value, label) in const [
+                            ('', 'All statuses'),
+                            ('booked', 'Confirmed'),
+                            ('checked_in', 'Checked in'),
+                            ('in_service', 'In service'),
+                            ('completed', 'Completed'),
+                            ('cancelled', 'Cancelled'),
+                            ('no_show', 'No show'),
+                          ])
+                            DropdownMenuItem(value: value, child: Text(label)),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _appointmentStatus = value ?? '';
+                        }),
                       ),
                     ),
                   if (visible.isEmpty &&

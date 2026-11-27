@@ -2243,7 +2243,13 @@ void main() {
             '/auth/change-password' => response({'message': 'Updated'}),
             '/srm/industry/records' => response({
               'items': [
-                {'id': 61, 'title': 'Sample booking'},
+                {
+                  'id': 61,
+                  'title': 'Sample booking',
+                  'status': 'booked',
+                  'data': {'customer_name': 'Asha Rao'},
+                },
+                {'id': 62, 'title': 'Previous visit', 'status': 'completed'},
               ],
             }),
             '/srm/industry/appointments/61' => response({
@@ -2415,6 +2421,15 @@ void main() {
         (r) => r.path == '/srm/industry/records',
       );
       expect(branchRequest.headers['X-Suite-Branch'], '6');
+      await open('All statuses');
+      await open('Confirmed');
+      expect(find.text('Previous visit'), findsNothing);
+      final search = find.byType(TextField);
+      await tester.enterText(search, 'unknown customer');
+      await tester.pumpAndSettle();
+      expect(find.text('Sample booking'), findsNothing);
+      await tester.enterText(search, 'Asha');
+      await tester.pumpAndSettle();
       await open('Sample booking');
       expect(find.text('Consultation'), findsOneWidget);
       expect(find.text('Cancel appointment'), findsNothing);
