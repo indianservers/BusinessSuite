@@ -1,16 +1,18 @@
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
 import 'api_client.dart';
 import 'models.dart';
 
 class CrmOfflineEdits {
-  CrmOfflineEdits(String scope)
+  CrmOfflineEdits(String scope, {this.onTaskSynced})
     : _key = 'crm_edits_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}';
   final String _key;
   final String _company;
+  final Future<void> Function(int taskId, String branch)? onTaskSynced;
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
 
@@ -20,6 +22,26 @@ class CrmOfflineEdits {
   }
 
   Future<Json?> pending(int id) async => (await _read())['$id'] as Json?;
+  Future<Json?> pendingTask(int id) async =>
+      (await _read())['task:$id'] as Json?;
+
+  Future<void> enqueueTaskStatus(
+    int id,
+    String status,
+    String updatedAt,
+    String branch,
+  ) => _serialized(() async {
+    final rows = await _read();
+    if (rows.containsKey('task:$id')) {
+      throw StateError('This task already has a saved status change.');
+    }
+    rows['task:$id'] = {
+      'operation': const Uuid().v4(),
+      'branch': branch,
+      'body': {'status': status, 'expected_updated_at': updatedAt},
+    };
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
   Map<String, String> creationHeaders(String operation) => {
     'X-Suite-Organization': _company,
     'X-Offline-Operation': operation,
@@ -84,26 +106,47 @@ class CrmOfflineEdits {
     await _storage.write(key: _key, value: jsonEncode(rows));
   });
 
-  Future<void> sync(ApiClient api, {int? leadId, void Function()? onCreated}) {
+  Future<void> sync(
+    ApiClient api, {
+    int? leadId,
+    int? onlyTask,
+    void Function()? onCreated,
+  }) {
     final session = api.sessionRevision;
     return _serialized(() async {
       final rows = await _read();
-      final ids = leadId == null ? rows.keys.toList() : ['$leadId'];
+      final ids = onlyTask != null
+          ? ['task:$onlyTask']
+          : leadId == null
+          ? rows.keys.toList()
+          : ['$leadId'];
       for (final id in ids) {
         if (!api.hasSession || session != api.sessionRevision) return;
         final edit = rows[id] as Json?;
         if (edit == null || edit['error'] != null) continue;
         final creating = id.startsWith('create:');
+        final taskId = id.startsWith('task:')
+            ? int.tryParse(id.substring(5))
+            : null;
         try {
           await api.request(
             creating ? 'POST' : 'PATCH',
-            creating
+            taskId != null
+                ? '/project-management/tasks/$taskId'
+                : creating
                 ? '/crm/lead-management/leads'
                 : '/crm/lead-management/leads/$id',
-            scopeHeaders: creating
+            scopeHeaders: taskId != null
+                ? {
+                    ...creationHeaders(edit['operation'] as String),
+                    if (edit['branch'] case final String branch
+                        when branch.isNotEmpty)
+                      'X-Suite-Branch': branch,
+                  }
+                : creating
                 ? creationHeaders(id.substring('create:'.length))
                 : {'X-Suite-Organization': _company},
-            data: edit,
+            data: taskId == null ? edit : edit['body'],
           );
           rows.remove(id);
         } on ApiFailure catch (failure) {
@@ -117,6 +160,11 @@ class CrmOfflineEdits {
           if (creating) edit['status'] = failure.status;
         }
         await _storage.write(key: _key, value: jsonEncode(rows));
+        if (taskId != null &&
+            !rows.containsKey(id) &&
+            session == api.sessionRevision) {
+          await onTaskSynced?.call(taskId, edit['branch'] as String);
+        }
         if (creating &&
             !rows.containsKey(id) &&
             session == api.sessionRevision) {
@@ -129,6 +177,13 @@ class CrmOfflineEdits {
   Future<void> discard(int id) => _serialized(() async {
     final rows = await _read();
     rows.remove('$id');
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
+
+  Future<void> discardTask(int id) => _serialized(() async {
+    final rows = await _read();
+    if ((rows['task:$id'] as Json?)?['error'] == null) return;
+    rows.remove('task:$id');
     await _storage.write(key: _key, value: jsonEncode(rows));
   });
 

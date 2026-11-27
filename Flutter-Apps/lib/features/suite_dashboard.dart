@@ -312,7 +312,14 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       }
       final scope = _localScope(access);
       if (scope == null) return;
-      final edits = CrmOfflineEdits(scope);
+      final edits = CrmOfflineEdits(
+        scope,
+        onTaskSynced: (id, branch) async {
+          final path = CrmTaskPage.endpoint;
+          await SuiteReadCache.invalidate('$scope:$path');
+          await SuiteReadCache.invalidate('$scope:$path/$id:$branch');
+        },
+      );
       if (_allowed(access, 'crm') &&
           await edits.hasPending &&
           mounted &&
@@ -1710,7 +1717,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmContacts) ...CrmContactPage.summaryFields.keys,
               if (_crmDeals) ...CrmDealPage.summaryFields,
               if (_crmCustomers) ...CrmCustomerPage.fields.keys,
-              if (_crmTasks) 'due_date',
+              if (_crmTasks) ...['due_date', 'updated_at'],
               'order_number',
               'currency',
               'subtotal',
@@ -1757,6 +1764,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             ])
               if (record[field] is String || record[field] is num)
                 field: record[field],
+            if (_crmTasks)
+              'can_manage_tasks': _editableTaskProjects.contains(
+                record['project_id'],
+              ),
             if (_valuation && record['totals_by_currency'] is List)
               'totals_by_currency': record['totals_by_currency'],
           },
@@ -2834,11 +2845,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
                                             canEdit:
-                                                !_offlineOnly &&
-                                                !_usedSavedFallback &&
-                                                _editableTaskProjects.contains(
-                                                  item['project_id'],
-                                                ),
+                                                _offlineOnly ||
+                                                    _usedSavedFallback
+                                                ? item['can_manage_tasks'] ==
+                                                      true
+                                                : _editableTaskProjects
+                                                      .contains(
+                                                        item['project_id'],
+                                                      ),
                                             onChanged: _refreshCrmRecords,
                                           )
                                         : _crmCustomers

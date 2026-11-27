@@ -37,6 +37,48 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  test(
+    'Queued task status retries with its original receipt and version',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      const scope = '["https://example.test/api/v1",4,7]';
+      final requests = <RequestOptions>[];
+      final queue = CrmOfflineEdits(scope);
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            requests.add(request);
+            return requests.length == 1
+                ? response({'detail': 'Unavailable'}, 503)
+                : response({'id': 21, 'status': 'Done'});
+          }),
+      );
+      await api.acceptTokens({'access_token': 'test', 'refresh_token': 'test'});
+      await queue.enqueueTaskStatus(21, 'Done', '2026-11-27T09:00:00Z', '3');
+      expect(requests, isEmpty);
+      await queue.sync(api);
+      expect(await queue.pendingTask(21), isNotNull);
+      final reopened = CrmOfflineEdits(scope);
+      await reopened.sync(api);
+      expect(await reopened.pendingTask(21), isNull);
+      expect(requests, hasLength(2));
+      final receipt = requests.first.headers['X-Offline-Operation'];
+      expect(receipt, isNotNull);
+      for (final request in requests) {
+        expect(request.path, '/project-management/tasks/21');
+        expect(request.headers['X-Offline-Operation'], receipt);
+        expect(request.headers['X-Suite-Organization'], '7');
+        expect(request.headers['X-Suite-Branch'], '3');
+        expect(request.data, {
+          'status': 'Done',
+          'expected_updated_at': '2026-11-27T09:00:00Z',
+        });
+      }
+    },
+  );
+
   testWidgets('Deal creation loads stages for the selected pipeline', (
     tester,
   ) async {
