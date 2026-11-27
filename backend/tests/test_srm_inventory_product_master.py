@@ -143,7 +143,11 @@ def test_srm_product_master_and_opening_stock_are_database_backed(client, db):
         ops_detail = client.get(f"/api/v1/srm/inventory/items/{ops_product.json()['id']}", headers=headers)
         assert ops_detail.status_code == 200, ops_detail.text
         assert ops_detail.json()["ledger"][0]["movement_type"] == "stock_adjustment_out"
+        assert ops_detail.json()["ledger"][0]["warehouse_name"] == reserve_warehouse.json()["warehouse_name"]
         assert sorted(balance["quantity"] for balance in ops_detail.json()["balances"]) == [2.0, 10.0]
+        assert {balance["warehouse_name"] for balance in ops_detail.json()["balances"]} == {
+            warehouse.json()["warehouse_name"], reserve_warehouse.json()["warehouse_name"],
+        }
 
         stock_sales_order = client.post(
             "/api/v1/srm/sales-orders",

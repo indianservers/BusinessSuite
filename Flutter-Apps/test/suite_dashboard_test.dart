@@ -2564,10 +2564,18 @@ void main() {
           'item_name': 'Updated product',
           'unit_code': 'EA',
           'balances': [
-            {'warehouse_id': 4, 'quantity': '9.250'},
+            {
+              'warehouse_id': 4,
+              'warehouse_name': 'Main Warehouse',
+              'quantity': '9.250',
+            },
           ],
           'ledger': [
-            {'movement_number': 'MOV-12', 'quantity_in': 3},
+            {
+              'movement_number': 'MOV-12',
+              'warehouse_name': 'Main Warehouse',
+              'quantity_in': 3,
+            },
           ],
         });
       });
@@ -2591,7 +2599,8 @@ void main() {
     await tester.tap(find.text('Reconnect'));
     await tester.pumpAndSettle();
     expect(find.text('Updated product'), findsOneWidget);
-    expect(find.text('Warehouse #4'), findsOneWidget);
+    expect(find.text('Main Warehouse'), findsOneWidget);
+    expect(find.text('Main Warehouse · In 3 · Out 0'), findsOneWidget);
     expect(find.text('9.250 EA'), findsOneWidget);
     expect(find.text('MOV-12'), findsOneWidget);
   });

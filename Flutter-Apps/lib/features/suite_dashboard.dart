@@ -2528,6 +2528,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
                       'movement_number',
                       'movement_type',
                       'movement_date',
+                      'warehouse_name',
                       'quantity_in',
                       'quantity_out',
                     ])
@@ -2643,7 +2644,12 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
                     '${row['movement_number'] ?? row['movement_type'] ?? 'Movement'}',
                   ),
                   subtitle: Text(
-                    '${row['movement_date'] ?? ''} · In ${row['quantity_in'] ?? 0} · Out ${row['quantity_out'] ?? 0}',
+                    [
+                      if (row['warehouse_name'] != null) row['warehouse_name'],
+                      if (row['movement_date'] != null) row['movement_date'],
+                      'In ${row['quantity_in'] ?? 0}',
+                      'Out ${row['quantity_out'] ?? 0}',
+                    ].join(' · '),
                   ),
                 ),
             ],

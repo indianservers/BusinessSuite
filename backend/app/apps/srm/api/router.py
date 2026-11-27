@@ -1619,7 +1619,17 @@ def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user
     workspace_access(db, current_user, detail.workspace_id if detail else None)
     movements = db.query(SRMInventoryMovement).filter(SRMInventoryMovement.organization_id == org_id, SRMInventoryMovement.product_id == product.id).order_by(SRMInventoryMovement.id.desc()).limit(25).all()
     balances = db.query(SRMInventoryBalance).filter(SRMInventoryBalance.organization_id == org_id, SRMInventoryBalance.product_id == product.id).all()
-    return {**_product_payload(product), "ledger": [_serialize(row) for row in movements], "balances": [_serialize(row) for row in balances]}
+    warehouse_ids = {row.warehouse_id for row in (*movements, *balances)}
+    warehouses = {}
+    if warehouse_ids:
+        warehouses = dict(db.query(SRMWarehouse.id, SRMWarehouse.warehouse_name).filter(
+            SRMWarehouse.organization_id == org_id, SRMWarehouse.id.in_(warehouse_ids),
+        ).all())
+    return {
+        **_product_payload(product),
+        "ledger": [{**_serialize(row), "warehouse_name": warehouses.get(row.warehouse_id)} for row in movements],
+        "balances": [{**_serialize(row), "warehouse_name": warehouses.get(row.warehouse_id)} for row in balances],
+    }
 
 
 @router.put("/inventory/items/{product_id}")
