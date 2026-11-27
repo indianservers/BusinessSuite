@@ -75,8 +75,28 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             'terms_and_conditions',
             'terms',
             'converted_srm_sales_order_id',
+            'sent_at',
+            'sentVersionNumber',
+            'sentVersionEvidence',
           ])
             field: record[field],
+          'versions': [
+            for (final version
+                in (record['versions'] as List? ?? const []).whereType<Json>())
+              {
+                'version_number': version['version_number'],
+                'created_at': version['created_at'],
+              },
+          ],
+          'approvals': [
+            for (final approval
+                in (record['approvals'] as List? ?? const []).whereType<Json>())
+              {
+                'status': approval['status'],
+                'comments': approval['comments'],
+                'decided_at': approval['decided_at'],
+              },
+          ],
           'lines': [
             for (final line
                 in (record['lines'] as List? ?? const []).whereType<Json>())
@@ -274,6 +294,8 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
         final fields = {
           'Status': record['status'],
           'Version': record['version_number'],
+          'Marked sent': record['sent_at'],
+          'Sent version': record['sentVersionNumber'],
           'Approval': (record['approval_status'] as String?)?.replaceAll(
             '_',
             ' ',
@@ -287,6 +309,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
         final lines = (record['lines'] as List? ?? const [])
             .whereType<Json>()
             .toList();
+        final versions = (record['versions'] as List? ?? const [])
+            .whereType<Json>();
+        final approvals = (record['approvals'] as List? ?? const [])
+            .whereType<Json>();
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: lines.length + 1,
@@ -386,6 +412,29 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         title: Text(field.key),
                         subtitle: Text('${field.value}'),
                       ),
+                  if (record['sentVersionEvidence'] case final String evidence)
+                    Text(evidence),
+                  if (versions.isNotEmpty || approvals.isNotEmpty)
+                    ExpansionTile(
+                      title: const Text('Version and approval history'),
+                      children: [
+                        for (final version in versions)
+                          ListTile(
+                            title: Text('Version ${version['version_number']}'),
+                            subtitle: Text('${version['created_at'] ?? ''}'),
+                          ),
+                        for (final approval in approvals)
+                          ListTile(
+                            title: Text('Approval · ${approval['status']}'),
+                            subtitle: Text(
+                              [approval['decided_at'], approval['comments']]
+                                  .whereType<String>()
+                                  .where((s) => s.isNotEmpty)
+                                  .join('\n'),
+                            ),
+                          ),
+                      ],
+                    ),
                   if (canEditLines)
                     OutlinedButton(
                       onPressed: _changingStatus

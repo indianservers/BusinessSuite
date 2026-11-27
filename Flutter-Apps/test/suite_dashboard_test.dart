@@ -377,6 +377,17 @@ void main() {
             'version_number': version,
             'status': status,
             'deal_id': 9,
+            if (version > 1)
+              'versions': [
+                {'version_number': 1, 'created_at': '2026-11-27T10:00:00Z'},
+              ],
+            if (status == 'Accepted')
+              'approvals': [
+                {'status': 'approved', 'comments': 'Pricing reviewed'},
+              ],
+            if (status == 'Accepted') 'sentVersionNumber': 2,
+            if (status == 'Accepted')
+              'sentVersionEvidence': 'Provider accepted the quotation email',
             if (status == 'Accepted') 'converted_srm_sales_order_id': 57,
           });
         }),
@@ -427,10 +438,20 @@ void main() {
       writes.map((request) => request.headers['X-Suite-Organization']),
       everyElement('7'),
     );
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('2'), findsNWidgets(2));
     expect(find.text('Mark quotation as sent'), findsNothing);
     expect(find.text('Accepted'), findsOneWidget);
     expect(find.text('57'), findsOneWidget);
+    final history = find.text('Version and approval history');
+    await tester.ensureVisible(history);
+    await tester.tap(history);
+    await tester.pumpAndSettle();
+    expect(find.text('Version 1'), findsOneWidget);
+    expect(find.text('Pricing reviewed'), findsOneWidget);
+    expect(find.text('Provider accepted the quotation email'), findsOneWidget);
+    await tester.tap(history);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Open sales order'));
     await tester.tap(find.text('Open sales order'));
     await tester.pumpAndSettle();
     expect(find.text('SO-57'), findsOneWidget);
