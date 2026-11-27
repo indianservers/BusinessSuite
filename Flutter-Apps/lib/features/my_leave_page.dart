@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
+
+typedef _LeaveSnapshot = ({List<Json> rows, bool saved});
 
 class MyLeavePage extends StatefulWidget {
-  const MyLeavePage({super.key, required this.api});
+  const MyLeavePage({
+    super.key,
+    required this.api,
+    this.cacheScope,
+    this.offline = false,
+  });
   final ApiClient api;
+  final String? cacheScope;
+  final bool offline;
 
   @override
   State<MyLeavePage> createState() => _MyLeavePageState();
@@ -13,24 +23,92 @@ class MyLeavePage extends StatefulWidget {
 
 class _MyLeavePageState extends State<MyLeavePage> {
   static const _pageSize = 20;
-  late Future<List<Json>> _balances = _read('/leave/balance');
-  late Future<List<Json>> _requests = _readRequests();
+  late bool _offline = widget.offline;
+  late var _balances = _readBalances();
+  late var _requests = _readRequests();
   int _page = 1;
   bool _applying = false;
   bool _cancelling = false;
 
-  Future<List<Json>> _read(String path, {Map<String, dynamic>? query}) async =>
+  Future<List<Json>> _read(String path, {Json? query}) async =>
       (await widget.api.request('GET', path, query: query) as List)
           .cast<Json>();
 
-  Future<List<Json>> _readRequests() => _read(
+  Future<_LeaveSnapshot> _readSnapshot(
+    String path,
+    String segment,
+    List<String> fields, {
+    Json? query,
+  }) async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final scope = widget.cacheScope;
+    final key = scope == null ? null : '$scope:$path:$segment';
+    void checkSession() {
+      if (revision != api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+    }
+
+    if (!_offline) {
+      try {
+        final rows = await _read(path, query: query);
+        checkSession();
+        if (key != null) {
+          try {
+            await SuiteReadCache.write(key, [
+              for (final row in rows)
+                {
+                  for (final field in fields) field: row[field],
+                  if (row['leave_type'] case final Json type)
+                    'leave_type': {'name': type['name']},
+                },
+            ]);
+          } catch (_) {}
+        }
+        checkSession();
+        return (rows: rows, saved: false);
+      } on ApiFailure catch (error) {
+        if (key != null && const {401, 403, 404}.contains(error.status)) {
+          try {
+            await SuiteReadCache.clear(key);
+          } catch (_) {}
+        }
+        if (!error.connectionFailure && (error.status ?? 0) < 500) rethrow;
+      }
+    }
+    List<Json>? rows;
+    if (key != null) {
+      try {
+        rows = await SuiteReadCache.read(key);
+      } catch (_) {}
+    }
+    checkSession();
+    if (rows == null) throw ApiFailure('Connect to load your leave records.');
+    return (rows: rows, saved: true);
+  }
+
+  Future<_LeaveSnapshot> _readBalances() {
+    final year = DateTime.now().year;
+    return _readSnapshot(
+      '/leave/balance',
+      '$year',
+      const ['leave_type_id', 'used', 'pending', 'available'],
+      query: {'year': year},
+    );
+  }
+
+  Future<_LeaveSnapshot> _readRequests() => _readSnapshot(
     '/leave/my-requests',
+    '$_page',
+    const ['leave_type_id', 'from_date', 'to_date', 'days_count', 'status'],
     query: {'page': _page, 'per_page': _pageSize},
   );
 
   void _refresh() {
     setState(() {
-      _balances = _read('/leave/balance');
+      _offline = false;
+      _balances = _readBalances();
       _requests = _readRequests();
     });
   }
@@ -75,7 +153,7 @@ class _MyLeavePageState extends State<MyLeavePage> {
   String _name(Json row) =>
       '${(row['leave_type'] as Json?)?['name'] ?? 'Leave type ${row['leave_type_id']}'}';
 
-  Future<void> _openRequest(Json row) async {
+  Future<void> _openRequest(Json row, {required bool saved}) async {
     if (_cancelling) return;
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -111,7 +189,7 @@ class _MyLeavePageState extends State<MyLeavePage> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
-          if (row['status'] == 'Pending' && row['id'] is int)
+          if (!saved && row['status'] == 'Pending' && row['id'] is int)
             TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Cancel request'),
@@ -171,16 +249,25 @@ class _MyLeavePageState extends State<MyLeavePage> {
   }
 
   Widget _section(
-    Future<List<Json>> future,
-    Widget Function(List<Json>) content,
-  ) => FutureBuilder<List<Json>>(
+    Future<_LeaveSnapshot> future,
+    Widget Function(List<Json>, bool saved) content, {
+    VoidCallback? onBack,
+  }) => FutureBuilder<_LeaveSnapshot>(
     future: future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
         return const LinearProgressIndicator();
       }
-      if (snapshot.hasError) return ListTile(title: Text('${snapshot.error}'));
-      return content(snapshot.requireData);
+      if (snapshot.hasError) {
+        return ListTile(
+          title: Text('${snapshot.error}'),
+          trailing: onBack == null
+              ? null
+              : TextButton(onPressed: onBack, child: const Text('Previous')),
+        );
+      }
+      final result = snapshot.requireData;
+      return content(result.rows, result.saved);
     },
   );
 
@@ -199,15 +286,24 @@ class _MyLeavePageState extends State<MyLeavePage> {
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        FilledButton(
-          onPressed: _applying ? null : _apply,
-          child: Text(_applying ? 'Loading…' : 'Apply for leave'),
+        FutureBuilder<_LeaveSnapshot>(
+          future: _requests,
+          builder: (context, snapshot) => FilledButton(
+            onPressed:
+                _applying ||
+                    snapshot.connectionState != ConnectionState.done ||
+                    snapshot.data?.saved != false
+                ? null
+                : _apply,
+            child: Text(_applying ? 'Loading…' : 'Apply for leave'),
+          ),
         ),
         Text('Leave balances', style: Theme.of(context).textTheme.titleLarge),
         _section(
           _balances,
-          (rows) => Column(
+          (rows, saved) => Column(
             children: [
+              if (saved) const ListTile(title: Text('Saved leave balances')),
               if (rows.isEmpty)
                 const ListTile(title: Text('No leave balances')),
               for (final row in rows)
@@ -225,8 +321,9 @@ class _MyLeavePageState extends State<MyLeavePage> {
         Text('My requests', style: Theme.of(context).textTheme.titleLarge),
         _section(
           _requests,
-          (rows) => Column(
+          (rows, saved) => Column(
             children: [
+              if (saved) const ListTile(title: Text('Saved leave requests')),
               if (rows.isEmpty)
                 const ListTile(title: Text('No leave requests on this page')),
               for (final row in rows)
@@ -236,7 +333,9 @@ class _MyLeavePageState extends State<MyLeavePage> {
                     '${row['from_date']} – ${row['to_date']} · ${row['days_count']} days',
                   ),
                   trailing: Text('${row['status']}'),
-                  onTap: _cancelling ? null : () => _openRequest(row),
+                  onTap: _cancelling
+                      ? null
+                      : () => _openRequest(row, saved: saved),
                 ),
               if (_page > 1 || rows.length == _pageSize)
                 Row(
@@ -255,6 +354,7 @@ class _MyLeavePageState extends State<MyLeavePage> {
                 ),
             ],
           ),
+          onBack: _page > 1 ? () => _go(-1) : null,
         ),
       ],
     ),

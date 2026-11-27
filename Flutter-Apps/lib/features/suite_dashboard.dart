@@ -2097,7 +2097,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           offline: _offlineOnly,
         ),
       ),
-      ('My Leave', LucideIcons.calendarDays, MyLeavePage(api: api)),
+      (
+        'My Leave',
+        LucideIcons.calendarDays,
+        MyLeavePage(
+          api: api,
+          cacheScope: widget.employeeCacheScope,
+          offline: _offlineOnly,
+        ),
+      ),
       (
         'My Roster',
         LucideIcons.calendarDays,
