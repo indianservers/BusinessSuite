@@ -5,6 +5,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
+import 'crm_quotation_line_page.dart';
 import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
@@ -92,6 +93,22 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
     _cached = null;
     _quote = _load();
   });
+
+  Future<void> _editLine([Json? line]) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CrmQuotationLinePage(
+          api: widget.api,
+          quoteId: widget.summary['id'] as int,
+          scopeHeaders: widget.scopeHeaders,
+          line: line,
+        ),
+      ),
+    );
+    if (!mounted || saved != true) return;
+    _refresh();
+    widget.onChanged?.call();
+  }
 
   Future<void> _savePdf(Json quote) async {
     if (_savingPdf) return;
@@ -211,6 +228,10 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
             snapshot.connectionState == ConnectionState.done &&
             snapshot.data?.live == true;
         final status = record['status']?.toString().toLowerCase();
+        final canEditLines =
+            live &&
+            widget.canManage &&
+            const {'draft', 'rejected'}.contains(status);
         final currency = record['currency'] ?? '';
         final amount = record['grand_total'] ?? record['total_amount'];
         final fields = {
@@ -339,6 +360,12 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                       'Items',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
+                  if (canEditLines)
+                    OutlinedButton.icon(
+                      onPressed: _changingStatus ? null : () => _editLine(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add item'),
+                    ),
                 ],
               );
             }
@@ -350,6 +377,9 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     .trim(),
               ),
               trailing: Text("${line['line_total'] ?? '—'} $currency".trim()),
+              onTap: canEditLines && !_changingStatus && line['id'] is int
+                  ? () => _editLine(line)
+                  : null,
             );
           },
         );

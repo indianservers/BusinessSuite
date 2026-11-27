@@ -38,6 +38,71 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Draft quotation items use shared totals after add and edit', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final line = <String, dynamic>{};
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method != 'GET') {
+            writes.add(request);
+            line.addAll(request.data as Map<String, dynamic>);
+            line['id'] = 8;
+            line['line_total'] =
+                (line['unit_price'] as num) * (line['quantity'] as num);
+          }
+          return response({
+            'id': 44,
+            'quote_number': 'QT-44',
+            'status': 'Draft',
+            'currency': 'INR',
+            'grand_total': line['line_total'],
+            'lines': [if (line.isNotEmpty) line],
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmQuotationPage(
+          api: api,
+          summary: const {'id': 44},
+          offline: false,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+          canManage: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add item'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Item name'),
+      'Training',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Unit price'),
+      '200',
+    );
+    await tester.tap(find.text('Save item'));
+    await tester.pumpAndSettle();
+    expect(find.text('200 INR'), findsNWidgets(2));
+    await tester.tap(find.text('Training'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Quantity'), '2');
+    await tester.tap(find.text('Save item'));
+    await tester.pumpAndSettle();
+    expect(writes.map((request) => request.path), [
+      '/crm/quotes/44/lines',
+      '/crm/quote-lines/8',
+    ]);
+    expect(writes.last.data, {'quantity': 2});
+    expect(find.text('400 INR'), findsNWidgets(2));
+  });
+
   testWidgets('A quotation draft opens with its shared CRM deal link', (
     tester,
   ) async {

@@ -6449,8 +6449,7 @@ def add_quote_line(
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     _assert_entity_permission("quotations", current_user, "manage")
-    organization_id = _organization_id(db, current_user)
-    quote = _get_record(db, _get_resource("quotations"), quote_id, organization_id)
+    quote = _quote_for_status_change(db, current_user, quote_id)
     if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     raw = payload.model_dump()
@@ -6478,11 +6477,10 @@ def update_quote_line(
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     _assert_entity_permission("quotations", current_user, "manage")
-    organization_id = _organization_id(db, current_user)
     line = db.query(CRMQuotationItem).filter(CRMQuotationItem.id == line_id).first()
     if not line:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
-    quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
+    quote = _quote_for_status_change(db, current_user, line.quote_id or line.quotation_id)
     if str(quote.status or "").lower() not in {"draft", "rejected"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
     before = _serialize(line)
