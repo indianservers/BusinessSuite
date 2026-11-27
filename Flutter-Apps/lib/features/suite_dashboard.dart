@@ -44,6 +44,7 @@ import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
 import 'my_payslips_page.dart';
 import 'my_roster_page.dart';
+import 'my_timesheets_page.dart';
 import 'finance_party_page.dart';
 import 'power_environment_page.dart';
 import '../core/notes_offline_cache.dart';
@@ -400,7 +401,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'canCreateLead': _canCreateLead(access),
             'canCreateOrder': _canCreateOrder(access),
             'grants': {
-              for (final key in ['crm', 'srm', 'fam', 'hrms', 'project_management'])
+              for (final key in [
+                'crm',
+                'srm',
+                'fam',
+                'hrms',
+                'project_management',
+              ])
                 key: {
                   'enabled': _allowed(access, key) && grants.containsKey(key),
                 },
@@ -503,6 +510,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         (controller.user?.isSuperuser == true ||
             access['managed'] != true ||
             (grant?['actions'] as List?)?.contains(action) == true);
+    final hr = (access['grants'] as Json?)?['hrms'] as Json?;
+    final canCreateTimesheets =
+        controller.user?.isSuperuser == true ||
+        access['managed'] != true ||
+        ((hr?['permissions'] as List?)?.contains('timesheet_view') == true &&
+            (hr?['actions'] as List?)?.contains('create') == true);
     _push(
       _SuiteRecords(
         title: app.title,
@@ -517,6 +530,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             : const {},
         cachePrefix: cache,
         rosterCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
+        canCreateTimesheets: canCreateTimesheets,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
         canCreateContacts:
             app.grant == 'crm' &&
@@ -1406,6 +1420,7 @@ class _SuiteRecords extends StatefulWidget {
     this.scopeHeaders = const {},
     this.cachePrefix,
     this.rosterCacheScope,
+    this.canCreateTimesheets = false,
     this.showInventory = false,
     this.canViewFinanceInventory = false,
     this.canExportSalesDocuments = false,
@@ -1437,6 +1452,7 @@ class _SuiteRecords extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cachePrefix;
   final String? rosterCacheScope;
+  final bool canCreateTimesheets;
   final bool showInventory;
   final bool canViewFinanceInventory;
   final bool canExportSalesDocuments;
@@ -2068,6 +2084,53 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     _openProcurementRecord(ProcurementRecord.order, saved);
   }
 
+  Widget _employeeServices() {
+    final api = widget.controller.api;
+    final employee = widget.controller.user?.employeeId;
+    final services = <(String, IconData, Widget)>[
+      ('My Attendance', LucideIcons.clock, MyAttendancePage(api: api)),
+      ('My Leave', LucideIcons.calendarDays, MyLeavePage(api: api)),
+      (
+        'My Roster',
+        LucideIcons.calendarDays,
+        MyRosterPage(
+          api: api,
+          employeeId: employee,
+          cacheScope: widget.rosterCacheScope,
+          offline: _offlineOnly,
+        ),
+      ),
+      ('My Payslips', LucideIcons.fileText, MyPayslipsPage(api: api)),
+      (
+        'My Timesheets',
+        LucideIcons.clipboardList,
+        MyTimesheetsPage(
+          api: api,
+          employeeId: employee,
+          canCreate: widget.canCreateTimesheets,
+        ),
+      ),
+    ];
+    return PopupMenuButton<Widget>(
+      tooltip: 'Employee services',
+      icon: const Icon(LucideIcons.users),
+      onSelected: (page) => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => page)),
+      itemBuilder: (_) => [
+        for (final (label, icon, page) in services)
+          PopupMenuItem(
+            value: page,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(icon),
+              title: Text(label),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showPurchaseDrafts() {
     final scope = widget.cachePrefix;
     if (scope == null) return;
@@ -2547,51 +2610,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
-        if (widget.path == '/employees/')
-          IconButton(
-            tooltip: 'My Payslips',
-            icon: const Icon(LucideIcons.fileText),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MyPayslipsPage(api: widget.controller.api),
-              ),
-            ),
-          ),
-        if (widget.path == '/employees/')
-          IconButton(
-            tooltip: 'My Roster',
-            icon: const Icon(LucideIcons.calendarDays),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MyRosterPage(
-                  api: widget.controller.api,
-                  employeeId: widget.controller.user?.employeeId,
-                  cacheScope: widget.rosterCacheScope,
-                  offline: _offlineOnly,
-                ),
-              ),
-            ),
-          ),
-        if (widget.path == '/employees/')
-          IconButton(
-            tooltip: 'My Leave',
-            icon: const Icon(LucideIcons.calendarDays),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MyLeavePage(api: widget.controller.api),
-              ),
-            ),
-          ),
-        if (widget.path == '/employees/')
-          IconButton(
-            tooltip: 'My Attendance',
-            icon: const Icon(LucideIcons.clock),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MyAttendancePage(api: widget.controller.api),
-              ),
-            ),
-          ),
+        if (widget.path == '/employees/') _employeeServices(),
         IconButton(
           tooltip: 'Refresh',
           icon: const Icon(LucideIcons.refreshCw),
