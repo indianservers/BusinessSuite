@@ -83,6 +83,26 @@ enum InventoryFinanceReport {
     'stock_value': 'Stock value',
     'currency': 'Currency',
   }, analysisReport: true),
+  stockAgeing('Stock Ageing by Receipt', 'aging', {
+    'sku': 'SKU',
+    'warehouse_name': 'Warehouse',
+    'receipt_date': 'Receipt date',
+    'remaining_quantity': 'Remaining quantity',
+    'age_days': 'Age in days',
+    'age_bucket': 'Age bucket',
+  }, analysisReport: true),
+  stockExpiry('Expiry & Batches', 'expiry', {
+    'sku': 'SKU',
+    'batch_number': 'Batch number',
+    'warehouse_id': 'Warehouse ID',
+    'manufacture_date': 'Manufacture date',
+    'expiry_date': 'Expiry date',
+    'quantity': 'Quantity',
+    'stock_value': 'Stock value',
+    'currency': 'Currency',
+    'days_until_expiry': 'Days until expiry',
+    'status': 'Status',
+  }, analysisReport: true),
   historicalValuation('Stock Valuation by Date', 'valuation', {
     'sku': 'SKU',
     'warehouse_name': 'Warehouse',
@@ -217,7 +237,9 @@ enum InventoryFinanceReport {
   String get labelField => switch (this) {
     inventoryReconciliation ||
     stockSummary ||
-    historicalValuation => 'item_name',
+    historicalValuation ||
+    stockAgeing ||
+    stockExpiry => 'item_name',
     grossMargin => 'item_name',
     stockLedger ||
     salesMovements ||
@@ -321,6 +343,8 @@ class _InventoryFinanceReportPageState
         if (_analysis) 'total': data['total'],
         if (_analysis) 'as_of': data['as_of'],
         if (_analysis) 'warnings': data['warnings'],
+        if (_analysis) 'limitations': data['limitations'],
+        if (_analysis) 'supported': data['supported'],
         'currency': _currency(data),
         'total_cogs': data['total_cogs'],
         'duplicate_deduction_guard': data['duplicate_deduction_guard'],
@@ -593,9 +617,17 @@ class _InventoryFinanceReportPageState
                         ),
                       ],
                     ),
-                  if (data != null && rows.isEmpty && widget.report.hasRows)
+                  if (data?['supported'] == false)
+                    const Text('This source does not support this report.')
+                  else if (data != null &&
+                      rows.isEmpty &&
+                      widget.report.hasRows)
                     const Text('No records.'),
-                  if (_analysis && data?['as_of'] is String)
+                  if (data?['limitations'] case final String limitations)
+                    Text(limitations),
+                  if (_analysis &&
+                      widget.report != InventoryFinanceReport.stockExpiry &&
+                      data?['as_of'] is String)
                     Text('Posted movements · As of ${data!['as_of']}'),
                   if (data?['warnings'] case final List warnings)
                     if (_analysis && warnings.whereType<String>().isNotEmpty)

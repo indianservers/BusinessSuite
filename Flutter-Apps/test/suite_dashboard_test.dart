@@ -5113,6 +5113,10 @@ void main() {
             '/project-management/notes' => response([]),
             '/fam/inventory/reports' => response({
               'total': 1,
+              if (request.queryParameters['report'] == 'expiry') ...{
+                'supported': false,
+                'limitations': 'Use Sales batch inventory.',
+              },
               'items': [
                 if (request.queryParameters['report'] == 'reconciliation')
                   {
@@ -5121,7 +5125,7 @@ void main() {
                     'warehouse_id': 4,
                     'quantity_difference': 2,
                   }
-                else
+                else if (request.queryParameters['report'] != 'expiry')
                   {
                     'movement_number': 'Finance stock movement',
                     'movement_id': 19,
@@ -5493,6 +5497,8 @@ void main() {
                   'summary',
                   'valuation',
                   'reconciliation',
+                  'aging',
+                  'expiry',
                 ].contains(request.queryParameters['report']))
                   {
                     'item_name': 'Warehouse report stock',
@@ -5500,6 +5506,8 @@ void main() {
                     'quantity': 10,
                     'valuation_method': 'weighted_average',
                     'quantity_difference': 2,
+                    'age_bucket': '31–60',
+                    'batch_number': 'Batch-3',
                   }
                 else
                   {'movement_number': 'Filtered stock movement'},
@@ -5799,6 +5807,17 @@ void main() {
         await open(entry.key);
         expect(calls.any((r) => r.path == entry.value), isTrue);
         if (entry.key == 'Finance & Accounting') {
+          await tester.tap(find.byTooltip('Inventory financial reports'));
+          await tester.pumpAndSettle();
+          await open('Expiry & Batches');
+          expect(find.text('Use Sales batch inventory.'), findsOneWidget);
+          expect(
+            find.text('This source does not support this report.'),
+            findsOneWidget,
+          );
+          expect(calls.last.queryParameters['analysis'], true);
+          expect(calls.last.queryParameters['report'], 'expiry');
+          await back();
           for (final (title, slug) in [
             ('Stock Ledger', 'ledger'),
             ('Sales Movement', 'sales'),
@@ -6006,6 +6025,8 @@ void main() {
           }
           for (final (title, slug, detail) in [
             ('Detailed Stock Summary', 'summary', 'Opening quantity: 8'),
+            ('Stock Ageing by Receipt', 'aging', 'Age bucket: 31–60'),
+            ('Expiry & Batches', 'expiry', 'Batch number: Batch-3'),
             (
               'Stock Valuation by Date',
               'valuation',
