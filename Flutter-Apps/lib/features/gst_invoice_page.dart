@@ -46,11 +46,18 @@ Future<Json?> showGstInvoiceDraftForm(
   required ApiClient api,
   required Map<String, String> scopeHeaders,
   SalesOrderDrafts? drafts,
+  String? customerCacheScope,
+  bool offline = false,
 }) => showDialog<Json>(
   context: context,
   barrierDismissible: false,
-  builder: (_) =>
-      _GstDraftForm(api: api, scopeHeaders: scopeHeaders, drafts: drafts),
+  builder: (_) => _GstDraftForm(
+    api: api,
+    scopeHeaders: scopeHeaders,
+    drafts: drafts,
+    customerCacheScope: customerCacheScope,
+    offline: offline,
+  ),
 );
 
 class _GstDraftForm extends StatefulWidget {
@@ -58,11 +65,15 @@ class _GstDraftForm extends StatefulWidget {
     required this.api,
     required this.scopeHeaders,
     this.drafts,
+    this.customerCacheScope,
+    required this.offline,
   });
 
   final ApiClient api;
   final Map<String, String> scopeHeaders;
   final SalesOrderDrafts? drafts;
+  final String? customerCacheScope;
+  final bool offline;
 
   @override
   State<_GstDraftForm> createState() => _GstDraftFormState();
@@ -84,8 +95,9 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       context: context,
       builder: (_) => SalesRecordPicker(
         api: widget.api,
-        offline: false,
+        offline: widget.offline,
         scopeHeaders: widget.scopeHeaders,
+        purchaseCacheScope: widget.customerCacheScope,
       ),
     );
     if (mounted && customer != null) setState(() => _customer = customer);
@@ -98,6 +110,18 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       builder: (_) => _InvoiceLineDialog(save: (values) async => {...values}),
     );
     if (mounted && line != null) setState(() => _lines.add(line));
+  }
+
+  Future<void> _saveLocally(SalesOrderDrafts drafts, Json payload) async {
+    await drafts.save(
+      _operation,
+      payload,
+      customerName: _customer?['name'] as String?,
+      scopeHeaders: widget.scopeHeaders,
+    );
+    if (mounted && widget.api.sessionRevision == _revision) {
+      Navigator.pop(context, {'local': true});
+    }
   }
 
   Future<void> _save() async {
@@ -118,6 +142,13 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     };
     try {
       final drafts = widget.drafts;
+      if (widget.offline) {
+        if (drafts == null) {
+          throw ApiFailure('Local draft storage is unavailable.', 400);
+        }
+        await _saveLocally(drafts, payload);
+        return;
+      }
       final result = drafts == null
           ? await widget.api.request(
               'POST',
@@ -139,17 +170,10 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     } on ApiFailure catch (error) {
       if (!mounted || widget.api.sessionRevision != _revision) return;
       if (widget.drafts case final SalesOrderDrafts drafts
-          when error.connectionFailure || (error.status ?? 0) >= 500) {
+          when !widget.offline &&
+              (error.connectionFailure || (error.status ?? 0) >= 500)) {
         try {
-          await drafts.save(
-            _operation,
-            payload,
-            customerName: _customer?['name'] as String?,
-            scopeHeaders: widget.scopeHeaders,
-          );
-          if (mounted && widget.api.sessionRevision == _revision) {
-            Navigator.pop(context, {'local': true});
-          }
+          await _saveLocally(drafts, payload);
           return;
         } catch (_) {
           if (!mounted || widget.api.sessionRevision != _revision) return;
@@ -165,6 +189,12 @@ class _GstDraftFormState extends State<_GstDraftForm> {
         _error = _pending == null
             ? error.message
             : 'Save could not be confirmed. Retry to check the same draft.';
+      });
+    } catch (error) {
+      if (!mounted || widget.api.sessionRevision != _revision) return;
+      setState(() {
+        if (widget.offline) _pending = null;
+        _error = 'Could not save the draft. $error';
       });
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -224,6 +254,8 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           child: Text(
             _saving
                 ? 'Saving…'
+                : widget.offline
+                ? 'Save draft offline'
                 : _pending == null
                 ? 'Create draft'
                 : 'Retry draft save',

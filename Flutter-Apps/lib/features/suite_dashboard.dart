@@ -410,6 +410,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             'companyName': access['companyName'],
             'canCreateLead': _canCreateLead(access),
             'canCreateOrder': _canCreateOrder(access),
+            'canCreateInvoice': _canCreateInvoice(access),
             'grants': {
               for (final key in [
                 'crm',
@@ -473,6 +474,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
 
   bool _canCreateInvoice(Json access) {
     if (!_allowed(access, 'srm')) return false;
+    if (widget.controller.offline) return access['canCreateInvoice'] == true;
     final user = widget.controller.user;
     if (user?.isSuperuser == true) return true;
     const permissions = {'srm_invoice_create', 'srm_admin'};
@@ -2979,8 +2981,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (widget.path == GstInvoicePage.listEndpoint &&
             widget.canCreateOrderInvoices &&
-            !_offlineOnly &&
-            !_usedSavedFallback)
+            ((!_offlineOnly && !_usedSavedFallback) || _gstDrafts != null))
           IconButton(
             tooltip: 'New GST invoice draft',
             icon: const Icon(LucideIcons.plus),
@@ -2992,6 +2993,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 api: api,
                 scopeHeaders: widget.scopeHeaders,
                 drafts: _gstDrafts,
+                offline: _offlineOnly || _usedSavedFallback,
+                customerCacheScope: gstCacheKey(
+                  widget.cachePrefix,
+                  '${GstInvoicePage.listEndpoint}/customer-picker',
+                  widget.scopeHeaders,
+                ),
               );
               if (!context.mounted ||
                   invoice == null ||
@@ -3036,7 +3043,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   canExportSalesDocuments: widget.canExportSalesDocuments,
                   canIssueInvoices: widget.canIssueInvoices,
                   canCreateOrderInvoices: widget.canCreateOrderInvoices,
-                  offlineOnly: _offlineOnly,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
                 ),
               ),
             ),
