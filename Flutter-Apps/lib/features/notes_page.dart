@@ -404,7 +404,8 @@ class _NoteEditorState extends State<_NoteEditor> {
   bool get _editable {
     if (_loading || _pending != null) return false;
     if (_savedView) {
-      return !_rich && (_note?['version'] is int) && widget.cache != null;
+      final note = _note;
+      return note != null && widget.cache?.canQueueEdit(note) == true;
     }
     if (_offline && widget.summary == null) return widget.cache != null;
     return !_offline &&
@@ -482,7 +483,7 @@ class _NoteEditorState extends State<_NoteEditor> {
             _pending = pending;
             if (pending?['values'] case final Map<String, dynamic> values) {
               _title.text = values['title'] as String;
-              _body.text = values['content'] as String;
+              if (!_rich) _body.text = values['content'] as String;
             }
             _loading = false;
           });
@@ -553,7 +554,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         final cache = widget.cache;
         if (!failure.connectionFailure ||
             cache == null ||
-            (note != null && (_rich || !cache.canQueueEdit(note))) ||
+            (note != null && !cache.canQueueEdit(note)) ||
             revision != widget.api.sessionRevision) {
           rethrow;
         }

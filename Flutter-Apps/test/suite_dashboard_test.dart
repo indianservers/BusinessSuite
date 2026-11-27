@@ -678,6 +678,49 @@ void main() {
     }
   });
 
+  testWidgets('offline metadata edits preserve formatted Notes content', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cache = NotesOfflineCache('["https://example.test/api/v1",49,7]');
+    const content = '<!--suite-richtext:v1--><p><strong>Formatted</strong></p>';
+    const note = {
+      'id': 52,
+      'version': 3,
+      'title': 'Formatted note',
+      'content': content,
+      'preview': 'Formatted',
+      'visibility_scope': 'private',
+      'visibility': 'private',
+      'can_edit': true,
+    };
+    await cache.saveSummaries([note]);
+    await cache.saveDetail(note);
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache, offline: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Formatted note'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).readOnly,
+      isTrue,
+    );
+    await tester.tap(find.text('Favorite'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    final pending = await cache.pending(52);
+    expect(pending?['values']['favorite'], isTrue);
+    expect(pending?['values']['content'], content);
+  });
+
   test('syncing an archived note evicts its offline copies', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     FlutterSecureStorage.setMockInitialValues({});
