@@ -2903,6 +2903,25 @@ void main() {
                 {'movement_number': 'STOCK-1', 'quantity_in': 3},
               ],
             }),
+            '/srm/inventory/warehouses' => response({
+              'items': [
+                {'id': 4, 'warehouse_name': 'Main warehouse'},
+              ],
+            }),
+            '/srm/inventory/reports/warehouse-stock' => response({
+              'items': [
+                {
+                  'id': 80,
+                  'warehouse_name': 'Main warehouse',
+                  'sku': 'STOCK-1',
+                  'item_name': 'Sample product',
+                  'quantity': 3,
+                  'average_cost': 20,
+                  'stock_value': 60,
+                  'currency': 'INR',
+                },
+              ],
+            }),
             '/srm/inventory/reports/reorder' => response({
               'items': [
                 {
@@ -3166,6 +3185,21 @@ void main() {
           expect(find.text('1 item needs attention'), findsOneWidget);
           expect(find.text('Out of stock'), findsOneWidget);
           expect(find.text('Healthy product'), findsNothing);
+          await back();
+          await tester.tap(find.byTooltip('Warehouses'));
+          await tester.pumpAndSettle();
+          expect(find.text('Main warehouse'), findsOneWidget);
+          await tester.tap(find.byTooltip('Warehouse Stock'));
+          await tester.pumpAndSettle();
+          expect(find.text('Sample product'), findsOneWidget);
+          expect(find.textContaining('Stock value 60 INR'), findsOneWidget);
+          await tester.enterText(find.byType(TextField), 'Other warehouse');
+          await tester.pumpAndSettle();
+          expect(find.text('Sample product'), findsNothing);
+          await tester.enterText(find.byType(TextField), 'Main warehouse');
+          await tester.pumpAndSettle();
+          expect(find.text('Sample product'), findsOneWidget);
+          await back();
           await back();
           await back();
         }

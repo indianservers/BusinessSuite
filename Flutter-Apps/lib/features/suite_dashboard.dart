@@ -1341,7 +1341,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   static const _reorderPath = '/srm/inventory/reports/reorder';
   static const _stockSummaryCachePath = '/srm/inventory/reports/stock-summary';
   static const _warehousesPath = InventoryWarehouseForm.endpoint;
+  static const _warehouseStockPath =
+      InventoryStockReceipts.warehouseStockEndpoint;
   bool get _warehouses => widget.path == _warehousesPath;
+  bool get _warehouseStock => widget.path == _warehouseStockPath;
   bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
@@ -1455,6 +1458,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               searchTerm.isEmpty &&
               (_inventory ||
                   _warehouses ||
+                  _warehouseStock ||
                   path == '/srm/sales-orders' ||
                   path == GstInvoicePage.listEndpoint ||
                   path == FinancePartyPage.endpoint) &&
@@ -1610,6 +1614,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 'branch',
                 'address',
               ],
+              if (_warehouseStock) ...[
+                'warehouse_name',
+                'quantity',
+                'average_cost',
+                'stock_value',
+              ],
               if (path == GstInvoicePage.listEndpoint)
                 ...GstInvoicePage.summaryFields,
               if (path == FinancePartyPage.endpoint)
@@ -1637,6 +1647,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             '$scope:${InventoryOfflineCreates.itemsEndpoint}',
           ),
           SuiteReadCache.invalidate('$scope:$_stockSummaryCachePath'),
+          SuiteReadCache.invalidate('$scope:$_warehouseStockPath'),
         ]);
       } catch (_) {
         // Refresh the online list even if the device cache is unavailable.
@@ -1855,6 +1866,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (mounted && created == true) _refresh();
             },
           ),
+        if (_warehouses)
+          IconButton(
+            tooltip: 'Warehouse Stock',
+            icon: const Icon(LucideIcons.boxes),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Warehouse Stock',
+                  controller: widget.controller,
+                  path: _warehouseStockPath,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
         if (_inventoryDrafts != null)
           IconButton(
             tooltip: 'Product drafts',
@@ -1964,6 +1992,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   widget.cachePrefix != null ||
                   _stockAlerts ||
                   _warehouses ||
+                  _warehouseStock ||
                   _appointments ||
                   widget.path == GstInvoicePage.listEndpoint ||
                   widget.path == FinancePartyPage.endpoint;
@@ -2010,6 +2039,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       'branch',
                                       'address',
                                     ],
+                                    if (_warehouseStock) 'warehouse_name',
                                     'full_name',
                                     'company_name',
                                   ]
@@ -2119,6 +2149,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   '/srm/inventory/items' ||
                                   _reorderPath => 'Search products',
                                   _warehousesPath => 'Search warehouses',
+                                  _warehouseStockPath =>
+                                    'Search products or warehouses',
                                   GstInvoicePage.listEndpoint =>
                                     'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
@@ -2233,6 +2265,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_warehouseStock) item['warehouse_name'],
                           if (_warehouses) ...[
                             item['warehouse_code'],
                             item['branch'],
@@ -2243,6 +2276,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        if (_warehouseStock) {
+                          final currency = item['currency'] ?? '';
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: Text(
+                              [
+                                subtitle,
+                                'Quantity ${item['quantity'] ?? '—'}',
+                                'Average cost ${item['average_cost'] ?? '—'} $currency'
+                                    .trim(),
+                                'Stock value ${item['stock_value'] ?? '—'} $currency'
+                                    .trim(),
+                              ].where((text) => text.isNotEmpty).join('\n'),
+                            ),
+                          );
+                        }
                         final appointmentId = item['id'];
                         if (widget.query['kind'] == 'appointment' &&
                             appointmentId is int) {

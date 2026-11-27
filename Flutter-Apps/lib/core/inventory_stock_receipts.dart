@@ -12,6 +12,8 @@ class InventoryStockReceipts {
   final String scope;
   static const storage = FlutterSecureStorage();
   static const endpoint = '/srm/inventory/stock-movements/offline-create';
+  static const warehouseStockEndpoint =
+      '/srm/inventory/reports/warehouse-stock';
   static final Map<String, Future<void>> _operations = {};
 
   String get _prefix => 'stock_receipt_${Uri.encodeComponent('$scope:')}';
@@ -86,6 +88,7 @@ class InventoryStockReceipts {
       '$scope:/srm/inventory/items',
       '$scope:/srm/inventory/reports/reorder',
       '$scope:/srm/inventory/reports/stock-summary',
+      '$scope:$warehouseStockEndpoint',
     ]) {
       try {
         await SuiteReadCache.invalidate(key);
