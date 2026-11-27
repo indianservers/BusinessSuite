@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/sales_order_drafts.dart';
+import '../core/suite_read_cache.dart';
 import 'inventory_warehouse_form.dart';
 import 'sales_order_drafts_page.dart';
 
@@ -10,10 +13,14 @@ class InventoryPurchaseOrderForm extends StatefulWidget {
     super.key,
     required this.api,
     required this.scopeHeaders,
+    this.cacheScope,
+    this.offline = false,
   });
 
   final ApiClient api;
   final Map<String, String> scopeHeaders;
+  final String? cacheScope;
+  final bool offline;
 
   @override
   State<InventoryPurchaseOrderForm> createState() =>
@@ -36,8 +43,30 @@ class _InventoryPurchaseOrderFormState
   bool _uncertain = false;
   String? _error;
 
-  Future<List<Json>> _loadWarehouses() =>
-      loadActiveInventoryWarehouses(widget.api, widget.scopeHeaders);
+  String? get _choicesScope => widget.cacheScope == null
+      ? null
+      : "${widget.cacheScope}:purchase-choices:${widget.scopeHeaders['X-Suite-Branch'] ?? ''}";
+
+  Future<List<Json>> _loadWarehouses() async {
+    final scope = _choicesScope;
+    final cache = scope == null ? null : '$scope:warehouses';
+    if (widget.offline) {
+      return cache == null ? [] : await SuiteReadCache.read(cache) ?? [];
+    }
+    final rows = await loadActiveInventoryWarehouses(
+      widget.api,
+      widget.scopeHeaders,
+    );
+    if (cache != null) {
+      try {
+        await SuiteReadCache.write(cache, [
+          for (final row in rows)
+            {'id': row['id'], 'warehouse_name': row['warehouse_name']},
+        ]);
+      } catch (_) {}
+    }
+    return rows;
+  }
 
   Future<void> _pick({_PurchaseLine? line}) async {
     final vendor = line == null;
@@ -47,7 +76,8 @@ class _InventoryPurchaseOrderFormState
       builder: (_) => SalesRecordPicker(
         api: widget.api,
         scopeHeaders: widget.scopeHeaders,
-        offline: false,
+        offline: widget.offline,
+        purchaseCacheScope: _choicesScope,
         vendor: vendor,
         product: !vendor,
         activeOnly: !vendor,
@@ -93,23 +123,37 @@ class _InventoryPurchaseOrderFormState
       _saving = true;
       _error = null;
     });
+    final payload = {
+      'vendor_id': _vendor!['id'],
+      'vendor_name': _vendor!['name'],
+      'lines': [
+        for (final line in _lines)
+          {
+            'product_id': line.product!['id'],
+            'warehouse_id': line.warehouse,
+            ...line.values,
+          },
+      ],
+    };
     try {
+      if (widget.offline) {
+        final scope = widget.cacheScope;
+        if (scope == null) throw ApiFailure('Sign in to save a local draft.');
+        await SalesOrderDrafts.purchaseOrders(scope).save(
+          const Uuid().v4(),
+          payload,
+          branch: widget.scopeHeaders['X-Suite-Branch'],
+        );
+        if (mounted && api.sessionRevision == revision) {
+          Navigator.pop(context, {'local': true});
+        }
+        return;
+      }
       final result = await api.request(
         'POST',
         '/srm/procurement/purchase-orders/drafts',
         scopeHeaders: widget.scopeHeaders,
-        data: {
-          'vendor_id': _vendor!['id'],
-          'vendor_name': _vendor!['name'],
-          'lines': [
-            for (final line in _lines)
-              {
-                'product_id': line.product!['id'],
-                'warehouse_id': line.warehouse,
-                ...line.values,
-              },
-          ],
-        },
+        data: payload,
       );
       if (!mounted || api.sessionRevision != revision) return;
       if (result is! Json ||
@@ -126,6 +170,10 @@ class _InventoryPurchaseOrderFormState
         } else {
           setState(() => _error = error.message);
         }
+      }
+    } catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        setState(() => _error = 'Unable to save the draft. $error');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -251,7 +299,11 @@ class _InventoryPurchaseOrderFormState
                     ? null
                     : _save,
                 child: Text(
-                  _saving ? 'Saving…' : 'Create purchase order draft',
+                  _saving
+                      ? 'Saving…'
+                      : widget.offline
+                      ? 'Save draft offline'
+                      : 'Create purchase order draft',
                 ),
               ),
             ],

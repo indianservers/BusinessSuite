@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../core/api_client.dart';
 import '../core/models.dart';
 import '../core/sales_order_drafts.dart';
+import '../core/suite_read_cache.dart';
 
 class NewSalesOrderPage extends StatefulWidget {
   const NewSalesOrderPage({
@@ -369,6 +370,7 @@ class SalesRecordPicker extends StatefulWidget {
     this.activeOnly = false,
     this.batchProductId,
     this.vendor = false,
+    this.purchaseCacheScope,
   });
   final ApiClient api;
   final SalesOrderDrafts? drafts;
@@ -378,6 +380,7 @@ class SalesRecordPicker extends StatefulWidget {
   final bool activeOnly;
   final int? batchProductId;
   final bool vendor;
+  final String? purchaseCacheScope;
 
   @override
   State<SalesRecordPicker> createState() => _SalesRecordPickerState();
@@ -404,6 +407,22 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
       : 'name';
 
   Future<({List<Json> rows, bool next})> _load(String search, int page) async {
+    final scope = widget.purchaseCacheScope;
+    final cache = scope == null ? null : '$scope:$_kind';
+    if (widget.offline && cache != null) {
+      final saved = await SuiteReadCache.read(cache) ?? [];
+      final term = search.toLowerCase();
+      return (
+        rows: saved
+            .where(
+              (row) => "${row[_nameField]} ${row['sku'] ?? ''}"
+                  .toLowerCase()
+                  .contains(term),
+            )
+            .toList(),
+        next: false,
+      );
+    }
     final drafts = widget.drafts;
     if (drafts != null) {
       final rows = widget.product
@@ -456,6 +475,16 @@ class _SalesRecordPickerState extends State<SalesRecordPicker> {
         .where((row) => !widget.activeOnly || row['active'] != false)
         .toList();
     final total = data['total'];
+    if (cache != null && rows.isNotEmpty) {
+      try {
+        await SuiteReadCache.write(cache, [
+          for (final row in rows)
+            {'id': row['id'], _nameField: row[_nameField], 'sku': row['sku']},
+        ], retainRecent: 200);
+      } catch (_) {
+        // Live choices remain available if the device cache cannot be updated.
+      }
+    }
     return (
       rows: rows,
       next:
@@ -675,7 +704,9 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Sales order drafts'),
+      title: Text(
+        widget.drafts.purchase ? 'Purchase order drafts' : 'Sales order drafts',
+      ),
       actions: [
         IconButton(
           tooltip: 'Sync order drafts',
@@ -699,14 +730,18 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
           children: [
             for (final row in rows)
               ListTile(
-                title: Text('${row['payload']['title']}'),
+                title: Text(
+                  '${row['payload']['title'] ?? row['payload']['vendor_name'] ?? 'Purchase order'}',
+                ),
                 subtitle: Text(
                   [
                     row['customer_name'],
                     row['error'] ?? 'Awaiting sync',
                   ].whereType<String>().join(' · '),
                 ),
-                onTap: row['status'] == 422 ? () => _correct(row) : null,
+                onTap: !widget.drafts.purchase && row['status'] == 422
+                    ? () => _correct(row)
+                    : null,
                 trailing: IconButton(
                   tooltip: 'Discard order draft',
                   icon: const Icon(Icons.delete_outline),

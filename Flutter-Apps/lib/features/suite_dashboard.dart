@@ -350,6 +350,14 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             scope,
             invalidate: SuiteReadCache.invalidate,
           ).sync(controller.api);
+          if (mounted &&
+              identical(_access, accessFuture) &&
+              revision == controller.api.sessionRevision) {
+            await SalesOrderDrafts.purchaseOrders(
+              scope,
+              invalidate: SuiteReadCache.invalidate,
+            ).sync(controller.api);
+          }
         }
       }
       if (_allowed(access, 'project_management') &&
@@ -2041,12 +2049,35 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         builder: (_) => InventoryPurchaseOrderForm(
           api: api,
           scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cachePrefix,
+          offline: _offlineOnly || _usedSavedFallback,
         ),
       ),
     );
     if (!mounted || saved == null || revision != api.sessionRevision) return;
+    if (saved['local'] == true) {
+      _showPurchaseDrafts();
+      return;
+    }
     unawaited(_refreshCrmRecords());
     _openProcurementRecord(ProcurementRecord.order, saved);
+  }
+
+  void _showPurchaseDrafts() {
+    final scope = widget.cachePrefix;
+    if (scope == null) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SalesOrderDraftsPage(
+          api: widget.controller.api,
+          drafts: SalesOrderDrafts.purchaseOrders(
+            scope,
+            invalidate: SuiteReadCache.invalidate,
+          ),
+          onSynced: _refreshCrmRecords,
+        ),
+      ),
+    );
   }
 
   Future<void> _createTrackingRecord() async {
@@ -2570,12 +2601,21 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         if (_procurement == ProcurementRecord.order &&
             !_archivedOrders &&
             widget.canCreateOrder &&
-            !_offlineOnly &&
-            !_usedSavedFallback)
+            (!(_offlineOnly || _usedSavedFallback) ||
+                widget.cachePrefix != null))
           IconButton(
             tooltip: 'New purchase order',
             icon: const Icon(Icons.add),
             onPressed: _createPurchaseOrder,
+          ),
+        if (_procurement == ProcurementRecord.order &&
+            !_archivedOrders &&
+            widget.canCreateOrder &&
+            widget.cachePrefix != null)
+          IconButton(
+            tooltip: 'Purchase order drafts',
+            icon: const Icon(Icons.pending_actions),
+            onPressed: _showPurchaseDrafts,
           ),
         if (_inventory)
           IconButton(

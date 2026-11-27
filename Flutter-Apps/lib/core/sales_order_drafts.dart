@@ -11,7 +11,14 @@ class SalesOrderDrafts {
   SalesOrderDrafts(String scope, {this.invalidate})
     : _key = 'sales_order_drafts_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}',
-      _scope = scope;
+      _scope = scope,
+      purchase = false;
+
+  SalesOrderDrafts.purchaseOrders(String scope, {this.invalidate})
+    : _key = 'purchase_order_drafts_${Uri.encodeComponent(scope)}',
+      _company = '${(jsonDecode(scope) as List)[2]}',
+      _scope = scope,
+      purchase = true;
 
   static const endpoint = '/srm/sales-orders';
   static const customersEndpoint = '/srm/business/customers';
@@ -20,6 +27,8 @@ class SalesOrderDrafts {
   static final _running = <String, Future<void>>{};
   static final _changes = StreamController<String>.broadcast();
   final String _key, _company, _scope;
+  final bool purchase;
+  static const purchaseOrdersEndpoint = '/srm/procurement/purchase-orders';
   final Future<void> Function(String)? invalidate;
   Stream<String> get changes => _changes.stream.where((scope) => scope == _key);
   static String productPickerCacheKey(String scope) =>
@@ -206,6 +215,7 @@ class SalesOrderDrafts {
     Json payload, {
     String? customerName,
     String? replaceRejected,
+    String? branch,
   }) => _modify((drafts) async {
     if (replaceRejected != null) {
       final previous = drafts[replaceRejected] as Json?;
@@ -216,7 +226,11 @@ class SalesOrderDrafts {
       }
       drafts.remove(replaceRejected);
     }
-    drafts[operation] = {'payload': payload, 'customer_name': ?customerName};
+    drafts[operation] = {
+      'payload': payload,
+      'customer_name': ?customerName,
+      'branch': ?branch,
+    };
     await _write(drafts);
   });
 
@@ -225,16 +239,28 @@ class SalesOrderDrafts {
     await _write(drafts);
   });
 
-  Future<void> submit(ApiClient api, String operation, Json payload) async {
-    await api.request(
+  Future<void> submit(
+    ApiClient api,
+    String operation,
+    Json payload, {
+    String? branch,
+  }) async {
+    final result = await api.request(
       'POST',
-      endpoint,
+      purchase ? '$purchaseOrdersEndpoint/drafts/offline-create' : endpoint,
       data: payload,
       scopeHeaders: {
         'X-Suite-Organization': _company,
+        'X-Suite-Branch': ?branch,
         'X-Offline-Operation': operation,
       },
     );
+    if (purchase &&
+        (result is! Json ||
+            result['id'] is! int ||
+            result['status'] != 'draft')) {
+      throw ApiFailure('Draft confirmation is unavailable.', 503);
+    }
   }
 
   Future<void> sync(ApiClient api, {void Function()? onUploaded}) {
@@ -245,7 +271,12 @@ class SalesOrderDrafts {
         final draft = drafts[operation] as Json;
         if (draft['error'] != null) continue;
         try {
-          await submit(api, operation, draft['payload'] as Json);
+          await submit(
+            api,
+            operation,
+            draft['payload'] as Json,
+            branch: draft['branch'] as String?,
+          );
           drafts.remove(operation);
         } on ApiFailure catch (error) {
           if (error.connectionFailure ||
@@ -260,7 +291,9 @@ class SalesOrderDrafts {
         await _write(drafts);
         if (!drafts.containsKey(operation) && api.sessionRevision == revision) {
           try {
-            await invalidate?.call('$_scope:$endpoint');
+            await invalidate?.call(
+              '$_scope:${purchase ? purchaseOrdersEndpoint : endpoint}',
+            );
           } catch (_) {
             // The server has already accepted the draft.
           }

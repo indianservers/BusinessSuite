@@ -42,6 +42,52 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  test(
+    'Queued purchase drafts preserve their branch and retry identity',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      const base = 'https://example.test/api/v1';
+      final drafts = SalesOrderDrafts.purchaseOrders('["$base",5,7]');
+      const operation = '08992dd0-1223-4fad-aafe-c47922d7bb8c';
+      final payload = {
+        'vendor_id': 22,
+        'vendor_name': 'Supplier',
+        'lines': [
+          {'product_id': 3, 'warehouse_id': 6, 'quantity': '2'},
+        ],
+      };
+      await drafts.save(operation, payload, branch: '6');
+      final requests = <RequestOptions>[];
+      final api = ApiClient(
+        baseUrl: base,
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            requests.add(request);
+            return requests.length == 1
+                ? response({}, 503)
+                : response({'id': 9, 'status': 'draft'}, 201);
+          }),
+      );
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await drafts.sync(api);
+      expect(await drafts.entries(), hasLength(1));
+      await drafts.sync(api);
+      expect(await drafts.entries(), isEmpty);
+      expect(requests, hasLength(2));
+      for (final request in requests) {
+        expect(
+          request.path,
+          '/srm/procurement/purchase-orders/drafts/offline-create',
+        );
+        expect(request.headers['X-Suite-Organization'], '7');
+        expect(request.headers['X-Suite-Branch'], '6');
+        expect(request.headers['X-Offline-Operation'], operation);
+        expect(request.data, payload);
+      }
+    },
+  );
+
   testWidgets('Purchase order cancellation records a reason and refreshes', (
     tester,
   ) async {
