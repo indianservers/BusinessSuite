@@ -21,6 +21,7 @@ from app.apps.project_management.models import PMSWorkspace,PMSWorkspaceMember,P
 from app.api.v1.auth import router as auth_router
 from app.access.api import router as access_router
 from app.apps.project_management.api.router import router as pms_router
+from app.shared import offline_operations  # Registers the receipt table in Base.metadata.
 engine=create_engine(os.environ["DATABASE_URL"],connect_args={"check_same_thread":False,"timeout":30})
 Base.metadata.create_all(engine)
 Session=sessionmaker(bind=engine)
