@@ -131,23 +131,63 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
   int _unreadNotifications = 0;
   int _notificationRequest = 0;
 
+  String? _favoritesCacheKey(Json access) {
+    final scope = _localScope(access);
+    return scope == null ? null : '$scope:$_preferencesPath';
+  }
+
+  Future<void> _cacheFavorites(String? key, List<String> favorites) async {
+    if (key == null) return;
+    try {
+      await SuiteReadCache.write(key, [
+        {'favorites': favorites},
+      ]);
+    } catch (_) {
+      // The server preferences remain available if the cache cannot write.
+    }
+  }
+
   Future<void> _refreshFavorites() async {
     final controller = widget.controller;
-    if (controller.offline || _savingFavorites) return;
+    if (_savingFavorites) return;
     final api = controller.api;
     final session = api.sessionRevision;
     final request = ++_favoritesRequest;
+    bool current() =>
+        mounted &&
+        request == _favoritesRequest &&
+        session == api.sessionRevision;
+    String? key;
     try {
-      final data = await api.request('GET', _preferencesPath) as Json;
-      if (!mounted ||
-          request != _favoritesRequest ||
-          session != api.sessionRevision) {
-        return;
+      final access = await _access;
+      if (!current()) return;
+      key = _favoritesCacheKey(access);
+      if (key != null && _favorites == null) {
+        try {
+          final saved = await SuiteReadCache.read(key);
+          final favorites = saved?.firstOrNull?['favorites'];
+          if (current() && favorites is List) {
+            setState(() => _favorites = favorites.whereType<String>().toList());
+          }
+        } catch (_) {
+          // Continue to the server when the cache is unavailable.
+        }
       }
-      setState(() {
-        _favorites =
-            (data['favorites'] as List?)?.whereType<String>().toList() ?? [];
-      });
+      if (!current() || controller.offline) return;
+      final data = await api.request('GET', _preferencesPath) as Json;
+      if (!current()) return;
+      final favorites =
+          (data['favorites'] as List?)?.whereType<String>().toList() ?? [];
+      setState(() => _favorites = favorites);
+      await _cacheFavorites(key, favorites);
+    } on ApiFailure catch (error) {
+      if (current() && (error.status == 401 || error.status == 403)) {
+        setState(() {
+          _favorites = null;
+          _favoritesOnly = false;
+        });
+        if (key != null) await _cacheFavorites(key, []);
+      }
     } catch (_) {
       // Favorites remain optional when the shared preferences API is unavailable.
     }
@@ -169,7 +209,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           await api.request('PUT', _preferencesPath, data: {'favorites': next})
               as Json;
       if (!mounted || session != api.sessionRevision) return;
-      setState(() => _favorites = (result['favorites'] as List).cast<String>());
+      final saved = (result['favorites'] as List).whereType<String>().toList();
+      setState(() => _favorites = saved);
+      final access = await _access;
+      if (mounted && session == api.sessionRevision) {
+        await _cacheFavorites(_favoritesCacheKey(access), saved);
+      }
     } catch (_) {
       if (mounted && session == api.sessionRevision) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -502,9 +547,12 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               children: [
                 const Text('Could not load your applications.'),
                 TextButton(
-                  onPressed: () => setState(() {
-                    _access = _load();
-                  }),
+                  onPressed: () {
+                    setState(() {
+                      _access = _load();
+                    });
+                    _refreshFavorites();
+                  },
                   child: const Text('Try again'),
                 ),
               ],
@@ -526,8 +574,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         final favoriteKeys = _favorites ?? const <String>[];
         final byKey = {for (final app in allowed) app.key: app};
         final ordered = [
-          for (final key in favoriteKeys)
-            if (byKey[key] case final app?) app,
+          for (final key in favoriteKeys) ?byKey[key],
           if (!_favoritesOnly)
             ...allowed.where((app) => !favoriteKeys.contains(app.key)),
         ];
