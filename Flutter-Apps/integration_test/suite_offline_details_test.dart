@@ -2,6 +2,7 @@ import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
 import 'package:business_suite_mobile/core/crm_offline_edits.dart';
 import 'package:business_suite_mobile/core/inventory_offline_creates.dart';
+import 'package:business_suite_mobile/core/inventory_stock_receipts.dart';
 import 'package:business_suite_mobile/core/models.dart';
 import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
@@ -29,7 +30,8 @@ void main() {
   testWidgets('Android saves a stock movement offline and sends it later', (
     tester,
   ) async {
-    final scope = 'stock-qa-${DateTime.now().microsecondsSinceEpoch}';
+    final scope =
+        '["https://example.test/api/v1",${DateTime.now().microsecondsSinceEpoch},7]';
     await SuiteReadCache.write('$scope:/srm/inventory/warehouses:3', [
       {'id': 4, 'warehouse_name': 'Offline QA warehouse'},
     ]);
@@ -43,6 +45,10 @@ void main() {
           return response({}, 201);
         }),
     );
+    await api.acceptTokens({
+      'access_token': 'qa-access',
+      'refresh_token': 'qa-refresh',
+    });
     Widget page(bool offline) => MaterialApp(
       home: InventoryStockMovementPage(
         api: api,
@@ -77,11 +83,14 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(page(false));
     await waitFor(find.text('Retry same movement'));
+    final receipts = InventoryStockReceipts(scope);
+    await Future.wait([receipts.sync(api), receipts.sync(api)]);
     await tester.tap(find.text('Retry same movement'));
     await tester.pumpAndSettle();
     final sent = calls.single;
     expect(sent.path, '/srm/inventory/stock-movements/offline-create');
     expect(sent.headers['X-Suite-Branch'], '3');
+    expect(sent.headers['X-Suite-Organization'], '7');
     expect(sent.headers['X-Offline-Operation'], isNotNull);
     expect(sent.data, {
       'product_id': 12,

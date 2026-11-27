@@ -9,6 +9,7 @@ import '../app_controller.dart';
 import '../core/api_client.dart';
 import '../core/crm_offline_edits.dart';
 import '../core/inventory_offline_creates.dart';
+import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/sales_order_drafts.dart';
 import '../core/suite_read_cache.dart';
@@ -322,6 +323,11 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
           scope,
           invalidate: SuiteReadCache.invalidate,
         ).sync(controller.api);
+        if (mounted &&
+            identical(_access, accessFuture) &&
+            revision == controller.api.sessionRevision) {
+          await InventoryStockReceipts(scope).sync(controller.api);
+        }
         if (mounted &&
             identical(_access, accessFuture) &&
             revision == controller.api.sessionRevision &&

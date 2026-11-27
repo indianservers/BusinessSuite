@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
+import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 
@@ -42,14 +42,14 @@ class _InventoryStockMovementPageState
   String? _error;
   bool _saving = false;
   ({String id, Json payload})? _uncertainAttempt;
-  static const _storage = FlutterSecureStorage();
+  static const _storage = InventoryStockReceipts.storage;
   static const _warehousesPath = '/srm/inventory/warehouses';
   String? get _receiptKey {
     final scope = widget.cacheScope;
     final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
     return scope == null
         ? null
-        : 'stock_receipt_${Uri.encodeComponent('$scope:$branch:${widget.productId}')}';
+        : InventoryStockReceipts(scope).key(branch, widget.productId);
   }
 
   Future<dynamic> _loadWarehouses() async {
@@ -64,6 +64,7 @@ class _InventoryStockMovementPageState
           id: data['id'] as String,
           payload: data['payload'] as Json,
         );
+        _error = data['error'] as String?;
         return null;
       }
     }
@@ -152,43 +153,80 @@ class _InventoryStockMovementPageState
       _saving = true;
       _error = null;
     });
-    try {
-      if (!retrying && key != null) {
-        await _storage.write(
-          key: key,
-          value: jsonEncode({'id': attempt.id, 'payload': attempt.payload}),
-        );
-      }
+    Future<void> submit() async {
       if (!mounted || session != widget.api.sessionRevision) return;
-      if (widget.offline) {
-        setState(() => _uncertainAttempt = attempt);
-        return;
-      }
-      await widget.api.request(
-        'POST',
-        '/srm/inventory/stock-movements/offline-create',
-        scopeHeaders: {
-          ...widget.scopeHeaders,
-          'X-Offline-Operation': attempt.id,
-        },
-        data: attempt.payload,
-      );
-      await _clearReceipt(key);
-      if (!mounted || session != widget.api.sessionRevision) return;
-      Navigator.pop(context, true);
-    } on ApiFailure catch (error) {
-      final uncertain = error.connectionFailure || (error.status ?? 0) >= 500;
-      if (!retrying && !uncertain) await _clearReceipt(key);
-      if (mounted) {
-        setState(() {
-          if (uncertain) {
-            _uncertainAttempt = attempt;
-            _error =
-                'Could not confirm the movement. Retry this same movement or check the product ledger.';
-          } else {
-            _error = error.message;
+      if (key != null) {
+        final stored = await _storage.read(key: key);
+        if (!mounted || session != widget.api.sessionRevision) return;
+        final current = stored == null ? null : jsonDecode(stored) as Json;
+        if (retrying && current?['id'] != attempt.id) {
+          if (mounted && session == widget.api.sessionRevision) {
+            Navigator.pop(context, true);
           }
-        });
+          return;
+        }
+        if (!retrying && current != null) {
+          setState(() {
+            _uncertainAttempt = (
+              id: current['id'] as String,
+              payload: current['payload'] as Json,
+            );
+            _error = current['error'] as String?;
+          });
+          return;
+        }
+      }
+      try {
+        if (!retrying && key != null) {
+          await _storage.write(
+            key: key,
+            value: jsonEncode({
+              'id': attempt.id,
+              'payload': attempt.payload,
+              if (widget.offline)
+                'queuedBranch': widget.scopeHeaders['X-Suite-Branch'] ?? '',
+            }),
+          );
+        }
+        if (!mounted || session != widget.api.sessionRevision) return;
+        if (widget.offline) {
+          setState(() => _uncertainAttempt = attempt);
+          return;
+        }
+        await widget.api.request(
+          'POST',
+          InventoryStockReceipts.endpoint,
+          scopeHeaders: {
+            ...widget.scopeHeaders,
+            'X-Offline-Operation': attempt.id,
+          },
+          data: attempt.payload,
+        );
+        await _clearReceipt(key);
+        if (!mounted || session != widget.api.sessionRevision) return;
+        Navigator.pop(context, true);
+      } on ApiFailure catch (error) {
+        final uncertain = error.connectionFailure || (error.status ?? 0) >= 500;
+        if (!retrying && !uncertain) await _clearReceipt(key);
+        if (mounted) {
+          setState(() {
+            if (uncertain) {
+              _uncertainAttempt = attempt;
+              _error =
+                  'Could not confirm the movement. Retry this same movement or check the product ledger.';
+            } else {
+              _error = error.message;
+            }
+          });
+        }
+      }
+    }
+
+    try {
+      if (key == null) {
+        await submit();
+      } else {
+        await InventoryStockReceipts.serialize(key, submit);
       }
     } catch (_) {
       if (mounted) {
@@ -231,7 +269,9 @@ class _InventoryStockMovementPageState
                 if (_error != null) Text(_error!),
                 const SizedBox(height: 16),
                 if (widget.offline)
-                  const Text('Saved on this device. Reconnect to send it.')
+                  const Text(
+                    'Saved on this device. It will sync when you reconnect.',
+                  )
                 else
                   FilledButton(
                     onPressed: _saving ? null : _save,

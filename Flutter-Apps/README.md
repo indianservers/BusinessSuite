@@ -49,7 +49,8 @@ Gantt, roadmap, and report endpoints still use structured data views.
 
 The app caches scoped CRM, sales, inventory, GST Billing, and finance views
 locally. Supported offline writes include CRM lead drafts and edits, inventory
-product drafts, sales-order drafts, and eligible personal Notes changes.
+product drafts and stock movements, sales-order drafts, and eligible personal
+Notes changes. Stock movements use previously loaded warehouse choices.
 Pending writes use the shared backend when connectivity returns. Full web
 feature parity, push notifications, and SSO are still open.
 
