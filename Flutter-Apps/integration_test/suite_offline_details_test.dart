@@ -909,8 +909,16 @@ void main() {
     final fixtures = <String, Json>{
       '/srm/inventory/items/1': {
         'item_name': 'QA stock',
+        'unit_code': 'EA',
+        'balances': [
+          {'warehouse_id': 41, 'warehouse_name': 'QA warehouse', 'quantity': 5},
+        ],
         'ledger': [
-          {'movement_number': 'QA movement', 'quantity_in': 5},
+          {
+            'movement_number': 'QA movement',
+            'warehouse_name': 'QA warehouse',
+            'quantity_in': 5,
+          },
         ],
       },
       '/srm/sales-orders/1': {
@@ -1019,11 +1027,26 @@ void main() {
     for (final (page, expected) in pages) {
       await tester.pumpWidget(MaterialApp(home: page(false)));
       await findDetail(expected);
+      if (expected == 'QA invoice line') {
+        final cached = await SuiteReadCache.read('$scope:/srm/invoices/1');
+        expect(cached?.single['invoice_number'], 'QA invoice');
+      }
       final requestsBeforeOffline = requests;
+      if (expected == 'QA movement' || expected == 'QA order line') {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(MaterialApp(home: page(false)));
+        await findDetail(expected);
+        expect(requests, requestsBeforeOffline);
+      }
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(MaterialApp(home: page(true)));
       if (expected == 'QA order line') {
         await findDetail('Payment due in 30 days');
+      }
+      if (expected == 'QA movement') {
+        await findDetail('QA warehouse');
+        await findDetail('5 EA');
+        await findDetail('QA warehouse · In 5 · Out 0');
       }
       await findDetail(expected);
       if (expected == 'QA order line') {
