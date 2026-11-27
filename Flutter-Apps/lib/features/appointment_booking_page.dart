@@ -349,17 +349,26 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
               ],
             ),
           ],
-          if (_busy) const LinearProgressIndicator(),
-          if (_notice != null) SelectableText(_notice!),
-          FilledButton(
-            onPressed: _busy || _customer == null || _slot == null
-                ? null
-                : _confirm,
-            child: Text(
-              _pending == null ? 'Confirm appointment' : 'Retry confirmation',
-            ),
-          ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_busy) const LinearProgressIndicator(),
+            if (_notice != null) Text(_notice!, maxLines: 4),
+            FilledButton(
+              onPressed: _busy || _customer == null || _slot == null
+                  ? null
+                  : _confirm,
+              child: Text(
+                _pending == null ? 'Confirm appointment' : 'Retry confirmation',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

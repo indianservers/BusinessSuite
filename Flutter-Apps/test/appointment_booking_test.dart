@@ -64,7 +64,9 @@ void main() {
               }
               return response({
                 'slots': [
-                  {'starts_at': startsAt, 'label': '09:00'},
+                    {'starts_at': startsAt, 'label': '09:00'},
+                    for (var index = 1; index <= 40; index++)
+                      {'starts_at': startsAt, 'label': 'Other time $index'},
                 ],
                 'selection_available': true,
               });
@@ -122,6 +124,7 @@ void main() {
     await tap('Room A');
     await tap('Check available times');
     await tap('09:00');
+    expect(find.text('Confirm appointment').hitTestable(), findsOneWidget);
     await tap('Confirm appointment');
     await tap('Retry confirmation');
     expect(availabilityCalls, 2);
