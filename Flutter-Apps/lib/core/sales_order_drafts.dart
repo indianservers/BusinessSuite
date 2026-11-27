@@ -12,13 +12,19 @@ class SalesOrderDrafts {
     : _key = 'sales_order_drafts_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}',
       _scope = scope,
-      purchase = false;
+      _endpoint = endpoint;
 
   SalesOrderDrafts.purchaseOrders(String scope, {this.invalidate})
     : _key = 'purchase_order_drafts_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}',
       _scope = scope,
-      purchase = true;
+      _endpoint = purchaseOrdersEndpoint;
+
+  SalesOrderDrafts.gstInvoices(String scope, {this.invalidate})
+    : _key = 'gst_invoice_drafts_${Uri.encodeComponent(scope)}',
+      _company = '${(jsonDecode(scope) as List)[2]}',
+      _scope = scope,
+      _endpoint = gstInvoicesEndpoint;
 
   static const endpoint = '/srm/sales-orders';
   static const customersEndpoint = '/srm/business/customers';
@@ -26,9 +32,11 @@ class SalesOrderDrafts {
   static const _storage = FlutterSecureStorage();
   static final _running = <String, Future<void>>{};
   static final _changes = StreamController<String>.broadcast();
-  final String _key, _company, _scope;
-  final bool purchase;
+  final String _key, _company, _scope, _endpoint;
+  bool get purchase => _endpoint == purchaseOrdersEndpoint;
+  bool get gst => _endpoint == gstInvoicesEndpoint;
   static const purchaseOrdersEndpoint = '/srm/procurement/purchase-orders';
+  static const gstInvoicesEndpoint = '/srm/invoices';
   final Future<void> Function(String)? invalidate;
   Stream<String> get changes => _changes.stream.where((scope) => scope == _key);
   static String productPickerCacheKey(String scope) =>
@@ -216,6 +224,7 @@ class SalesOrderDrafts {
     String? customerName,
     String? replaceRejected,
     String? branch,
+    Map<String, String> scopeHeaders = const {},
   }) => _modify((drafts) async {
     if (replaceRejected != null) {
       final previous = drafts[replaceRejected] as Json?;
@@ -230,6 +239,7 @@ class SalesOrderDrafts {
       'payload': payload,
       'customer_name': ?customerName,
       'branch': ?branch,
+      if (scopeHeaders.isNotEmpty) 'headers': scopeHeaders,
     };
     await _write(drafts);
   });
@@ -244,18 +254,24 @@ class SalesOrderDrafts {
     String operation,
     Json payload, {
     String? branch,
+    Map<String, String> scopeHeaders = const {},
   }) async {
     final result = await api.request(
       'POST',
-      purchase ? '$purchaseOrdersEndpoint/drafts/offline-create' : endpoint,
-      data: payload,
+      purchase
+          ? '$_endpoint/drafts/offline-create'
+          : gst
+          ? '$_endpoint/manual'
+          : _endpoint,
+      data: gst ? {...payload, 'request_id': operation} : payload,
       scopeHeaders: {
+        ...scopeHeaders,
         'X-Suite-Organization': _company,
         'X-Suite-Branch': ?branch,
-        'X-Offline-Operation': operation,
+        if (!gst) 'X-Offline-Operation': operation,
       },
     );
-    if (purchase &&
+    if ((purchase || gst) &&
         (result is! Json ||
             result['id'] is! int ||
             result['status'] != 'draft')) {
@@ -277,6 +293,8 @@ class SalesOrderDrafts {
             operation,
             draft['payload'] as Json,
             branch: draft['branch'] as String?,
+            scopeHeaders:
+                (draft['headers'] as Json?)?.cast<String, String>() ?? const {},
           );
           drafts.remove(operation);
         } on ApiFailure catch (error) {
@@ -293,7 +311,14 @@ class SalesOrderDrafts {
         if (!drafts.containsKey(operation) && api.sessionRevision == revision) {
           try {
             await invalidate?.call(
-              '$_scope:${purchase ? purchaseOrdersEndpoint : endpoint}',
+              gst
+                  ? gstCacheKey(
+                      _scope,
+                      _endpoint,
+                      (draft['headers'] as Json?)?.cast<String, String>() ??
+                          const {},
+                    )!
+                  : '$_scope:$_endpoint',
             );
           } catch (_) {
             // The server has already accepted the draft.
@@ -303,4 +328,13 @@ class SalesOrderDrafts {
       }
     });
   }
+}
+
+String? gstCacheKey(String? scope, String path, Map<String, String> headers) {
+  if (scope == null) return null;
+  final keys = headers.keys.toList()..sort();
+  final context = Uri(
+    queryParameters: {for (final key in keys) key: headers[key]},
+  ).query;
+  return '$scope:$path${context.isEmpty ? '' : ':$context'}';
 }

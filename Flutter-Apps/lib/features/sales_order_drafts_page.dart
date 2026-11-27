@@ -709,11 +709,15 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(
-        widget.drafts.purchase ? 'Purchase order drafts' : 'Sales order drafts',
+        widget.drafts.gst
+            ? 'Saved GST drafts'
+            : widget.drafts.purchase
+            ? 'Purchase order drafts'
+            : 'Sales order drafts',
       ),
       actions: [
         IconButton(
-          tooltip: 'Sync order drafts',
+          tooltip: widget.drafts.gst ? 'Sync GST drafts' : 'Sync order drafts',
           onPressed: _syncing ? null : _sync,
           icon: const Icon(Icons.sync),
         ),
@@ -728,14 +732,20 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
         final rows = snapshot.requireData;
         if (rows.isEmpty) {
-          return const Center(child: Text('No saved order drafts'));
+          return Center(
+            child: Text(
+              widget.drafts.gst
+                  ? 'No saved GST drafts'
+                  : 'No saved order drafts',
+            ),
+          );
         }
         return ListView(
           children: [
             for (final row in rows)
               ListTile(
                 title: Text(
-                  '${row['payload']['title'] ?? row['payload']['vendor_name'] ?? 'Purchase order'}',
+                  '${row['payload']['title'] ?? row['payload']['vendor_name'] ?? (widget.drafts.gst ? 'GST invoice' : 'Purchase order')}',
                 ),
                 subtitle: Text(
                   [
@@ -744,7 +754,8 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
                   ].whereType<String>().join(' · '),
                 ),
                 onTap:
-                    (!widget.drafts.purchase ||
+                    !widget.drafts.gst &&
+                        (!widget.drafts.purchase ||
                             widget.correctPurchaseDraft != null) &&
                         row['status'] == 422
                     ? () => _correct(row)

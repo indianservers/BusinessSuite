@@ -349,6 +349,15 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         if (mounted &&
             identical(_access, accessFuture) &&
             revision == controller.api.sessionRevision &&
+            _canCreateInvoice(access)) {
+          await SalesOrderDrafts.gstInvoices(
+            scope,
+            invalidate: SuiteReadCache.invalidate,
+          ).sync(controller.api);
+        }
+        if (mounted &&
+            identical(_access, accessFuture) &&
+            revision == controller.api.sessionRevision &&
             _canCreateOrder(access)) {
           await SalesOrderDrafts(
             scope,
@@ -461,6 +470,21 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
   }
 
   bool _canCreateOrder(Json access) => _canWriteSales(access, 'create');
+
+  bool _canCreateInvoice(Json access) {
+    if (!_allowed(access, 'srm')) return false;
+    final user = widget.controller.user;
+    if (user?.isSuperuser == true) return true;
+    const permissions = {'srm_invoice_create', 'srm_admin'};
+    final grant = (access['grants'] as Json?)?['srm'] as Json?;
+    return access['managed'] == true
+        ? (grant?['actions'] as List?)?.contains('create') == true &&
+              (grant?['permissions'] as List?)?.any(permissions.contains) ==
+                  true
+        : user?.permissions.any(permissions.contains) == true ||
+              (grant?['permissions'] as List?)?.any(permissions.contains) ==
+                  true;
+  }
 
   bool _canWriteSales(Json access, String action) {
     if (!_allowed(access, 'srm')) return false;
@@ -647,17 +671,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         canArchiveOrders:
             app.title == 'Sales & POS' && _canWriteSales(access, 'delete'),
         canCreateOrderInvoices:
-            allowsSalesAction('create') &&
-            (controller.user?.isSuperuser == true ||
-                (grant?['permissions'] as List?)?.any(
-                      const {'srm_invoice_create', 'srm_admin'}.contains,
-                    ) ==
-                    true ||
-                (access['managed'] != true &&
-                    controller.user?.permissions.any(
-                          const {'srm_invoice_create', 'srm_admin'}.contains,
-                        ) ==
-                        true)),
+            app.title == 'Sales & POS' && _canCreateInvoice(access),
         canExportSalesDocuments: allowsSalesAction('export'),
         canIssueInvoices:
             allowsSalesAction('approve') &&
@@ -2184,6 +2198,27 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     );
   }
 
+  SalesOrderDrafts? get _gstDrafts => widget.cachePrefix == null
+      ? null
+      : SalesOrderDrafts.gstInvoices(
+          widget.cachePrefix!,
+          invalidate: SuiteReadCache.invalidate,
+        );
+
+  void _openGstDrafts() {
+    final drafts = _gstDrafts;
+    if (drafts == null) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SalesOrderDraftsPage(
+          api: widget.controller.api,
+          drafts: drafts,
+          onSynced: _refresh,
+        ),
+      ),
+    );
+  }
+
   void _showPurchaseDrafts() {
     final scope = widget.cachePrefix;
     if (scope == null) return;
@@ -2936,6 +2971,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             },
           ),
         if (widget.path == GstInvoicePage.listEndpoint &&
+            widget.cachePrefix != null)
+          IconButton(
+            tooltip: 'Saved GST drafts',
+            icon: const Icon(LucideIcons.upload),
+            onPressed: _openGstDrafts,
+          ),
+        if (widget.path == GstInvoicePage.listEndpoint &&
             widget.canCreateOrderInvoices &&
             !_offlineOnly &&
             !_usedSavedFallback)
@@ -2949,10 +2991,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 context,
                 api: api,
                 scopeHeaders: widget.scopeHeaders,
+                drafts: _gstDrafts,
               );
               if (!context.mounted ||
                   invoice == null ||
                   api.sessionRevision != revision) {
+                return;
+              }
+              if (invoice['local'] == true) {
+                _openGstDrafts();
                 return;
               }
               _refresh();

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/sales_order_drafts.dart';
 import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
 import 'sales_order_drafts_page.dart';
@@ -44,17 +45,24 @@ Future<Json?> showGstInvoiceDraftForm(
   BuildContext context, {
   required ApiClient api,
   required Map<String, String> scopeHeaders,
+  SalesOrderDrafts? drafts,
 }) => showDialog<Json>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => _GstDraftForm(api: api, scopeHeaders: scopeHeaders),
+  builder: (_) =>
+      _GstDraftForm(api: api, scopeHeaders: scopeHeaders, drafts: drafts),
 );
 
 class _GstDraftForm extends StatefulWidget {
-  const _GstDraftForm({required this.api, required this.scopeHeaders});
+  const _GstDraftForm({
+    required this.api,
+    required this.scopeHeaders,
+    this.drafts,
+  });
 
   final ApiClient api;
   final Map<String, String> scopeHeaders;
+  final SalesOrderDrafts? drafts;
 
   @override
   State<_GstDraftForm> createState() => _GstDraftFormState();
@@ -109,12 +117,20 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       'lines': _lines,
     };
     try {
-      final result = await widget.api.request(
-        'POST',
-        '${GstInvoicePage.listEndpoint}/manual',
-        data: payload,
-        scopeHeaders: widget.scopeHeaders,
-      );
+      final drafts = widget.drafts;
+      final result = drafts == null
+          ? await widget.api.request(
+              'POST',
+              '${GstInvoicePage.listEndpoint}/manual',
+              data: payload,
+              scopeHeaders: widget.scopeHeaders,
+            )
+          : await drafts.submit(
+              widget.api,
+              _operation,
+              payload,
+              scopeHeaders: widget.scopeHeaders,
+            );
       if (!mounted || widget.api.sessionRevision != _revision) return;
       if (result is! Json || result['id'] is! int) {
         throw ApiFailure('Draft confirmation is unavailable.', 503);
@@ -122,6 +138,23 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       Navigator.pop(context, result);
     } on ApiFailure catch (error) {
       if (!mounted || widget.api.sessionRevision != _revision) return;
+      if (widget.drafts case final SalesOrderDrafts drafts
+          when error.connectionFailure || (error.status ?? 0) >= 500) {
+        try {
+          await drafts.save(
+            _operation,
+            payload,
+            customerName: _customer?['name'] as String?,
+            scopeHeaders: widget.scopeHeaders,
+          );
+          if (mounted && widget.api.sessionRevision == _revision) {
+            Navigator.pop(context, {'local': true});
+          }
+          return;
+        } catch (_) {
+          if (!mounted || widget.api.sessionRevision != _revision) return;
+        }
+      }
       setState(() {
         if (!retrying &&
             !error.connectionFailure &&
@@ -231,14 +264,7 @@ class GstInvoicePage extends StatefulWidget {
     String? scope,
     String path,
     Map<String, String> headers,
-  ) {
-    if (scope == null) return null;
-    final keys = headers.keys.toList()..sort();
-    final context = Uri(
-      queryParameters: {for (final key in keys) key: headers[key]},
-    ).query;
-    return '$scope:$path${context.isEmpty ? '' : ':$context'}';
-  }
+  ) => gstCacheKey(scope, path, headers);
 
   static const summaryFields = [
     'invoice_number',

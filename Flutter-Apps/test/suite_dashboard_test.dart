@@ -3750,9 +3750,14 @@ void main() {
       expect(find.text('Quantity 2'), findsOneWidget);
     },
   );
-  testWidgets('GST draft creation retries the same request after disconnect', (
+  testWidgets('GST draft creation queues the same request after disconnect', (
     tester,
   ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    final drafts = SalesOrderDrafts.gstInvoices(
+      '["https://example.test/api/v1",5,7]',
+    );
     final payloads = <Json>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -3769,6 +3774,7 @@ void main() {
               });
             case '/srm/invoices/manual':
               expect(request.method, 'POST');
+              expect(request.headers['X-Suite-Organization'], '7');
               payloads.add(request.data as Json);
               if (payloads.length == 1) {
                 throw DioException(
@@ -3793,6 +3799,7 @@ void main() {
                   context,
                   api: api,
                   scopeHeaders: const {'X-Suite-Branch': '6'},
+                drafts: drafts,
                 );
               },
               child: const Text('Open draft form'),
@@ -3828,9 +3835,16 @@ void main() {
     expect(find.text('Enter a valid date as YYYY-MM-DD.'), findsOneWidget);
     await tester.enterText(due, '2026-12-15');
     await tap('Create draft');
-    expect(find.textContaining('Save could not be confirmed'), findsOneWidget);
-    await tap('Retry draft save');
-    expect(created, {'id': 9, 'status': 'draft'});
+    expect(created, {'local': true});
+    final local = (await drafts.entries()).single;
+    expect(local['customer_name'], 'Paper supplier');
+    expect(local['headers'], {'X-Suite-Branch': '6'});
+    expect(local['operation'], payloads.single['request_id']);
+    await tester.runAsync(() async {
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await drafts.sync(api);
+    });
+    expect(await drafts.entries(), isEmpty);
     expect(payloads, hasLength(2));
     expect(payloads.last, payloads.first);
     expect(payloads.first, {
