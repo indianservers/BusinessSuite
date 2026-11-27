@@ -1,11 +1,162 @@
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
+import 'sales_order_drafts_page.dart';
+
+Future<Json?> showGstInvoiceDraftForm(
+  BuildContext context, {
+  required ApiClient api,
+  required Map<String, String> scopeHeaders,
+}) => showDialog<Json>(
+  context: context,
+  barrierDismissible: false,
+  builder: (_) => _GstDraftForm(api: api, scopeHeaders: scopeHeaders),
+);
+
+class _GstDraftForm extends StatefulWidget {
+  const _GstDraftForm({required this.api, required this.scopeHeaders});
+
+  final ApiClient api;
+  final Map<String, String> scopeHeaders;
+
+  @override
+  State<_GstDraftForm> createState() => _GstDraftFormState();
+}
+
+class _GstDraftFormState extends State<_GstDraftForm> {
+  late final _revision = widget.api.sessionRevision;
+  final _operation = const Uuid().v4();
+  final _lines = <Json>[];
+  Json? _customer;
+  Json? _pending;
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _chooseCustomer() async {
+    final customer = await showDialog<Json>(
+      context: context,
+      builder: (_) => SalesRecordPicker(
+        api: widget.api,
+        offline: false,
+        scopeHeaders: widget.scopeHeaders,
+      ),
+    );
+    if (mounted && customer != null) setState(() => _customer = customer);
+  }
+
+  Future<void> _addLine() async {
+    final line = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _InvoiceLineDialog(save: (values) async => {...values}),
+    );
+    if (mounted && line != null) setState(() => _lines.add(line));
+  }
+
+  Future<void> _save() async {
+    if (_saving || widget.api.sessionRevision != _revision) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final retrying = _pending != null;
+    final payload = _pending ??= {
+      'request_id': _operation,
+      'customer_id': _customer!['id'],
+      'currency': 'INR',
+      'lines': _lines,
+    };
+    try {
+      final result = await widget.api.request(
+        'POST',
+        '${GstInvoicePage.listEndpoint}/manual',
+        data: payload,
+        scopeHeaders: widget.scopeHeaders,
+      );
+      if (!mounted || widget.api.sessionRevision != _revision) return;
+      if (result is! Json || result['id'] is! int) {
+        throw ApiFailure('Draft confirmation is unavailable.', 503);
+      }
+      Navigator.pop(context, result);
+    } on ApiFailure catch (error) {
+      if (!mounted || widget.api.sessionRevision != _revision) return;
+      setState(() {
+        if (!retrying &&
+            !error.connectionFailure &&
+            (error.status ?? 0) >= 400 &&
+            (error.status ?? 0) < 500) {
+          _pending = null;
+        }
+        _error = _pending == null
+            ? error.message
+            : 'Save could not be confirmed. Retry to check the same draft.';
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_saving,
+    child: AlertDialog(
+      title: const Text('New GST invoice draft'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton(
+            onPressed: _pending == null ? _chooseCustomer : null,
+            child: Text('${_customer?['name'] ?? 'Choose customer'}'),
+          ),
+          for (final line in _lines)
+            ListTile(
+              title: Text('${line['description']}'),
+              subtitle: Text('${line['quantity']} × INR ${line['unit_price']}'),
+              trailing: _pending != null
+                  ? null
+                  : IconButton(
+                      tooltip: 'Remove line',
+                      onPressed: () => setState(() => _lines.remove(line)),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+            ),
+          OutlinedButton.icon(
+            onPressed: _pending == null ? _addLine : null,
+            icon: const Icon(Icons.add),
+            label: const Text('Add line item'),
+          ),
+          if (_error != null) Text(_error!),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+        FilledButton(
+          onPressed: _saving || _customer == null || _lines.isEmpty
+              ? null
+              : _save,
+          child: Text(
+            _saving
+                ? 'Saving…'
+                : _pending == null
+                ? 'Create draft'
+                : 'Retry draft save',
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 class GstInvoicePage extends StatefulWidget {
   const GstInvoicePage({

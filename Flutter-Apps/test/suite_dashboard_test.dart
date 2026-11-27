@@ -3750,6 +3750,95 @@ void main() {
       expect(find.text('Quantity 2'), findsOneWidget);
     },
   );
+  testWidgets('GST draft creation retries the same request after disconnect', (
+    tester,
+  ) async {
+    final payloads = <Json>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch (request.path) {
+            case '/srm/business/customers':
+              return response({
+                'items': [
+                  {'id': 5, 'name': 'Paper supplier'},
+                ],
+              });
+            case '/srm/invoices/manual':
+              expect(request.method, 'POST');
+              payloads.add(request.data as Json);
+              if (payloads.length == 1) {
+                throw DioException(
+                  requestOptions: request,
+                  type: DioExceptionType.connectionError,
+                );
+              }
+              return response({'id': 9, 'status': 'draft'}, 201);
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    Json? created;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                created = await showGstInvoiceDraftForm(
+                  context,
+                  api: api,
+                  scopeHeaders: const {'X-Suite-Branch': '6'},
+                );
+              },
+              child: const Text('Open draft form'),
+            ),
+          ),
+        ),
+      ),
+    );
+    Future<void> tap(String text) async {
+      final finder = find.text(text).last;
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Open draft form');
+    await tap('Choose customer');
+    await tap('Paper supplier');
+    await tap('Add line item');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Description'),
+      'Packing materials',
+    );
+    await tap('Save line');
+    await tap('Create draft');
+    expect(find.textContaining('Save could not be confirmed'), findsOneWidget);
+    await tap('Retry draft save');
+    expect(created, {'id': 9, 'status': 'draft'});
+    expect(payloads, hasLength(2));
+    expect(payloads.last, payloads.first);
+    expect(payloads.first, {
+      'request_id': matches(RegExp(r'^[a-f0-9-]{36}$')),
+      'customer_id': 5,
+      'currency': 'INR',
+      'lines': [
+        {
+          'description': 'Packing materials',
+          'quantity': '1',
+          'unit_price': '0',
+          'discount_amount': '0',
+          'tax_amount': '0',
+        },
+      ],
+    });
+  });
+
   testWidgets('GST adds a manual draft line and reloads server totals', (
     tester,
   ) async {

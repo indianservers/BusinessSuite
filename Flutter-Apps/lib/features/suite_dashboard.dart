@@ -2935,6 +2935,44 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               }
             },
           ),
+        if (widget.path == GstInvoicePage.listEndpoint &&
+            widget.canCreateOrderInvoices &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New GST invoice draft',
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () async {
+              final api = widget.controller.api;
+              final revision = api.sessionRevision;
+              final invoice = await showGstInvoiceDraftForm(
+                context,
+                api: api,
+                scopeHeaders: widget.scopeHeaders,
+              );
+              if (!context.mounted ||
+                  invoice == null ||
+                  api.sessionRevision != revision) {
+                return;
+              }
+              _refresh();
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => GstInvoicePage(
+                    api: api,
+                    id: invoice['id'] as int,
+                    summary: invoice,
+                    cacheScope: widget.cachePrefix,
+                    scopeHeaders: widget.scopeHeaders,
+                    onChanged: _refresh,
+                    canEdit: true,
+                    canIssue: widget.canIssueInvoices,
+                    canExport: widget.canExportSalesDocuments,
+                  ),
+                ),
+              );
+            },
+          ),
         if (widget.showInventory)
           IconButton(
             tooltip: 'GST Billing',
@@ -2950,6 +2988,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cachePrefix: widget.cachePrefix,
                   canExportSalesDocuments: widget.canExportSalesDocuments,
                   canIssueInvoices: widget.canIssueInvoices,
+                  canCreateOrderInvoices: widget.canCreateOrderInvoices,
                   offlineOnly: _offlineOnly,
                 ),
               ),
