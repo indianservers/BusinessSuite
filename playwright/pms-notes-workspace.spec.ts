@@ -204,7 +204,7 @@ test("history preview renders formatting and restores a new version",async({page
 });
 
 test("revoking the last reader immediately returns the note badge to Private",async({page})=>{
-  const headers=await login(page);const note=await create(page,headers,"Privacy badge verification");await open(page,note.id);await page.getByRole("button",{name:"Share",exact:true}).click();await page.getByRole("textbox",{name:"Share with colleague email",exact:true}).fill("notes-reader@example.com");await page.getByRole("button",{name:"Invite to read",exact:true}).click();await expect(page.getByRole("button",{name:"Revoke access",exact:true})).toBeVisible();await expect(page.locator(".notes-privacy-badge")).toHaveText("Shared");await page.getByRole("button",{name:"Revoke access",exact:true}).click();await expect(page.locator(".notes-privacy-badge")).toHaveText("Private");
+  const headers=await login(page);const note=await create(page,headers,"Privacy badge verification");await open(page,note.id);await page.getByRole("button",{name:"Share",exact:true}).click();await page.getByRole("textbox",{name:"Share with colleague email",exact:true}).fill("notes-reader@example.com");await page.getByRole("button",{name:"Invite to read",exact:true}).click();await expect(page.getByRole("button",{name:"Revoke access",exact:true})).toBeVisible();await expect(page.locator(".notes-privacy-badge")).toHaveText("Private · invited readers");await page.getByRole("button",{name:"Revoke access",exact:true}).click();await expect(page.locator(".notes-privacy-badge")).toHaveText("Private");
 });
 
 test("returning to an empty folder preserves its scope instead of reopening an unrelated note",async({page})=>{
