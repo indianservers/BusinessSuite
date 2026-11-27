@@ -704,6 +704,7 @@ class _NoteEditorState extends State<_NoteEditor> {
               for (final (key, label, icon) in const [
                 ('pinned', 'Pinned', Icons.push_pin_outlined),
                 ('favorite', 'Favorite', Icons.star_border),
+                ('archived', 'Archived', Icons.archive_outlined),
               ])
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,

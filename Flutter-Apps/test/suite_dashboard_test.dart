@@ -792,12 +792,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Saved body'), findsOneWidget);
         await tester.tap(find.text('Favorite'));
+        await tester.tap(find.text('Archived'));
         await tester.enterText(find.byType(TextField).last, 'Offline edit');
         await tester.pumpAndSettle();
         await tester.tap(find.text('Save'));
         await tester.pumpAndSettle();
         expect((await cache.pending(1))?['values']['content'], 'Offline edit');
         expect((await cache.pending(1))?['values']['favorite'], isTrue);
+        expect((await cache.pending(1))?['values']['archived'], isTrue);
         expect(find.text('Offline edit'), findsOneWidget);
         expect(find.byTooltip('Awaiting sync'), findsOneWidget);
         dio.httpClientAdapter = FakeAdapter((request) async {
