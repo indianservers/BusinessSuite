@@ -28,6 +28,113 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
 
+  testWidgets('Android reopens stock activity reports offline', (tester) async {
+    var connected = true;
+    final requests = <String>[];
+    final transport = Dio()
+      ..httpClientAdapter = FakeAdapter((request) async {
+        requests.add(request.path);
+        if (!connected) throw StateError('Offline request ${request.path}');
+        return switch (request.path) {
+          '/access/me' => response({
+            'companyId': 7,
+            'grants': {
+              'srm': {'enabled': true},
+            },
+          }),
+          '/notifications/unread-count' => response({'unread': 0}),
+          '/access/launcher-preferences' => response({
+            'favorites': ['srm'],
+          }),
+          '/srm/sales-orders' ||
+          '/srm/inventory/items' ||
+          '/srm/inventory/reports/stock-summary' => response({
+            'items': [
+              {'id': 4, 'item_name': 'Sample inventory item'},
+            ],
+          }),
+          final path
+              when InventoryStockReceipts.activityReports.containsKey(path) =>
+            response({
+              'items': [
+                {
+                  'id': 4,
+                  'item_name': 'Cached activity item',
+                  'last_movement_date': '2026-01-05',
+                  'age_days': 101,
+                  'quantity_out': 4,
+                  'movement_class': 'slow',
+                },
+              ],
+            }),
+          _ => throw StateError('Unexpected request ${request.path}'),
+        };
+      });
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: transport,
+    );
+    await api.acceptTokens({
+      'access_token': 'device-qa',
+      'refresh_token': 'device-qa',
+    });
+    final user = SessionUser.fromJson({
+      'id': DateTime.now().microsecondsSinceEpoch,
+      'email': 'qa@example.test',
+    });
+
+    Future<void> tap(Finder finder) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(finder, findsOneWidget);
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> checkReports(bool offline) async {
+      final controller = AppController(api, suiteLogin: true)
+        ..loading = false
+        ..user = user
+        ..offline = offline;
+      await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tap(find.text('Favorites (1)'));
+      await tap(find.text('Sales & POS'));
+      await tap(find.byTooltip('Inventory'));
+      await tap(find.byTooltip('Stock Summary'));
+      for (final report in InventoryStockReceipts.activityReports.values) {
+        await tap(find.byTooltip('Stock activity reports'));
+        await tap(find.text(report));
+        expect(find.text('Cached activity item'), findsOneWidget);
+        expect(
+          find.textContaining(
+            report == 'Fast and Slow Moving Stock'
+                ? 'Quantity issued 4'
+                : 'Days since last movement 101',
+          ),
+          findsOneWidget,
+        );
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+
+    await checkReports(false);
+    for (final path in InventoryStockReceipts.activityReports.keys) {
+      expect(requests.where((request) => request == path), hasLength(1));
+    }
+    final beforeOffline = requests.length;
+    connected = false;
+    await checkReports(true);
+    expect(requests, hasLength(beforeOffline));
+  });
+
   testWidgets('Android saves a stock movement offline and sends it later', (
     tester,
   ) async {
