@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
+import '../core/models.dart';
 import '../core/notes_offline_cache.dart';
 
 const _notesPath = '/project-management/notes';
@@ -166,17 +167,25 @@ class _NotesPageState extends State<NotesPage> {
     });
     List<Map<String, dynamic>>? saved;
     Map<int, String>? savedBodies;
-    try {
-      final drafts = await widget.cache?.creations();
-      if (current()) setState(() => _creations = drafts ?? []);
-      if (canReadSaved) saved = await widget.cache?.summaries();
-      if (query.isNotEmpty && (saved?.isNotEmpty ?? false)) {
-        savedBodies = await widget.cache?.savedBodies();
-      }
-      final pending = await widget.cache?.pendingEdits();
-      if (current()) setState(() => _pendingEdits = pending ?? {});
-    } catch (_) {
-      // Continue to the server when the device store is unavailable.
+    if (widget.cache case final cache?) {
+      final pending = cache.pendingChanges().then(
+        (value) => value,
+        onError: (Object _) => (edits: <int, Json>{}, creations: <Json>[]),
+      );
+      final (summaries, bodies, changes) = await (
+        canReadSaved ? cache.summaries() : Future.value(<Json>[]),
+        canReadSaved && query.isNotEmpty
+            ? cache.savedBodies()
+            : Future.value(<int, String>{}),
+        pending,
+      ).wait;
+      if (!current()) return;
+      saved = summaries;
+      savedBodies = bodies;
+      setState(() {
+        _creations = changes.creations;
+        _pendingEdits = changes.edits;
+      });
     }
     if (!current()) return;
     final savedNotes = saved;
@@ -256,12 +265,11 @@ class _NotesPageState extends State<NotesPage> {
     } finally {
       if (current()) {
         try {
-          final drafts = await widget.cache?.creations();
-          final pending = await widget.cache?.pendingEdits();
+          final changes = await widget.cache?.pendingChanges();
           if (current()) {
             setState(() {
-              _creations = drafts ?? [];
-              _pendingEdits = pending ?? {};
+              _creations = changes?.creations ?? [];
+              _pendingEdits = changes?.edits ?? {};
             });
           }
         } catch (_) {}

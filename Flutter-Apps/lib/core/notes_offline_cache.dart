@@ -128,16 +128,24 @@ class NotesOfflineCache {
 
   Future<Json?> pending(Object? id) async => (await _edits())['$id'] as Json?;
 
-  Future<Map<int, Json>> pendingEdits() async => {
-    for (final entry in (await _edits()).entries)
-      if (int.tryParse(entry.key) case final int id) id: entry.value as Json,
-  };
+  Future<({Map<int, Json> edits, List<Json> creations})>
+  pendingChanges() async {
+    final entries = (await _edits()).entries;
+    return (
+      edits: {
+        for (final entry in entries)
+          if (int.tryParse(entry.key) case final int id)
+            id: entry.value as Json,
+      },
+      creations: [
+        for (final entry in entries)
+          if (entry.key.startsWith('create:'))
+            {...entry.value as Json, 'key': entry.key},
+      ],
+    );
+  }
 
-  Future<List<Json>> creations() async => [
-    for (final entry in (await _edits()).entries)
-      if (entry.key.startsWith('create:'))
-        {...entry.value as Json, 'key': entry.key},
-  ];
+  Future<List<Json>> creations() async => (await pendingChanges()).creations;
 
   Future<void> enqueueNew(Json values, {String? operation}) =>
       _serial(() async {
