@@ -9,6 +9,7 @@ import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
+import 'package:business_suite_mobile/features/crm_deal_page.dart';
 import 'package:business_suite_mobile/features/crm_new_lead_page.dart';
 import 'package:business_suite_mobile/features/company_profile_panel.dart';
 import 'package:business_suite_mobile/features/branch_settings_panel.dart';
@@ -35,6 +36,75 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Deal stage move uses the server plan and current version', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            writes.add(request);
+            return response({'id': 18, 'stage_id': 4});
+          }
+          if (request.path.endsWith('/stages')) {
+            return response({
+              'version': 3,
+              'current_stage_id': 1,
+              'values': {'amount': '100'},
+              'stages': [
+                {'id': 1, 'name': 'New'},
+                {
+                  'id': 4,
+                  'name': 'Qualified',
+                  'required': ['amount'],
+                },
+              ],
+            });
+          }
+          return response({
+            'id': 18,
+            'name': 'Renewal',
+            'stage_id': writes.isEmpty ? 1 : 4,
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmDealPage(
+          api: api,
+          summary: const {'id': 18, 'stage_id': 1, 'stage_name': 'New'},
+          offline: false,
+          canMove: true,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Review stage move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Destination stage'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Qualified').last);
+    await tester.pumpAndSettle();
+    final move = find.text('Move deal');
+    await tester.ensureVisible(move);
+    await tester.tap(move);
+    await tester.pumpAndSettle();
+    expect(writes.single.path, '/crm/productivity/deals/18/transition');
+    expect(writes.single.headers['X-Suite-Organization'], '7');
+    expect(writes.single.data, {
+      'expected_version': 3,
+      'stage_id': 4,
+      'corrections': {'amount': 100},
+      'lost_reason': '',
+      'reactivate_at': null,
+    });
+    expect(find.text('Qualified'), findsOneWidget);
+  });
+
   testWidgets('Contact creation validates the name and posts to shared CRM', (
     tester,
   ) async {

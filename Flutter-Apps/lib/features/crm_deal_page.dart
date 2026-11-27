@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import 'crm_deal_stage_page.dart';
 
 class CrmDealPage extends StatefulWidget {
   const CrmDealPage({
@@ -10,6 +11,8 @@ class CrmDealPage extends StatefulWidget {
     required this.summary,
     required this.offline,
     required this.scopeHeaders,
+    this.canMove = false,
+    this.onMoved,
   });
 
   static const endpoint = '/crm/deal-workspace/query';
@@ -26,6 +29,8 @@ class CrmDealPage extends StatefulWidget {
   final Json summary;
   final bool offline;
   final Map<String, String> scopeHeaders;
+  final bool canMove;
+  final VoidCallback? onMoved;
 
   @override
   State<CrmDealPage> createState() => _CrmDealPageState();
@@ -33,6 +38,7 @@ class CrmDealPage extends StatefulWidget {
 
 class _CrmDealPageState extends State<CrmDealPage> {
   late Future<Json?> _deal = widget.offline ? Future.value() : _load();
+  Json? _movedStage;
 
   Future<Json?> _load() async {
     final revision = widget.api.sessionRevision;
@@ -63,6 +69,22 @@ class _CrmDealPageState extends State<CrmDealPage> {
     _deal = _load();
   });
 
+  Future<void> _reviewStage() async {
+    final stage = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => CrmDealStagePage(
+          api: widget.api,
+          id: widget.summary['id'] as int,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || stage == null) return;
+    _movedStage = stage;
+    _refresh();
+    widget.onMoved?.call();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -90,9 +112,18 @@ class _CrmDealPageState extends State<CrmDealPage> {
           );
         }
         final data = snapshot.data ?? widget.summary;
+        final movedStageName = _movedStage?['name'];
         final fields = {
           'Company': data['company_name'] ?? widget.summary['company_name'],
-          'Stage': data['stage_name'] ?? widget.summary['stage_name'],
+          'Stage':
+              data['stage_name'] ??
+              (_movedStage?['id'] == data['stage_id']
+                  ? movedStageName
+                  : null) ??
+              (snapshot.data == null ||
+                      data['stage_id'] == widget.summary['stage_id']
+                  ? widget.summary['stage_name']
+                  : null),
           'Status': data['status'],
           'Amount': data['amount'] == null
               ? null
@@ -115,6 +146,16 @@ class _CrmDealPageState extends State<CrmDealPage> {
               '${data['name'] ?? 'Deal'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.canMove &&
+                snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  onPressed: _reviewStage,
+                  child: const Text('Review stage move'),
+                ),
+              ),
             for (final field in fields.entries)
               if (field.value != null && field.value.toString().isNotEmpty)
                 ListTile(
