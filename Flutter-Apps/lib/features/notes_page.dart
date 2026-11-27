@@ -167,6 +167,8 @@ class _NotesPageState extends State<NotesPage> {
     List<Map<String, dynamic>>? saved;
     Map<int, String>? savedBodies;
     try {
+      final drafts = await widget.cache?.creations();
+      if (current()) setState(() => _creations = drafts ?? []);
       if (canReadSaved) saved = await widget.cache?.summaries();
       if (query.isNotEmpty && (saved?.isNotEmpty ?? false)) {
         savedBodies = await widget.cache?.savedBodies();

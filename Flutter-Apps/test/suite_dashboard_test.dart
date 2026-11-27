@@ -3046,6 +3046,45 @@ void main() {
     expect(find.text('Trashed note'), findsNothing);
   });
 
+  testWidgets('Notes shows a queued draft while refresh is pending', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    const server = 'https://example.test/api/v1';
+    final cache = NotesOfflineCache('["$server",43,7]');
+    await cache.enqueueNew({'title': 'Locally saved draft'});
+    final refresh = Completer<ResponseBody>();
+    final api = ApiClient(
+      baseUrl: server,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            return refresh.isCompleted ? response([]) : refresh.future;
+          }
+          expect(request.path, '/project-management/notes/offline-create');
+          return response({'id': 42}, 201);
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'access',
+      'refresh_token': 'refresh',
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Locally saved draft'), findsOneWidget);
+    expect(find.text('Saved · Awaiting sync'), findsOneWidget);
+    expect(refresh.isCompleted, isFalse);
+    refresh.complete(response([]));
+    await tester.pumpAndSettle();
+    expect(await cache.creations(), isEmpty);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('Notes reuses the online operation ID after a lost response', (
     tester,
   ) async {
@@ -3799,7 +3838,7 @@ void main() {
                   context,
                   api: api,
                   scopeHeaders: const {'X-Suite-Branch': '6'},
-                drafts: drafts,
+                  drafts: drafts,
                 );
               },
               child: const Text('Open draft form'),
