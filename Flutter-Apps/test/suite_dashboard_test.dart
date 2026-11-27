@@ -2742,18 +2742,12 @@ void main() {
                 {'movement_number': 'STOCK-1', 'quantity_in': 3},
               ],
             }),
-            '/srm/inventory/reports/stock-summary' => response({
+            '/srm/inventory/reports/reorder' => response({
               'items': [
                 {
                   'id': 12,
                   'item_name': 'Sample product',
                   'current_quantity': 0,
-                  'reorder_threshold': 3,
-                },
-                {
-                  'id': 13,
-                  'item_name': 'Healthy product',
-                  'current_quantity': 20,
                   'reorder_threshold': 3,
                 },
               ],

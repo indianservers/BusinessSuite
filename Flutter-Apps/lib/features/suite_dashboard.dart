@@ -1159,9 +1159,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     });
   }
 
-  static const _stockSummaryPath = '/srm/inventory/reports/stock-summary';
+  static const _reorderPath = '/srm/inventory/reports/reorder';
+  static const _stockSummaryCachePath = '/srm/inventory/reports/stock-summary';
   static const _listReuseWindow = Duration(seconds: 15);
-  bool get _stockAlerts => widget.path == _stockSummaryPath;
+  bool get _stockAlerts => widget.path == _reorderPath;
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
   num? _stockNumber(Object? value) =>
@@ -1227,7 +1228,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   String? get _cacheKey => widget.cachePrefix == null
       ? null
-      : '${widget.cachePrefix}:${widget.path}';
+      : '${widget.cachePrefix}:${_stockAlerts ? _stockSummaryCachePath : widget.path}';
 
   Future<List<Json>> _startLoad({bool reconnect = false}) {
     final result = _load(reconnect: reconnect);
@@ -1604,7 +1605,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 builder: (_) => _SuiteRecords(
                   title: 'Low stock alerts',
                   controller: widget.controller,
-                  path: _stockSummaryPath,
+                  path: _reorderPath,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly,
                 ),
@@ -1865,7 +1866,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? 'Search saved leads'
                                         : 'Search leads',
                                   '/srm/inventory/items' ||
-                                  _stockSummaryPath => 'Search products',
+                                  _reorderPath => 'Search products',
                                   GstInvoicePage.listEndpoint =>
                                     'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
