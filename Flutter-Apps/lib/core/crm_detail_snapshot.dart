@@ -35,6 +35,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   required Map<String, String> headers,
   required bool offline,
   required Json Function(Json) project,
+  Json query = const {},
   void Function(Json)? onCached,
 }) async {
   final revision = api.sessionRevision;
@@ -64,7 +65,8 @@ Future<({Json? record, bool live})> loadCrmDetail({
   if (!offline) {
     try {
       final record =
-          await api.request('GET', path, scopeHeaders: headers) as Json;
+          await api.request('GET', path, scopeHeaders: headers, query: query)
+              as Json;
       awaitingLive = false;
       checkSession();
       if (key != null) {

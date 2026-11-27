@@ -28,6 +28,7 @@ import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
 import 'crm_deal_page.dart';
+import 'crm_follow_ups_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_order_drafts_page.dart';
@@ -532,6 +533,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         employeeCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
         canCreateTimesheets: canCreateTimesheets,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
+        canEditFollowUps:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'edit', const {
+              'crm_manage',
+              'crm_admin',
+              'crm_activities_manage',
+            }),
         canCreateContacts:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'create', const {
@@ -1429,6 +1437,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canArchiveOrders = false,
     this.canEditWarehouses = false,
     this.canCreateLead = false,
+    this.canEditFollowUps = false,
     this.canCreateContacts = false,
     this.canEditContacts = false,
     this.canMoveDeals = false,
@@ -1461,6 +1470,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canArchiveOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
+  final bool canEditFollowUps;
   final bool canCreateContacts;
   final bool canEditContacts;
   final bool canMoveDeals;
@@ -2301,10 +2311,27 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Tasks',
                   controller: widget.controller,
                   path: CrmTaskPage.endpoint,
+                  canEditFollowUps: widget.canEditFollowUps,
                   query: const {'sourceModule': 'crm', 'pageSize': 25},
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_crmTasks)
+          IconButton(
+            tooltip: 'Follow-ups',
+            icon: const Icon(LucideIcons.calendarDays),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CrmFollowUpsPage(
+                  api: widget.controller.api,
+                  headers: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                  canEdit: widget.canEditFollowUps,
                 ),
               ),
             ),
