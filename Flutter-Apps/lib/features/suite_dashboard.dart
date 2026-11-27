@@ -34,6 +34,7 @@ import '../core/notes_offline_cache.dart';
 import 'workspace_page.dart';
 
 typedef _App = ({
+  String key,
   String grant,
   String title,
   String caption,
@@ -44,6 +45,7 @@ typedef _App = ({
 
 const List<_App> _apps = [
   (
+    key: 'appointments',
     grant: 'srm',
     title: 'Appointments',
     caption: 'Bookings & schedule',
@@ -52,6 +54,7 @@ const List<_App> _apps = [
     endpoint: '/srm/industry/records',
   ),
   (
+    key: 'power_apps',
     grant: 'power_apps',
     title: 'Power Apps',
     caption: 'Build & automate',
@@ -60,6 +63,7 @@ const List<_App> _apps = [
     endpoint: PowerEnvironmentPage.endpoint,
   ),
   (
+    key: 'hrms',
     grant: 'hrms',
     title: 'AI HRMS',
     caption: 'People & payroll',
@@ -68,6 +72,7 @@ const List<_App> _apps = [
     endpoint: '/employees/',
   ),
   (
+    key: 'crm',
     grant: 'crm',
     title: 'VyaparaCRM',
     caption: 'Leads & customers',
@@ -76,6 +81,7 @@ const List<_App> _apps = [
     endpoint: CrmLeadPage.endpoint,
   ),
   (
+    key: 'pms',
     grant: 'project_management',
     title: 'KaryaFlow PMS',
     caption: 'Projects & tasks',
@@ -84,6 +90,7 @@ const List<_App> _apps = [
     endpoint: null,
   ),
   (
+    key: 'srm',
     grant: 'srm',
     title: 'Sales & POS',
     caption: 'Sales & inventory',
@@ -92,6 +99,7 @@ const List<_App> _apps = [
     endpoint: '/srm/sales-orders',
   ),
   (
+    key: 'fam',
     grant: 'fam',
     title: 'Finance & Accounting',
     caption: 'Accounts & ledgers',
@@ -110,13 +118,68 @@ class SuiteDashboard extends StatefulWidget {
 }
 
 class _SuiteDashboardState extends State<SuiteDashboard> {
+  static const _preferencesPath = '/access/launcher-preferences';
   late Future<Json> _access = _load();
+  List<String>? _favorites;
+  bool _favoritesOnly = false;
+  bool _savingFavorites = false;
+  int _favoritesRequest = 0;
   String _query = '';
   Timer? _syncTimer;
   AppLifecycleListener? _lifecycle;
   bool _syncing = false;
   int _unreadNotifications = 0;
   int _notificationRequest = 0;
+
+  Future<void> _refreshFavorites() async {
+    final controller = widget.controller;
+    if (controller.offline || _savingFavorites) return;
+    final api = controller.api;
+    final session = api.sessionRevision;
+    final request = ++_favoritesRequest;
+    try {
+      final data = await api.request('GET', _preferencesPath) as Json;
+      if (!mounted ||
+          request != _favoritesRequest ||
+          session != api.sessionRevision) {
+        return;
+      }
+      setState(() {
+        _favorites =
+            (data['favorites'] as List?)?.whereType<String>().toList() ?? [];
+      });
+    } catch (_) {
+      // Favorites remain optional when the shared preferences API is unavailable.
+    }
+  }
+
+  Future<void> _toggleFavorite(String key) async {
+    final favorites = _favorites;
+    if (favorites == null || _savingFavorites || widget.controller.offline) {
+      return;
+    }
+    final api = widget.controller.api;
+    final session = api.sessionRevision;
+    final next = [...favorites];
+    if (!next.remove(key)) next.add(key);
+    _favoritesRequest++;
+    setState(() => _savingFavorites = true);
+    try {
+      final result =
+          await api.request('PUT', _preferencesPath, data: {'favorites': next})
+              as Json;
+      if (!mounted || session != api.sessionRevision) return;
+      setState(() => _favorites = (result['favorites'] as List).cast<String>());
+    } catch (_) {
+      if (mounted && session == api.sessionRevision) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save your favorites.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingFavorites = false);
+    }
+  }
 
   Future<void> _refreshUnread() async {
     final controller = widget.controller;
@@ -140,6 +203,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
   void initState() {
     super.initState();
     _refreshUnread();
+    _refreshFavorites();
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       _syncTimer = Timer.periodic(
         const Duration(seconds: 20),
@@ -149,6 +213,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         onResume: () {
           _syncEdits(_access);
           _refreshUnread();
+          _refreshFavorites();
         },
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -458,7 +523,15 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                       app.grant != 'project_management'),
             )
             .toList();
-        final shown = allowed
+        final favoriteKeys = _favorites ?? const <String>[];
+        final byKey = {for (final app in allowed) app.key: app};
+        final ordered = [
+          for (final key in favoriteKeys)
+            if (byKey[key] case final app?) app,
+          if (!_favoritesOnly)
+            ...allowed.where((app) => !favoriteKeys.contains(app.key)),
+        ];
+        final shown = ordered
             .where(
               (app) => '${app.title} ${app.caption}'.toLowerCase().contains(
                 _query.trim().toLowerCase(),
@@ -472,6 +545,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
             });
             try {
               await _access;
+              await _refreshFavorites();
             } catch (_) {
               /* Reported by FutureBuilder. */
             }
@@ -528,12 +602,34 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 10),
+              if (_favorites != null) ...[
+                SegmentedButton<bool>(
+                  segments: [
+                    const ButtonSegment(
+                      value: false,
+                      label: Text('All applications'),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text(
+                        'Favorites (${allowed.where((app) => _favorites!.contains(app.key)).length})',
+                      ),
+                      icon: const Icon(LucideIcons.star),
+                    ),
+                  ],
+                  selected: {_favoritesOnly},
+                  onSelectionChanged: (value) => setState(() {
+                    _favoritesOnly = value.single;
+                  }),
+                ),
+                const SizedBox(height: 10),
+              ],
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisExtent: 126,
+                  mainAxisExtent: _favorites == null ? 126 : 144,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
                 ),
@@ -552,7 +648,35 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(app.icon, color: app.color),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(app.icon, color: app.color),
+                                if (_favorites != null)
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 42,
+                                      height: 32,
+                                    ),
+                                    tooltip: _favorites!.contains(app.key)
+                                        ? 'Remove ${app.title} from favorites'
+                                        : 'Add ${app.title} to favorites',
+                                    onPressed:
+                                        _savingFavorites ||
+                                            widget.controller.offline
+                                        ? null
+                                        : () => _toggleFavorite(app.key),
+                                    icon: Icon(
+                                      _favorites!.contains(app.key)
+                                          ? Icons.star
+                                          : LucideIcons.star,
+                                      size: 18,
+                                    ),
+                                  ),
+                              ],
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               app.title,

@@ -2630,6 +2630,11 @@ void main() {
                 },
               ],
             }),
+            '/access/launcher-preferences' => response({
+              'favorites': request.method == 'PUT'
+                  ? (request.data as Map)['favorites']
+                  : ['future_app'],
+            }),
             '/access/settings/options/account' => response({
               'description': 'Manage your account',
               'editable': true,
@@ -2815,6 +2820,20 @@ void main() {
           findsOneWidget,
         );
       }
+      await tester.tap(find.byTooltip('Add Appointments to favorites'));
+      await tester.pumpAndSettle();
+      final preferenceWrite = calls.singleWhere(
+        (r) => r.path == '/access/launcher-preferences' && r.method == 'PUT',
+      );
+      expect(preferenceWrite.data, {
+        'favorites': ['future_app', 'appointments'],
+      });
+      await tester.tap(find.text('Favorites (1)'));
+      await tester.pumpAndSettle();
+      expect(find.text('Power Apps'), findsNothing);
+      expect(find.text('Appointments'), findsOneWidget);
+      await tester.tap(find.text('All applications'));
+      await tester.pumpAndSettle();
 
       Future<void> open(String label) async {
         final target = find.text(label).last;
