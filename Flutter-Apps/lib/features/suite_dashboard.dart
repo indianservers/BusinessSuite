@@ -2613,6 +2613,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
           productId: id,
           scopeHeaders: widget.scopeHeaders,
           cacheScope: widget.cacheScope,
+          offline: _offline,
         ),
       ),
     );
@@ -2661,7 +2662,10 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (pending) const LinearProgressIndicator(),
-            if (widget.canRecordStock && !pending && snapshot.data != null)
+            if (widget.canRecordStock &&
+                !pending &&
+                (snapshot.data != null ||
+                    (_offline && widget.cacheScope != null)))
               OutlinedButton.icon(
                 onPressed: _recordStock,
                 icon: const Icon(LucideIcons.packagePlus),

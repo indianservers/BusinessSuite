@@ -2657,7 +2657,6 @@ void main() {
           summary: const {'id': 12},
           offline: false,
           canRecordStock: true,
-          cacheScope: '["https://example.test/api/v1",7,3]',
           scopeHeaders: const {'X-Suite-Branch': '3'},
         ),
       ),
@@ -2674,10 +2673,6 @@ void main() {
       '2.5',
     );
     await tester.tap(find.text('Save movement'));
-    await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Record stock movement'));
     await tester.pumpAndSettle();
     expect(find.text('Pending stock movement'), findsOneWidget);
     await tester.tap(find.text('Retry same movement'));

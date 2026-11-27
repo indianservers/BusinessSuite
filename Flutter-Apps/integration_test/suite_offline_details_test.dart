@@ -9,6 +9,7 @@ import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
+import 'package:business_suite_mobile/features/inventory_stock_movement_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
@@ -24,6 +25,71 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Android saves a stock movement offline and sends it later', (
+    tester,
+  ) async {
+    final scope = 'stock-qa-${DateTime.now().microsecondsSinceEpoch}';
+    await SuiteReadCache.write('$scope:/srm/inventory/warehouses:3', [
+      {'id': 4, 'warehouse_name': 'Offline QA warehouse'},
+    ]);
+    final calls = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          calls.add(request);
+          return response({}, 201);
+        }),
+    );
+    Widget page(bool offline) => MaterialApp(
+      home: InventoryStockMovementPage(
+        api: api,
+        productId: 12,
+        scopeHeaders: const {'X-Suite-Branch': '3'},
+        cacheScope: scope,
+        offline: offline,
+      ),
+    );
+    Future<void> waitFor(Finder finder) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(finder, findsOneWidget);
+    }
+
+    await tester.pumpWidget(page(true));
+    await waitFor(find.text('Save for later'));
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Offline QA warehouse').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Quantity'),
+      '2.5',
+    );
+    await tester.tap(find.text('Save for later'));
+    await waitFor(find.text('Pending stock movement'));
+    expect(calls, isEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(page(false));
+    await waitFor(find.text('Retry same movement'));
+    await tester.tap(find.text('Retry same movement'));
+    await tester.pumpAndSettle();
+    final sent = calls.single;
+    expect(sent.path, '/srm/inventory/stock-movements/offline-create');
+    expect(sent.headers['X-Suite-Branch'], '3');
+    expect(sent.headers['X-Offline-Operation'], isNotNull);
+    expect(sent.data, {
+      'product_id': 12,
+      'warehouse_id': 4,
+      'movement_type': 'stock_in',
+      'quantity': '2.5',
+    });
+  });
 
   const notesQaUrl = String.fromEnvironment('NOTES_QA_API_URL');
   const browserRun = String.fromEnvironment('NOTES_BROWSER_RUN');

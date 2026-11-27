@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class InventoryStockMovementPage extends StatefulWidget {
   const InventoryStockMovementPage({
@@ -14,12 +16,14 @@ class InventoryStockMovementPage extends StatefulWidget {
     required this.productId,
     required this.scopeHeaders,
     this.cacheScope,
+    this.offline = false,
   });
 
   final ApiClient api;
   final int productId;
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
+  final bool offline;
 
   @override
   State<InventoryStockMovementPage> createState() =>
@@ -39,6 +43,7 @@ class _InventoryStockMovementPageState
   bool _saving = false;
   ({String id, Json payload})? _uncertainAttempt;
   static const _storage = FlutterSecureStorage();
+  static const _warehousesPath = '/srm/inventory/warehouses';
   String? get _receiptKey {
     final scope = widget.cacheScope;
     final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
@@ -62,11 +67,53 @@ class _InventoryStockMovementPageState
         return null;
       }
     }
-    return widget.api.request(
-      'GET',
-      '/srm/inventory/warehouses',
-      scopeHeaders: widget.scopeHeaders,
-    );
+    final scope = widget.cacheScope;
+    final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+    final cacheKey = scope == null ? null : '$scope:$_warehousesPath:$branch';
+    if (widget.offline) {
+      final saved = cacheKey == null
+          ? null
+          : await SuiteReadCache.read(cacheKey);
+      return saved == null ? null : {'items': saved};
+    }
+    final Object? result;
+    try {
+      result = await widget.api.request(
+        'GET',
+        _warehousesPath,
+        scopeHeaders: widget.scopeHeaders,
+      );
+    } on ApiFailure catch (error) {
+      if (cacheKey != null &&
+          session == widget.api.sessionRevision &&
+          const {401, 403}.contains(error.status)) {
+        try {
+          await SuiteReadCache.clear(cacheKey);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+    if (cacheKey != null &&
+        session == widget.api.sessionRevision &&
+        result is Json &&
+        result['items'] is List) {
+      unawaited(
+        _cacheWarehouses(cacheKey, [
+          for (final row in (result['items'] as List).whereType<Json>())
+            if (row['id'] is int)
+              {'id': row['id'], 'warehouse_name': row['warehouse_name']},
+        ]),
+      );
+    }
+    return result;
+  }
+
+  Future<void> _cacheWarehouses(String key, List<Json> rows) async {
+    try {
+      await SuiteReadCache.write(key, rows);
+    } catch (_) {
+      // Online warehouse choices can still be used.
+    }
   }
 
   Future<void> _clearReceipt(String? key) async {
@@ -86,6 +133,7 @@ class _InventoryStockMovementPageState
     final session = widget.api.sessionRevision;
     final key = _receiptKey;
     final retrying = _uncertainAttempt != null;
+    if (widget.offline && (key == null || retrying)) return;
     final attempt =
         _uncertainAttempt ??
         (
@@ -112,6 +160,10 @@ class _InventoryStockMovementPageState
         );
       }
       if (!mounted || session != widget.api.sessionRevision) return;
+      if (widget.offline) {
+        setState(() => _uncertainAttempt = attempt);
+        return;
+      }
       await widget.api.request(
         'POST',
         '/srm/inventory/stock-movements/offline-create',
@@ -178,14 +230,22 @@ class _InventoryStockMovementPageState
                 ),
                 if (_error != null) Text(_error!),
                 const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Retry same movement'),
-                ),
+                if (widget.offline)
+                  const Text('Saved on this device. Reconnect to send it.')
+                else
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: Text(_saving ? 'Saving…' : 'Retry same movement'),
+                  ),
               ],
             );
           }
           if (data is! Json || data['items'] is! List) {
+            if (widget.offline) {
+              return const Center(
+                child: Text('Connect to load warehouse choices.'),
+              );
+            }
             return Center(
               child: TextButton(
                 onPressed: () => setState(() {
@@ -277,7 +337,13 @@ class _InventoryStockMovementPageState
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Save movement'),
+                  child: Text(
+                    _saving
+                        ? 'Saving…'
+                        : widget.offline
+                        ? 'Save for later'
+                        : 'Save movement',
+                  ),
                 ),
               ],
             ),
