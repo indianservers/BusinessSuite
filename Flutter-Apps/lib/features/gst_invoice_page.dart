@@ -371,6 +371,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   late Future<(Json, bool)> _invoice = _load();
   late bool _offline = widget.offline;
   Json? _saved;
+  int _loadGeneration = 0;
   bool _exporting = false;
   bool _issuing = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
@@ -409,42 +410,66 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     final api = widget.api;
     final revision = api.sessionRevision;
     final key = _key;
-    Json? cached;
-    if (key != null) {
+    final generation = ++_loadGeneration;
+    var awaitingLive = !_offline || reconnect;
+    bool current() =>
+        mounted &&
+        generation == _loadGeneration &&
+        api.sessionRevision == revision;
+    void checkSession() {
+      if (api.sessionRevision != revision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+    }
+
+    Future<Json?> readCache() async {
+      if (key == null) return null;
       try {
-        cached = (await SuiteReadCache.read(key))?.firstOrNull;
-        if (mounted && api.sessionRevision == revision) {
+        final cached = (await SuiteReadCache.read(key))?.firstOrNull;
+        if (cached != null && awaitingLive && current()) {
           setState(() => _saved = cached);
         }
+        return cached;
       } catch (_) {}
+      return null;
     }
-    if (api.sessionRevision != revision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
+
+    final cached = readCache();
+    Future<(Json, bool)> fallback(ApiFailure error) async {
+      final saved = await cached ?? widget.summary;
+      checkSession();
+      if (saved != null) return (saved, true);
+      throw error;
     }
-    final fallback = cached ?? widget.summary;
-    if (_offline && !reconnect) {
-      if (fallback != null) return (fallback, true);
-      throw ApiFailure('Open this invoice online to save it on this device.');
+
+    if (!awaitingLive) {
+      return fallback(
+        ApiFailure('Open this invoice online to save it on this device.'),
+      );
     }
     try {
       final invoice =
           await api.request('GET', _path, scopeHeaders: widget.scopeHeaders)
               as Json;
-      if (api.sessionRevision != revision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
+      awaitingLive = false;
+      checkSession();
+      if (current()) {
+        unawaited(_saveSnapshot(invoice));
+        _offline = false;
       }
-      unawaited(_saveSnapshot(invoice));
-      _offline = false;
       return (invoice, false);
     } on ApiFailure catch (error) {
-      if (fallback != null &&
-          (error.connectionFailure ||
-              (error.status ?? 0) >= 500 ||
-              error.status == 429)) {
-        return (fallback, true);
+      awaitingLive = false;
+      checkSession();
+      if (error.connectionFailure ||
+          (error.status ?? 0) >= 500 ||
+          error.status == 429) {
+        return fallback(error);
       }
-      if (key != null && const {401, 403, 404}.contains(error.status)) {
-        if (mounted) setState(() => _saved = null);
+      if (key != null &&
+          current() &&
+          const {401, 403, 404}.contains(error.status)) {
+        setState(() => _saved = null);
         try {
           await SuiteReadCache.clear(key);
         } catch (_) {}
