@@ -542,6 +542,22 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         (controller.user?.isSuperuser == true ||
             access['managed'] != true ||
             (grant?['actions'] as List?)?.contains(action) == true);
+    const voucherPostingPermissions = {'fam_admin', 'fam_vouchers_post'};
+    final finance = (access['grants'] as Json?)?['fam'] as Json?;
+    final canPostVoucher =
+        app.grant == 'fam' &&
+        !controller.offline &&
+        (controller.user?.isSuperuser == true ||
+            (access['managed'] == true
+                ? (finance?['actions'] as List?)?.contains('approve') == true &&
+                      (finance?['permissions'] as List?)?.any(
+                            voucherPostingPermissions.contains,
+                          ) ==
+                          true
+                : controller.user?.permissions.any(
+                        voucherPostingPermissions.contains,
+                      ) ==
+                      true));
     final hr = (access['grants'] as Json?)?['hrms'] as Json?;
     final canCreateTimesheets =
         controller.user?.isSuperuser == true ||
@@ -554,6 +570,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         controller: controller,
         path: app.endpoint,
         canViewFinanceInventory: _allowed(access, 'fam'),
+        canPostVoucher: canPostVoucher,
         query:
             app.title == 'Sales & POS' ||
                 app.grant == 'crm' ||
@@ -1466,6 +1483,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canCreateTimesheets = false,
     this.showInventory = false,
     this.canViewFinanceInventory = false,
+    this.canPostVoucher = false,
     this.canExportSalesDocuments = false,
     this.canIssueInvoices = false,
     this.canEditOrders = false,
@@ -1501,6 +1519,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canCreateTimesheets;
   final bool showInventory;
   final bool canViewFinanceInventory;
+  final bool canPostVoucher;
   final bool canExportSalesDocuments;
   final bool canIssueInvoices;
   final bool canEditOrders;
@@ -2967,6 +2986,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               MaterialPageRoute<void>(
                 builder: (_) => FinanceVouchersPage(
                   api: widget.controller.api,
+                  canPost: widget.canPostVoucher,
                   scopeHeaders: widget.scopeHeaders,
                   cacheScope: widget.cachePrefix,
                   offline: _offlineOnly || _usedSavedFallback,

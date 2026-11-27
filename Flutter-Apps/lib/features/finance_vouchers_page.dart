@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 
 class FinanceVouchersPage extends StatefulWidget {
   const FinanceVouchersPage({
@@ -12,12 +13,14 @@ class FinanceVouchersPage extends StatefulWidget {
     this.cacheScope,
     this.scopeHeaders = const {},
     this.offline = false,
+    this.canPost = false,
   });
 
   final ApiClient api;
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool offline;
+  final bool canPost;
 
   @override
   State<FinanceVouchersPage> createState() => _FinanceVouchersPageState();
@@ -59,7 +62,10 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
   void _open(Json row, bool offline) {
     final id = row['id'];
     if (id is! int) return;
-    final detail = loadCrmDetail(
+    final revision = widget.api.sessionRevision;
+    Future<({Json? record, bool live})> loadDetail({
+      required bool offline,
+    }) => loadCrmDetail(
       api: widget.api,
       path: '$_path/$id',
       scope: widget.cacheScope,
@@ -77,73 +83,176 @@ class _FinanceVouchersPageState extends State<FinanceVouchersPage> {
         ],
       },
     );
+    var detail = loadDetail(offline: offline);
+    var posting = false;
+    String? error;
+    Future<void> post(
+      BuildContext context,
+      StateSetter update,
+      Json voucher,
+    ) async {
+      if (posting || widget.api.sessionRevision != revision) return;
+      update(() {
+        posting = true;
+        error = null;
+      });
+      try {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+            title: const Text('Post this voucher?'),
+            content: Text(
+              '${voucher['voucher_number']} · Debit ${voucher['total_debit']} · Credit ${voucher['total_credit']}\n\n'
+              'Posting records the entries in the ledger.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialog, true),
+                child: const Text('Confirm posting'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true ||
+            !context.mounted ||
+            widget.api.sessionRevision != revision) {
+          return;
+        }
+        await widget.api.request(
+          'POST',
+          '$_path/$id/post',
+          scopeHeaders: widget.scopeHeaders,
+        );
+        if (widget.api.sessionRevision != revision) return;
+        if (widget.cacheScope case final String scope) {
+          final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+          for (final path in [_path, '$_path/$id']) {
+            final key = '$scope:$path:$branch';
+            try {
+              await flushCrmDetailWrite(key);
+              await SuiteReadCache.clear(key);
+            } catch (_) {}
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _register = _load(offline: false);
+          });
+        }
+        if (context.mounted) {
+          update(() {
+            detail = loadDetail(offline: false);
+          });
+        }
+      } on ApiFailure catch (failure) {
+        if (!context.mounted || widget.api.sessionRevision != revision) return;
+        update(() {
+          error = failure.message;
+          if (failure.connectionFailure ||
+              (failure.status ?? 0) >= 500 ||
+              failure.status == 409) {
+            detail = loadDetail(offline: false);
+          }
+        });
+      } finally {
+        if (context.mounted) update(() => posting = false);
+      }
+    }
+
     Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text('${row['voucher_number']}')),
-          body: FutureBuilder(
-            future: detail,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('${snapshot.error}'));
-              }
-              final result = snapshot.requireData;
-              final data = result.record ?? row;
-              final lines = (data['lines'] as List? ?? const []).cast<Json>();
-              return ListView(
-                children: [
-                  if (!result.live)
+        builder: (_) => StatefulBuilder(
+          builder: (context, update) => Scaffold(
+            appBar: AppBar(title: Text('${row['voucher_number']}')),
+            body: FutureBuilder(
+              future: detail,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('${snapshot.error}'));
+                }
+                final result = snapshot.requireData;
+                final data = result.record ?? row;
+                final lines = (data['lines'] as List? ?? const []).cast<Json>();
+                final debit = num.tryParse('${data['total_debit']}');
+                final credit = num.tryParse('${data['total_credit']}');
+                return ListView(
+                  children: [
+                    if (!result.live)
+                      ListTile(
+                        title: Text(
+                          result.record == null
+                              ? 'Saved voucher summary'
+                              : 'Saved voucher details',
+                        ),
+                      ),
                     ListTile(
                       title: Text(
-                        result.record == null
-                            ? 'Saved voucher summary'
-                            : 'Saved voucher details',
+                        '${data['voucher_date']} · ${data['status']}',
                       ),
+                      subtitle: Text('${data['source_module'] ?? ''}'),
                     ),
-                  ListTile(
-                    title: Text('${data['voucher_date']} · ${data['status']}'),
-                    subtitle: Text('${data['source_module'] ?? ''}'),
-                  ),
-                  if (data['reference_number'] case final String reference)
+                    if (data['reference_number'] case final String reference)
+                      ListTile(
+                        title: const Text('Reference'),
+                        trailing: Text(reference),
+                      ),
                     ListTile(
-                      title: const Text('Reference'),
-                      trailing: Text(reference),
+                      title: const Text('Total debit'),
+                      trailing: Text('${data['total_debit'] ?? '—'}'),
                     ),
-                  ListTile(
-                    title: const Text('Total debit'),
-                    trailing: Text('${data['total_debit'] ?? '—'}'),
-                  ),
-                  ListTile(
-                    title: const Text('Total credit'),
-                    trailing: Text('${data['total_credit'] ?? '—'}'),
-                  ),
-                  ListTile(
-                    title: const Text('Entry lines'),
-                    subtitle: result.record == null
-                        ? const Text(
-                            'Open this voucher online to save its lines.',
-                          )
-                        : lines.isEmpty
-                        ? const Text('No entry lines')
-                        : null,
-                  ),
-                  for (final line in lines)
                     ListTile(
-                      title: Text('Ledger #${line['ledger_id']}'),
-                      subtitle: line['narration'] is String
-                          ? Text(line['narration'] as String)
+                      title: const Text('Total credit'),
+                      trailing: Text('${data['total_credit'] ?? '—'}'),
+                    ),
+                    if (error != null) ListTile(title: Text(error!)),
+                    if (widget.canPost &&
+                        result.live &&
+                        data['status'] == 'draft')
+                      ListTile(
+                        title: FilledButton(
+                          onPressed:
+                              posting ||
+                                  debit == null ||
+                                  debit <= 0 ||
+                                  debit != credit ||
+                                  lines.isEmpty
+                              ? null
+                              : () => post(context, update, data),
+                          child: Text(posting ? 'Posting…' : 'Post voucher'),
+                        ),
+                      ),
+                    ListTile(
+                      title: const Text('Entry lines'),
+                      subtitle: result.record == null
+                          ? const Text(
+                              'Open this voucher online to save its lines.',
+                            )
+                          : lines.isEmpty
+                          ? const Text('No entry lines')
                           : null,
-                      trailing: Text(
-                        'Debit ${line['debit_amount'] ?? '—'}\nCredit ${line['credit_amount'] ?? '—'}',
-                        textAlign: TextAlign.end,
-                      ),
                     ),
-                ],
-              );
-            },
+                    for (final line in lines)
+                      ListTile(
+                        title: Text('Ledger #${line['ledger_id']}'),
+                        subtitle: line['narration'] is String
+                            ? Text(line['narration'] as String)
+                            : null,
+                        trailing: Text(
+                          'Debit ${line['debit_amount'] ?? '—'}\nCredit ${line['credit_amount'] ?? '—'}',
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

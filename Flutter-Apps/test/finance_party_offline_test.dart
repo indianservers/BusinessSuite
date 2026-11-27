@@ -13,15 +13,15 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
-  testWidgets('Finance opens saved backend voucher entries from the register', (
+  testWidgets('Finance posts a balanced voucher only after confirmation', (
     tester,
   ) async {
     final paths = <String>[];
-    const voucher = {
+    final voucher = {
       'id': 7,
       'voucher_number': 'V-007',
       'voucher_date': '2026-11-27',
-      'status': 'posted',
+      'status': 'draft',
       'total_debit': '250.00',
       'total_credit': '250.00',
       'source_module': 'fam',
@@ -33,6 +33,11 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
           paths.add(request.path);
+          if (request.path == '/fam/vouchers/7/post') {
+            expect(request.method, 'POST');
+            voucher['status'] = 'posted';
+            return response(voucher);
+          }
           return switch (request.path) {
             '/fam/vouchers' => response({
               'items': [voucher],
@@ -45,6 +50,11 @@ void main() {
                   'debit_amount': '250.00',
                   'credit_amount': '0.00',
                 },
+                {
+                  'ledger_id': 9,
+                  'debit_amount': '0.00',
+                  'credit_amount': '250.00',
+                },
               ],
             }),
             _ => throw StateError(request.path),
@@ -55,6 +65,7 @@ void main() {
       MaterialApp(
         home: FinanceVouchersPage(
           api: api,
+          canPost: true,
           scopeHeaders: const {'X-Suite-Branch': '6'},
         ),
       ),
@@ -70,6 +81,19 @@ void main() {
     expect(find.text('Ledger #8'), findsOneWidget);
     expect(find.text('Debit 250.00\nCredit 0.00'), findsOneWidget);
     expect(paths, ['/fam/vouchers', '/fam/vouchers/7']);
+    await tester.tap(find.text('Post voucher'));
+    await tester.pumpAndSettle();
+    expect(paths, ['/fam/vouchers', '/fam/vouchers/7']);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(paths, ['/fam/vouchers', '/fam/vouchers/7']);
+    await tester.tap(find.text('Post voucher'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm posting'));
+    await tester.pumpAndSettle();
+    expect(paths.where((path) => path.endsWith('/post')), hasLength(1));
+    expect(find.text('2026-11-27 · posted'), findsOneWidget);
+    expect(find.text('Post voucher'), findsNothing);
   });
 
   testWidgets(
