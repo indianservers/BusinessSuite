@@ -2109,17 +2109,58 @@ def list_purchase_orders(search: str | None = Query(default=None, max_length=220
 
 @router.post("/procurement/purchase-orders", status_code=201)
 def create_purchase_order(data: SRMPurchaseOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
-    return _create_purchase_order(data, db, current_user, draft=False)
+    return _save_purchase_order(data, db, current_user, draft=False)
 
 
 @router.post("/procurement/purchase-orders/drafts", status_code=201)
 def create_purchase_order_draft(data: SRMPurchaseOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
-    return _create_purchase_order(data, db, current_user, draft=True)
+    return _save_purchase_order(data, db, current_user, draft=True)
+
+
+@router.post("/procurement/purchase-orders/drafts/offline-create", status_code=201)
+def create_purchase_order_draft_with_receipt(
+    data: SRMPurchaseOrderCreate,
+    offline_operation: UUID = Header(alias="X-Offline-Operation"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("srm_manage", "srm_admin")),
+):
+    from app.access.service import check_background_access
+    from app.apps.srm.services.commercial import lock_tenant
+    from app.shared.offline_operations import perform_offline_operation
+
+    check_background_access(db, current_user, "srm", "create")
+    lock_tenant(db, current_user)
+    org_id = _org(current_user)
+
+    def apply():
+        return _create_purchase_order(data, db, current_user, draft=True)
+
+    def check_replay(receipt):
+        existing = db.get(SRMPurchaseOrder, receipt["id"])
+        if existing is None or existing.organization_id != org_id or existing.deleted_at is not None:
+            raise HTTPException(404, "Purchase order not found")
+
+    return perform_offline_operation(
+        db,
+        current_user,
+        offline_operation,
+        ("create_purchase_order_draft", org_id),
+        data.model_dump(mode="json"),
+        apply,
+        check_replay,
+    )
+
+
+def _save_purchase_order(data: SRMPurchaseOrderCreate, db: Session, current_user: User, *, draft: bool):
+    from app.apps.srm.services.commercial import lock_tenant
+
+    lock_tenant(db, current_user)
+    result = _create_purchase_order(data, db, current_user, draft=draft)
+    db.commit()
+    return result
 
 
 def _create_purchase_order(data: SRMPurchaseOrderCreate, db: Session, current_user: User, *, draft: bool):
-    from app.apps.srm.services.commercial import lock_tenant
-    lock_tenant(db, current_user)
     org_id = _org(current_user)
     if not data.lines:
         raise HTTPException(status_code=400, detail="Purchase order lines are required")
@@ -2170,9 +2211,8 @@ def _create_purchase_order(data: SRMPurchaseOrderCreate, db: Session, current_us
     po.tax_amount = tax
     po.total_amount = total
     db.flush()
-    _audit(db, current_user, "purchase_order", po.id, "created", None, _purchase_order_payload(po))
-    db.commit()
     db.refresh(po)
+    _audit(db, current_user, "purchase_order", po.id, "created", None, _purchase_order_payload(po))
     return _purchase_order_payload(po)
 
 

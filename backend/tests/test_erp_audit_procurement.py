@@ -4,6 +4,7 @@ import pytest
 
 from app.apps.business_os.services.module_service import ensure_business_os_seed
 from app.main import app
+from app.shared.offline_operations import receipts
 from tests.srm_test_utils import auth_headers_for
 
 
@@ -115,3 +116,22 @@ def test_purchase_order_draft_requires_issue_before_receiving(client, procuremen
     assert received.status_code == 201, received.text
     assert len(received.json()["lines"]) == 2
     assert client.get(f"/api/v1/srm/inventory/items/{line['product_id']}", headers=headers).json()["current_quantity"] == 3
+
+
+def test_queued_purchase_order_draft_has_one_receipt(client, db, procurement):
+    headers, line, _ = procurement
+    receipts.create(db.connection(), checkfirst=True)
+    base = "/api/v1/srm/procurement/purchase-orders"
+    path = f"{base}/drafts/offline-create"
+    payload = {"lines": [line]}
+    assert client.post(path, headers=headers, json=payload).status_code == 422
+    headers = {**headers, "X-Offline-Operation": str(uuid4())}
+    created = client.post(path, headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    assert created.json()["status"] == "draft"
+    replay = client.post(path, headers=headers, json=payload)
+    assert replay.status_code == 201, replay.text
+    assert replay.json() == created.json()
+    conflict = client.post(path, headers=headers, json={"lines": [{**line, "quantity": 6}]})
+    assert conflict.status_code == 409
+    assert client.get(base, headers=headers).json()["total"] == 2
