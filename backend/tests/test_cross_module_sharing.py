@@ -108,6 +108,36 @@ def test_company_profile_uses_verified_sales_accounting_mapping(client,db,superu
     assert profile['payables'] is None
 
 
+def test_offline_customer_edit_replays_saved_result(client, superuser_headers, directory_identity):
+    from uuid import uuid4
+
+    path = "/api/v1/master-data/companies"
+    created = client.post(path, headers=superuser_headers, json={"name": "Offline receipt customer"})
+    assert created.status_code in (200, 201), created.text
+    customer = created.json()
+    path = f"{path}/{customer['id']}"
+    headers = {**superuser_headers, "X-Offline-Operation": str(uuid4())}
+    payload = {"name": "Offline customer revision", "version": customer["version"]}
+
+    saved = client.patch(path, headers=headers, json=payload)
+    assert saved.status_code == 200, saved.text
+    web_edit = client.patch(
+        path,
+        headers=superuser_headers,
+        json={"name": "Newer web revision", "version": saved.json()["version"]},
+    )
+    assert web_edit.status_code == 200, web_edit.text
+
+    replayed = client.patch(path, headers=headers, json=payload)
+    assert replayed.status_code == 200, replayed.text
+    assert replayed.json() == saved.json()
+    mismatched = client.patch(path, headers=headers, json={**payload, "name": "Different request"})
+    assert mismatched.status_code == 409, mismatched.text
+    current = client.get(path, headers=superuser_headers)
+    assert current.status_code == 200, current.text
+    assert current.json()["name"] == "Newer web revision"
+
+
 def test_scoped_out_private_profile_is_never_recreated(client,db,superuser_headers,directory_identity):
     from datetime import date
     from app.models.user import User

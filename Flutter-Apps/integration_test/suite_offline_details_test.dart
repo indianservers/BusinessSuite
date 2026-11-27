@@ -467,6 +467,9 @@ void main() {
     final conflict = customerConflict.currentValue!;
     var customerName = 'Cached customer';
     var version = 'customer-v1';
+    String? operationId;
+    var editAttempts = 0;
+    Map<String, dynamic>? receipt;
     final requests = <String>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -484,6 +487,19 @@ void main() {
               'name': 'Offline customer edit',
               'version': 'customer-v1',
             });
+            final id = request.headers['X-Offline-Operation'];
+            expect(
+              id,
+              isA<String>().having(
+                (value) => value.isNotEmpty,
+                'nonempty',
+                true,
+              ),
+            );
+            operationId ??= id as String;
+            expect(id, operationId);
+            editAttempts++;
+            if (receipt != null) return response(receipt!);
             if (version != 'customer-v1') {
               return response({
                 'detail': 'Customer changed on the server',
@@ -491,11 +507,8 @@ void main() {
             }
             customerName = 'Offline customer edit';
             version = 'customer-v2';
-            return response({
-              'id': 7,
-              'name': customerName,
-              'version': version,
-            });
+            receipt = {'id': 7, 'name': customerName, 'version': version};
+            return response({'detail': 'Response lost after saving'}, 503);
           }
           return switch (request.path) {
             '/crm/contacts/4' => response({
@@ -598,6 +611,12 @@ void main() {
     connected = true;
     await tester.tap(find.text('Sync now').hitTestable());
     await tester.pumpAndSettle();
+    if (!conflict) {
+      expect(find.text('Customer edit saved · awaiting sync'), findsOneWidget);
+      await tester.tap(find.text('Sync now').hitTestable());
+      await tester.pumpAndSettle();
+    }
+    expect(editAttempts, conflict ? 1 : 2);
     expect(
       customerName,
       conflict ? 'Customer edited in web' : 'Offline customer edit',

@@ -6,7 +6,9 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Annotated, Literal
-from fastapi import APIRouter, Depends, HTTPException, Query
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ from app.apps.crm.models import CRMCompany, CRMContact, CRMLead
 from app.shared.master_data_models import ContactChannel, BusinessRelationship, CompanyMasterDetails, CompanyContactLink, ContactBirthday, GreetingReservation
 from app.core.business_validation import BUSINESS, business_type, website, registration as validate_registration, postal
 from app.apps.crm.financial_data import FinancialData
+from app.shared.offline_operations import perform_offline_operation
 
 router = APIRouter(prefix="/master-data", tags=["Shared contacts and companies"])
 Source = Literal["crm", "srm", "project_management", "hrms"]
@@ -707,7 +710,31 @@ def create_company(data: CompanyInput, source: Source = "crm", db: Session = Dep
 
 
 @router.patch("/companies/{ident}")
-def edit_company(ident: int, data: CompanyInput, source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+def edit_company(ident: int, data: CompanyInput, source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user),
+                 offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
+    if isinstance(offline_operation, UUID):
+        supported = {"version", "name", "entityKind", "email", "phone", "phone_country_code", "website", "industry"}
+        if not data.version or data.model_fields_set - supported:
+            raise HTTPException(422, "Offline customer edits require a version and supported profile fields.")
+
+        def apply_edit():
+            row = _edit_company_profile(db, actor, ident, data, source)
+            db.flush()
+            db.refresh(row)
+            return company_output(db, row)
+
+        return perform_offline_operation(
+            db, actor, offline_operation, ("edit_company_profile", source, actor.organization_id, ident),
+            data.model_dump(mode="json", exclude_unset=True),
+            apply_edit,
+            lambda _: owner(db, actor, "company", ident, source, True),
+        )
+    row = _edit_company_profile(db, actor, ident, data, source)
+    db.commit()
+    return company_output(db, row)
+
+
+def _edit_company_profile(db, actor, ident, data, source):
     row = owner(db, actor, "company", ident, source, True)
     current = {key: value for key, value in company_output(db, row).items() if key in CompanyInput.model_fields}
     current.pop("version", None)  # Clients must still present the reviewed revision.
@@ -716,8 +743,7 @@ def edit_company(ident: int, data: CompanyInput, source: Source = "crm", db: Ses
     data = CompanyInput.model_validate({**current, **data.model_dump(exclude_unset=True)})
     write_company(db, actor, source, data, row)
     save_profile_availability(db, actor, row, data.branch_availability, source)
-    db.commit()
-    return company_output(db, row)
+    return row
 
 
 @router.get("/companies/{ident}")

@@ -71,7 +71,11 @@ class CrmOfflineEdits {
         if (rows.containsKey('customer:$id')) {
           throw StateError('This customer already has a saved edit.');
         }
-        rows['customer:$id'] = {'body': body, 'branch': branch};
+        rows['customer:$id'] = {
+          'body': body,
+          'branch': branch,
+          'operation': const Uuid().v4(),
+        };
         await _storage.write(key: _key, value: jsonEncode(rows));
       });
 
@@ -187,6 +191,11 @@ class CrmOfflineEdits {
         if (edit == null || edit['error'] != null) continue;
         final creating = id.startsWith('create:');
         final customer = id.startsWith('customer:');
+        if (customer && edit['operation'] == null) {
+          edit['operation'] = const Uuid().v4();
+          await _storage.write(key: _key, value: jsonEncode(rows));
+          if (!api.hasSession || session != api.sessionRevision) return;
+        }
         final customerPath = '/master-data/companies/${id.split(':').last}';
         final branch = edit['branch'] as String? ?? '';
         final taskId = id.startsWith('task:')
@@ -217,6 +226,8 @@ class CrmOfflineEdits {
                 : {
                     'X-Suite-Organization': _company,
                     if (customer && branch.isNotEmpty) 'X-Suite-Branch': branch,
+                    if (customer)
+                      'X-Offline-Operation': edit['operation'] as String,
                   },
             data: taskId == null && !customer ? edit : edit['body'],
           );
