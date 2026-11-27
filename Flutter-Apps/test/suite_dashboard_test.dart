@@ -36,6 +36,65 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Deal creation loads stages for the selected pipeline', (
+    tester,
+  ) async {
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            writes.add(request);
+            return response({'id': 82}, 201);
+          }
+          if (request.path.endsWith('/pipelines')) {
+            return response({
+              'items': [
+                {'id': 3, 'name': 'Enterprise'},
+              ],
+            });
+          }
+          expect(request.path, '/crm/deal-workspace/pipeline-stages');
+          expect(request.queryParameters['pipeline_id'], 3);
+          return response({
+            'items': [
+              {'id': 5, 'name': 'Qualification'},
+            ],
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmDealForm(api: api, scopeHeaders: const {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<int>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enterprise').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<int>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Qualification').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Deal name'),
+      'Partner renewal',
+    );
+    final create = find.text('Create deal');
+    await tester.ensureVisible(create);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(writes.single.path, '/crm/deals');
+    expect(writes.single.data, {
+      'name': 'Partner renewal',
+      'pipeline_id': 3,
+      'stage_id': 5,
+    });
+  });
+
   testWidgets('Deal edit sends only changed values with the loaded version', (
     tester,
   ) async {

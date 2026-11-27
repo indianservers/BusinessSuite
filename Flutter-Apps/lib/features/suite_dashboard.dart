@@ -509,6 +509,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               'crm_manage',
               'crm_admin',
             }),
+        canCreateDeals:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'create', const {
+              'crm_deals_manage',
+              'crm_manage',
+              'crm_admin',
+            }),
         canMoveDeals:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'edit', const {
@@ -1328,6 +1335,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canCreateContacts = false,
     this.canEditContacts = false,
     this.canMoveDeals = false,
+    this.canCreateDeals = false,
     this.canCreateOrder = false,
     this.canCreateOrderInvoices = false,
     this.offlineOnly = false,
@@ -1347,6 +1355,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canCreateContacts;
   final bool canEditContacts;
   final bool canMoveDeals;
+  final bool canCreateDeals;
   final bool canCreateOrder;
   final bool canCreateOrderInvoices;
   final bool offlineOnly;
@@ -1878,6 +1887,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: CrmDealPage.endpoint,
                   canMoveDeals: widget.canMoveDeals,
+                  canCreateDeals: widget.canCreateDeals,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
@@ -1903,6 +1913,28 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_crmDeals &&
+            widget.canCreateDeals &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New deal',
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => CrmDealForm(
+                    api: widget.controller.api,
+                    scopeHeaders: widget.scopeHeaders,
+                  ),
+                ),
+              );
+              if (mounted && created == true) {
+                _page = 1;
+                await _refreshCrmRecords();
+              }
+            },
           ),
         if (_crmContacts &&
             widget.canCreateContacts &&

@@ -88,7 +88,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
   Future<void> _edit(Json deal) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => _DealEditPage(
+        builder: (_) => CrmDealForm(
           api: widget.api,
           deal: deal,
           scopeHeaders: widget.scopeHeaders,
@@ -191,10 +191,11 @@ class _CrmDealPageState extends State<CrmDealPage> {
   );
 }
 
-class _DealEditPage extends StatefulWidget {
-  const _DealEditPage({
+class CrmDealForm extends StatefulWidget {
+  const CrmDealForm({
+    super.key,
     required this.api,
-    required this.deal,
+    this.deal = const {},
     required this.scopeHeaders,
   });
   final ApiClient api;
@@ -202,20 +203,81 @@ class _DealEditPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
 
   @override
-  State<_DealEditPage> createState() => _DealEditPageState();
+  State<CrmDealForm> createState() => _CrmDealFormState();
 }
 
-class _DealEditPageState extends State<_DealEditPage> {
+class _CrmDealFormState extends State<CrmDealForm> {
   final _form = GlobalKey<FormState>();
   final _changes = <String, dynamic>{};
   bool _saving = false;
   String? _error;
+  int? _pipeline, _stage;
+  bool get _creating => widget.deal['id'] == null;
+  late Future<List<Json>> _pipelines = _choices('pipelines');
+  Future<List<Json>>? _stages;
   static const _fields = {
     'name': 'Deal name',
     'description': 'Description',
     'amount': 'Amount',
     'expected_close_date': 'Expected close date',
   };
+
+  Future<List<Json>> _choices(String resource, [int? pipeline]) async {
+    final revision = widget.api.sessionRevision;
+    final items = <Json>[];
+    for (var page = 1; ; page++) {
+      final data =
+          await widget.api.request(
+                'GET',
+                '/crm/deal-workspace/$resource',
+                query: {'page': page, 'pipeline_id': ?pipeline},
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+      if (!mounted || revision != widget.api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      items.addAll((data['items'] as List).whereType<Json>());
+      if (data['pages'] is! int || page >= (data['pages'] as int)) return items;
+    }
+  }
+
+  Widget _picker({
+    required String label,
+    required Future<List<Json>> data,
+    required ValueChanged<int?> change,
+    required VoidCallback retry,
+    Key? key,
+  }) => FutureBuilder<List<Json>>(
+    key: key,
+    future: data,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return TextButton(
+          onPressed: retry,
+          child: Text('Retry loading $label'),
+        );
+      }
+      if (snapshot.connectionState != ConnectionState.done) {
+        return ListTile(title: Text('Loading $label…'));
+      }
+      final items = snapshot.data ?? [];
+      if (items.isEmpty) return Text('No $label choices available');
+      return DropdownButtonFormField<int>(
+        decoration: InputDecoration(labelText: label),
+        isExpanded: true,
+        items: [
+          for (final row in items)
+            DropdownMenuItem(
+              value: row['id'] as int,
+              child: Text('${row['name']}'),
+            ),
+        ],
+        onChanged: _saving ? null : change,
+        validator: (value) => value == null ? 'Required' : null,
+      );
+    },
+  );
 
   String? _validate(String key, String text) {
     if (key == 'name' && text.isEmpty) return 'Enter a deal name';
@@ -236,6 +298,7 @@ class _DealEditPageState extends State<_DealEditPage> {
 
   Future<void> _save() async {
     if (_saving || _form.currentState?.validate() != true) return;
+    if (_creating && (_pipeline == null || _stage == null)) return;
     _changes.clear();
     _form.currentState!.save();
     if (_changes.isEmpty) {
@@ -249,10 +312,17 @@ class _DealEditPageState extends State<_DealEditPage> {
     });
     try {
       await widget.api.request(
-        'PATCH',
-        '/crm/deals/${widget.deal['id']}',
+        _creating ? 'POST' : 'PATCH',
+        _creating ? '/crm/deals' : '/crm/deals/${widget.deal['id']}',
         scopeHeaders: widget.scopeHeaders,
-        data: {..._changes, 'expected_version': widget.deal['version']},
+        data: {
+          ..._changes,
+          if (_creating) ...{
+            'pipeline_id': _pipeline,
+            'stage_id': _stage,
+          } else
+            'expected_version': widget.deal['version'],
+        },
       );
       if (mounted && revision == widget.api.sessionRevision) {
         Navigator.pop(context, true);
@@ -266,7 +336,7 @@ class _DealEditPageState extends State<_DealEditPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Edit deal')),
+    appBar: AppBar(title: Text(_creating ? 'New deal' : 'Edit deal')),
     body: Form(
       key: _form,
       child: SingleChildScrollView(
@@ -274,6 +344,31 @@ class _DealEditPageState extends State<_DealEditPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_creating)
+              _picker(
+                label: 'Pipeline',
+                data: _pipelines,
+                retry: () => setState(() {
+                  _pipelines = _choices('pipelines');
+                }),
+                change: (pipeline) => setState(() {
+                  _pipeline = pipeline;
+                  _stage = null;
+                  _stages = pipeline == null
+                      ? null
+                      : _choices('pipeline-stages', pipeline);
+                }),
+              ),
+            if (_stages case final stages?)
+              _picker(
+                key: ValueKey(_pipeline),
+                label: 'Stage',
+                data: stages,
+                retry: () => setState(() {
+                  _stages = _choices('pipeline-stages', _pipeline);
+                }),
+                change: (stage) => setState(() => _stage = stage),
+              ),
             for (final field in _fields.entries)
               TextFormField(
                 initialValue: widget.deal[field.key]?.toString(),
@@ -299,8 +394,16 @@ class _DealEditPageState extends State<_DealEditPage> {
               ),
             if (_error case final error?) Text(error),
             FilledButton(
-              onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'Saving…' : 'Save changes'),
+              onPressed: _saving || (_creating && _stage == null)
+                  ? null
+                  : _save,
+              child: Text(
+                _saving
+                    ? 'Saving…'
+                    : _creating
+                    ? 'Create deal'
+                    : 'Save changes',
+              ),
             ),
           ],
         ),
