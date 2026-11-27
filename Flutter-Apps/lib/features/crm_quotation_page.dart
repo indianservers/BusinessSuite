@@ -6,6 +6,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
 import 'crm_quotation_line_page.dart';
+import 'crm_quotation_draft_page.dart';
 import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class CrmQuotationPage extends StatefulWidget {
     this.onChanged,
   });
 
-  static const endpoint = '/crm/quotations';
+  static const endpoint = CrmQuotationDraftPage.endpoint;
   static const fields = [
     'quote_number',
     'issue_date',
@@ -108,6 +109,21 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
       ),
     );
     if (!mounted || saved != true) return;
+    _refresh();
+    widget.onChanged?.call();
+  }
+
+  Future<void> _editQuote(Json quote) async {
+    final result = await Navigator.of(context).push<Json>(
+      MaterialPageRoute(
+        builder: (_) => CrmQuotationDraftPage(
+          api: widget.api,
+          quote: {...quote, 'id': widget.summary['id']},
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
     _refresh();
     widget.onChanged?.call();
   }
@@ -361,6 +377,13 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     Text(
                       'Items',
                       style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  if (canEditLines)
+                    OutlinedButton(
+                      onPressed: _changingStatus
+                          ? null
+                          : () => _editQuote(record),
+                      child: const Text('Edit quotation'),
                     ),
                   if (canEditLines)
                     OutlinedButton.icon(

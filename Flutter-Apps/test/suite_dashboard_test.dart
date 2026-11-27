@@ -39,6 +39,68 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Draft quotation date and terms edits use the shared record', (
+    tester,
+  ) async {
+    final updates = <RequestOptions>[];
+    final quote = <String, dynamic>{
+      'id': 44,
+      'quote_number': 'QT-44',
+      'status': 'Draft',
+      'issue_date': '2026-11-27',
+      'expiry_date': '2026-12-27',
+      'terms': 'Net 15',
+    };
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'PATCH') {
+            updates.add(request);
+            quote.addAll(request.data as Map<String, dynamic>);
+          }
+          return response(quote);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmQuotationPage(
+          api: api,
+          summary: const {'id': 44},
+          offline: false,
+          scopeHeaders: const {},
+          canManage: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final edit = find.text('Edit quotation');
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Expiry date'),
+      '2027-01-09',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Terms'),
+      'Net 30',
+    );
+    final save = find.text('Save changes');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(updates.single.path, '/crm/quotations/44');
+    expect(updates.single.data, {
+      'expiry_date': '2027-01-09',
+      'valid_until': '2027-01-09',
+      'terms': 'Net 30',
+      'terms_and_conditions': 'Net 30',
+    });
+    expect(find.text('Net 30'), findsOneWidget);
+  });
+
   testWidgets('Quotation item can link to a shared catalog service', (
     tester,
   ) async {
