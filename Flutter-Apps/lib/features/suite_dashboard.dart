@@ -2009,7 +2009,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             canIssue: widget.canEditOrders,
             canExport: widget.canExportSalesDocuments,
             onReceived: _refreshStockLists,
-            onIssued: _refreshCrmRecords,
+            onOrderChanged: _refreshCrmRecords,
             summary: row,
             scopeHeaders: widget.scopeHeaders,
             cacheScope: widget.cachePrefix,

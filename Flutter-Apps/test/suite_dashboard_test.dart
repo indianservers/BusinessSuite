@@ -159,6 +159,7 @@ void main() {
   ) async {
     final writes = <RequestOptions>[];
     final issueRequests = <RequestOptions>[];
+    RequestOptions? revised;
     RequestOptions? pdfRequest;
     const document = '/srm/documents/purchase-orders/72';
     var issued = false;
@@ -183,6 +184,12 @@ void main() {
             return response({
               'record': {'id': 72, 'status': 'ordered'},
             });
+          }
+          if (request.path == '$document/revise') {
+            revised = request;
+            return response({
+              'record': {'id': 73, 'status': 'draft'},
+            }, 201);
           }
           if (request.method == 'POST') {
             writes.add(request);
@@ -229,6 +236,11 @@ void main() {
               'id': 80,
               'grn_number': 'GRN-80',
               'purchase_order_id': 72,
+            }),
+            '/srm/procurement/purchase-orders/73' => response({
+              'id': 73,
+              'po_number': 'PO-73',
+              'status': 'draft',
             }),
             _ => throw StateError('Unexpected request: ${request.path}'),
           };
@@ -350,6 +362,22 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.textContaining('Received: 1.25'), findsOneWidget);
+    await tester.tap(find.text('Create revision draft'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'Update next delivery');
+    await tester.tap(find.text('Create revised draft'));
+    await tester.pumpAndSettle();
+    expect(revised?.method, 'POST');
+    expect(revised?.data, {
+      'version': version,
+      'reason': 'Update next delivery',
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(find.text('PO-73'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('PO-72'), findsOneWidget);
+    expect(find.text('partially_received'), findsOneWidget);
   });
 
   testWidgets(

@@ -71,7 +71,7 @@ class InventoryProcurementPage extends StatefulWidget {
     this.canIssue = false,
     this.canExport = false,
     this.onReceived,
-    this.onIssued,
+    this.onOrderChanged,
   });
 
   final ApiClient api;
@@ -84,7 +84,7 @@ class InventoryProcurementPage extends StatefulWidget {
   final bool canIssue;
   final bool canExport;
   final VoidCallback? onReceived;
-  final VoidCallback? onIssued;
+  final VoidCallback? onOrderChanged;
 
   @override
   State<InventoryProcurementPage> createState() =>
@@ -94,9 +94,9 @@ class InventoryProcurementPage extends StatefulWidget {
 class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   Json? _cached;
   late var _record = _load(offline: widget.offline);
-  bool _issuing = false;
+  bool _changingOrder = false;
   bool _savingPdf = false;
-  ({String reason, String version, String id})? _issueRequest;
+  final _requests = <bool, ({String reason, String version, String id})>{};
 
   Iterable<Json> _lines(Json data) =>
       (data['lines'] as List? ?? const []).whereType<Json>();
@@ -121,7 +121,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         canIssue: widget.canIssue,
         canExport: widget.canExport,
         onReceived: widget.onReceived,
-        onIssued: widget.onIssued,
+        onOrderChanged: widget.onOrderChanged,
       ),
     ),
   );
@@ -177,12 +177,12 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<void> _issue() async {
-    if (_issuing) return;
+  Future<void> _changeOrder({required bool revise}) async {
+    if (_changingOrder) return;
     final api = widget.api;
     final revision = api.sessionRevision;
     final path = _documentPath;
-    setState(() => _issuing = true);
+    setState(() => _changingOrder = true);
     try {
       final document = await api.request(
         'GET',
@@ -193,21 +193,24 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
       if (document is! Json || document['version'] is! String) {
         throw ApiFailure('The purchase order version is unavailable.');
       }
-      if (document['editable'] != true || document['removed'] == true) {
+      if (document['removed'] == true ||
+          (!revise && document['editable'] != true)) {
         _refresh();
-        throw ApiFailure('This purchase order is no longer an issuable draft.');
+        throw ApiFailure(
+          'This action is unavailable for the current purchase order.',
+        );
       }
       final version = document['version'] as String;
-      final reason = await _issueReason();
+      final reason = await _actionReason(revise: revise);
       if (reason == null || !mounted || revision != api.sessionRevision) return;
-      final previous = _issueRequest;
+      final previous = _requests[revise];
       final request = previous?.version == version && previous?.reason == reason
           ? previous!
           : (reason: reason, version: version, id: const Uuid().v4());
-      _issueRequest = request;
-      await api.request(
+      _requests[revise] = request;
+      final response = await api.request(
         'POST',
-        '$path/issue',
+        '$path/${revise ? 'revise' : 'issue'}',
         scopeHeaders: widget.scopeHeaders,
         data: {
           'version': request.version,
@@ -216,9 +219,18 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         },
       );
       if (!mounted || revision != api.sessionRevision) return;
-      _issueRequest = null;
+      int? revisedId;
+      if (revise) {
+        final draft = response is Json ? response['record'] : null;
+        if (draft is! Json || draft['id'] is! int) {
+          throw ApiFailure('The revision could not be confirmed. Try again.');
+        }
+        revisedId = draft['id'] as int;
+      }
+      _requests.remove(revise);
       _refresh();
-      widget.onIssued?.call();
+      widget.onOrderChanged?.call();
+      if (revisedId != null) _openOrder(revisedId, false);
     } on ApiFailure catch (error) {
       if (mounted && revision == api.sessionRevision) {
         ScaffoldMessenger.of(
@@ -226,23 +238,28 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
-      if (mounted) setState(() => _issuing = false);
+      if (mounted) setState(() => _changingOrder = false);
     }
   }
 
-  Future<String?> _issueReason() {
+  Future<String?> _actionReason({required bool revise}) {
     final form = GlobalKey<FormState>();
     var reason = '';
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Issue purchase order'),
+        title: Text(revise ? 'Create revision draft' : 'Issue purchase order'),
         content: Form(
           key: form,
           child: TextFormField(
             maxLines: 3,
             maxLength: 500,
-            decoration: const InputDecoration(labelText: 'Reason'),
+            decoration: InputDecoration(
+              labelText: 'Reason',
+              helperText: revise
+                  ? 'The original remains in the register.'
+                  : null,
+            ),
             onChanged: (value) => reason = value.trim(),
             validator: (_) =>
                 reason.length < 5 ? 'Enter at least five characters.' : null,
@@ -257,7 +274,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
             onPressed: () {
               if (form.currentState!.validate()) Navigator.pop(context, reason);
             },
-            child: const Text('Confirm issue'),
+            child: Text(revise ? 'Create revised draft' : 'Confirm issue'),
           ),
         ],
       ),
@@ -292,7 +309,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           canIssue: widget.canIssue,
           canExport: widget.canExport,
           onReceived: widget.onReceived,
-          onIssued: widget.onIssued,
+          onOrderChanged: widget.onOrderChanged,
         ),
       ),
     );
@@ -395,13 +412,26 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                   ),
                   if (canReceive)
                     FilledButton(
-                      onPressed: () => _receive(row),
+                      onPressed: _changingOrder ? null : () => _receive(row),
                       child: const Text('Receive goods'),
                     ),
                   if (canIssue)
                     FilledButton(
-                      onPressed: _issuing ? null : _issue,
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(revise: false),
                       child: const Text('Issue purchase order'),
+                    ),
+                  if (widget.canReceive &&
+                      kind == ProcurementRecord.order &&
+                      done &&
+                      snapshot.data?.live == true &&
+                      !const {'deleted', 'archived'}.contains(row['status']))
+                    OutlinedButton(
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(revise: true),
+                      child: const Text('Create revision draft'),
                     ),
                   if (widget.canExport &&
                       kind == ProcurementRecord.order &&
