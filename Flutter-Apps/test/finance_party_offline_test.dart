@@ -28,6 +28,18 @@ void main() {
           final page = request.queryParameters['page'];
           final search = request.queryParameters['search'];
           final warehouse = request.queryParameters['warehouse_id'];
+          final movement = request.queryParameters['movement_id'];
+          if (movement != null) {
+            expect(movement, 81);
+            expect(search, 'cable');
+            expect(warehouse, '6');
+            return response({
+              'total': 1,
+              'items': [
+                {'movement_id': 81, 'movement_number': 'Source movement 81'},
+              ],
+            });
+          }
           if (warehouse != null) {
             expect(warehouse, '6');
             expect(request.queryParameters['start_date'], '2026-11-01');
@@ -41,6 +53,7 @@ void main() {
                     ? 'Cable delivery ${warehouse ?? 'all'}'
                     : 'Movement $page',
                 'opening_quantity': 8,
+                'movement_id': 81,
                 'quantity_in': 3,
                 'closing_quantity': 11,
               },
@@ -84,6 +97,11 @@ void main() {
     await tester.tap(find.text('Apply filters'));
     await tester.pumpAndSettle();
     expect(find.text('Cable delivery 6'), findsOneWidget);
+    await tester.tap(find.byTooltip('View source movement'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stock Movement'), findsOneWidget);
+    expect(find.text('Source movement 81'), findsOneWidget);
+    expect(find.byTooltip('View source movement'), findsNothing);
   });
 
   testWidgets('Finance creates and edits a voucher draft with active ledgers', (

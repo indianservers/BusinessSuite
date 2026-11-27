@@ -169,6 +169,8 @@ class InventoryFinanceReportPage extends StatefulWidget {
     required this.cacheScope,
     required this.offline,
     this.initialFilters = const {},
+    this.initialSearch = '',
+    this.movementId,
   });
 
   final ApiClient api;
@@ -177,6 +179,8 @@ class InventoryFinanceReportPage extends StatefulWidget {
   final String? cacheScope;
   final bool offline;
   final Map<String, String> initialFilters;
+  final String initialSearch;
+  final int? movementId;
 
   @override
   State<InventoryFinanceReportPage> createState() =>
@@ -189,7 +193,7 @@ class _InventoryFinanceReportPageState
   int _request = 0;
   int _pageSize = 25;
   int _page = 1;
-  String _search = '';
+  late String _search = widget.initialSearch;
   late Map<String, String> _filters = widget.initialFilters;
   late bool _offline = widget.offline;
   bool get _ledger => widget.report == InventoryFinanceReport.stockLedger;
@@ -208,10 +212,15 @@ class _InventoryFinanceReportPageState
             'per_page': _pageSize,
             if (_search.isNotEmpty) 'search': _search,
             ..._filters,
+            if (widget.movementId case final int id) 'movement_id': id,
           }
         : const <String, dynamic>{};
     final scope = widget.cacheScope;
-    final ledgerScope = '$scope:ledger:$_page:${Uri.encodeComponent(_search)}';
+    final movement = widget.movementId == null
+        ? ''
+        : ':movement:${widget.movementId}';
+    final ledgerScope =
+        '$scope:ledger$movement:$_page:${Uri.encodeComponent(_search)}';
     return loadCrmDetail(
       api: widget.api,
       path: widget.report.endpoint,
@@ -241,11 +250,29 @@ class _InventoryFinanceReportPageState
               for (final key in [
                 widget.report.labelField,
                 ...widget.report.fields.keys,
+                if (_ledger) 'movement_id',
               ])
                 key: row[key],
             },
         ],
       },
+    );
+  }
+
+  void _openMovement(int id) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InventoryFinanceReportPage(
+          api: widget.api,
+          report: widget.report,
+          scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cacheScope,
+          offline: _offline,
+          initialFilters: _filters,
+          initialSearch: _search,
+          movementId: id,
+        ),
+      ),
     );
   }
 
@@ -308,7 +335,9 @@ class _InventoryFinanceReportPageState
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(widget.report.title),
+      title: Text(
+        widget.movementId == null ? widget.report.title : 'Stock Movement',
+      ),
       actions: [
         IconButton(
           tooltip: 'Refresh report',
@@ -345,14 +374,16 @@ class _InventoryFinanceReportPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_ledger)
-                    TextField(
+                    TextFormField(
+                      initialValue: _search,
                       maxLength: 160,
                       decoration: const InputDecoration(
                         labelText: 'Search stock ledger',
                         counterText: '',
                       ),
                       textInputAction: TextInputAction.search,
-                      onSubmitted: (value) => _changePage(1, search: value),
+                      onFieldSubmitted: (value) =>
+                          _changePage(1, search: value),
                     ),
                   if (snapshot.hasError) Text('${snapshot.error}'),
                   if (!done) const LinearProgressIndicator(),
@@ -417,8 +448,17 @@ class _InventoryFinanceReportPageState
               );
             }
             final row = rows[index - 1];
+            final movement = row['movement_id'];
             return Card(
               child: ListTile(
+                trailing:
+                    _ledger && widget.movementId == null && movement is int
+                    ? IconButton(
+                        tooltip: 'View source movement',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _openMovement(movement),
+                      )
+                    : null,
                 title: Text("${row[widget.report.labelField] ?? 'Record'}"),
                 subtitle: Text(
                   [
