@@ -15,6 +15,7 @@ import 'package:sqflite/sqflite.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  final rejectionStatuses = ValueVariant({404, 422});
   testWidgets('GST corrects a rejected draft under a new request ID', (
     tester,
   ) async {
@@ -42,14 +43,19 @@ void main() {
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.headers['X-Suite-Branch'], '6');
-          return response({'detail': 'Change the line description'}, 422);
+          return response({
+            'detail': 'Correct the draft',
+          }, rejectionStatuses.currentValue!);
         }),
     );
     await tester.runAsync(() async {
       await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
       await drafts.sync(api);
     });
-    expect((await drafts.entries()).single['status'], 422);
+    expect(
+      (await drafts.entries()).single['status'],
+      rejectionStatuses.currentValue,
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: SalesOrderDraftsPage(
@@ -89,7 +95,7 @@ void main() {
     expect(entry['headers'], headers);
     expect(entry['payload']['due_date'], '2026-12-15');
     expect(entry['payload']['lines'].single['description'], 'Corrected line');
-  });
+  }, variant: rejectionStatuses);
 
   testWidgets('GST starts and stores a draft without a connection', (
     tester,

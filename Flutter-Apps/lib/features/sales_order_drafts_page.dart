@@ -766,7 +766,9 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
                     (widget.drafts.gst
                             ? widget.editGstDraft != null &&
                                   (row['unsent'] == true ||
-                                      row['status'] == 422)
+                                      SalesOrderDrafts.gstDraftNeedsCorrection(
+                                        row['status'],
+                                      ))
                             : !widget.drafts.purchase ||
                                   widget.correctPurchaseDraft != null) &&
                         (widget.drafts.gst || row['status'] == 422)

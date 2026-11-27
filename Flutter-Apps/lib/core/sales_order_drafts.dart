@@ -35,6 +35,8 @@ class SalesOrderDrafts {
   final String _key, _company, _scope, _endpoint;
   bool get purchase => _endpoint == purchaseOrdersEndpoint;
   bool get gst => _endpoint == gstInvoicesEndpoint;
+  static bool gstDraftNeedsCorrection(Object? status) =>
+      status == 422 || status == 404;
   static const purchaseOrdersEndpoint = '/srm/procurement/purchase-orders';
   static const gstInvoicesEndpoint = '/srm/invoices';
   final Future<void> Function(String)? invalidate;
@@ -239,7 +241,9 @@ class SalesOrderDrafts {
     }
     if (replaceRejected != null) {
       final previous = drafts[replaceRejected] as Json?;
-      if (previous?['status'] != 422) {
+      if (gst
+          ? !gstDraftNeedsCorrection(previous?['status'])
+          : previous?['status'] != 422) {
         throw StateError(
           'This saved order draft has changed. Reopen it first.',
         );

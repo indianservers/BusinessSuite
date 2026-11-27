@@ -151,7 +151,10 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       payload,
       customerName: _customer?['name'] as String?,
       scopeHeaders: widget.scopeHeaders,
-      replaceRejected: previous?['status'] == 422 ? previousId : null,
+      replaceRejected:
+          SalesOrderDrafts.gstDraftNeedsCorrection(previous?['status'])
+          ? previousId
+          : null,
       replaceUnsent: previous?['unsent'] == true ? previousId : null,
       unsent: unsent,
     );
@@ -244,7 +247,9 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       title: Text(
         widget.savedDraft == null
             ? 'New GST invoice draft'
-            : widget.savedDraft?['status'] == 422
+            : SalesOrderDrafts.gstDraftNeedsCorrection(
+                widget.savedDraft?['status'],
+              )
             ? 'Correct GST invoice draft'
             : 'Edit saved GST invoice draft',
       ),
@@ -299,7 +304,9 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           child: Text(
             _saving
                 ? 'Saving…'
-                : widget.savedDraft?['status'] == 422
+                : SalesOrderDrafts.gstDraftNeedsCorrection(
+                    widget.savedDraft?['status'],
+                  )
                 ? 'Save corrected draft'
                 : widget.savedDraft != null
                 ? 'Save changes'
