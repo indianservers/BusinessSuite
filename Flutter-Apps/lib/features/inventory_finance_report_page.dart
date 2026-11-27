@@ -158,38 +158,44 @@ class InventoryFinanceReportPage extends StatefulWidget {
 class _InventoryFinanceReportPageState
     extends State<InventoryFinanceReportPage> {
   Json? _cached;
+  int _request = 0;
   late var _report = _load(offline: widget.offline);
 
   Iterable<Json> _rows(Json? data) =>
       (data?['items'] as List? ?? const []).whereType<Json>();
 
-  Future<({Json? record, bool live})> _load({bool offline = false}) =>
-      loadCrmDetail(
-        api: widget.api,
-        path: widget.report.endpoint,
-        scope: widget.cacheScope,
-        headers: widget.scopeHeaders,
-        offline: offline,
-        onCached: (saved) {
-          if (mounted) setState(() => _cached = saved);
-        },
-        project: (data) => {
-          'currency': _currency(data),
-          'total_cogs': data['total_cogs'],
-          'duplicate_deduction_guard': data['duplicate_deduction_guard'],
-          for (final key in widget.report.metrics.keys) key: data[key],
-          'items': [
-            for (final row in _rows(data))
-              {
-                for (final key in [
-                  widget.report.labelField,
-                  ...widget.report.fields.keys,
-                ])
-                  key: row[key],
-              },
-          ],
-        },
-      );
+  Future<({Json? record, bool live})> _load({bool offline = false}) {
+    final request = ++_request;
+    _cached = null;
+    return loadCrmDetail(
+      api: widget.api,
+      path: widget.report.endpoint,
+      scope: widget.cacheScope,
+      headers: widget.scopeHeaders,
+      offline: offline,
+      onCached: (saved) {
+        if (mounted && request == _request) {
+          setState(() => _cached = saved);
+        }
+      },
+      project: (data) => {
+        'currency': _currency(data),
+        'total_cogs': data['total_cogs'],
+        'duplicate_deduction_guard': data['duplicate_deduction_guard'],
+        for (final key in widget.report.metrics.keys) key: data[key],
+        'items': [
+          for (final row in _rows(data))
+            {
+              for (final key in [
+                widget.report.labelField,
+                ...widget.report.fields.keys,
+              ])
+                key: row[key],
+            },
+        ],
+      },
+    );
+  }
 
   String _value(Object value) => switch (value) {
     true => 'Yes',
@@ -241,7 +247,7 @@ class _InventoryFinanceReportPageState
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
         final done = snapshot.connectionState == ConnectionState.done;
-        final data = snapshot.data?.record ?? _cached;
+        final data = done ? snapshot.data?.record : _cached;
         final rows = _rows(data).toList();
         return ListView.builder(
           padding: const EdgeInsets.all(12),
