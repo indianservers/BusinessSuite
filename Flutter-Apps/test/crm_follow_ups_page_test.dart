@@ -130,6 +130,7 @@ void main() {
     Map? created;
     final filters = <String>[];
     final owners = <Object?>[];
+    final customers = <Object?>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -140,6 +141,7 @@ void main() {
             case ('GET', '/follow-ups'):
               filters.add(request.queryParameters['status'] as String);
               owners.add(request.queryParameters['assigned_user_id']);
+              customers.add(request.queryParameters['customer_id']);
               return response({
                 'items': [
                   if (created != null) {'id': 9, ...created!, 'status': 'Due'},
@@ -190,13 +192,24 @@ void main() {
     await tester.tap(find.text('Sales coordinator'));
     await tester.pumpAndSettle();
     expect(owners, [null, 6]);
+    await tester.tap(find.text('All customers'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search customers'),
+      'paper',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Paper supplier'));
+    await tester.pumpAndSettle();
+    expect(customers, [null, null, 5]);
     await tester.tap(find.byTooltip('Follow-up statistics'));
     await tester.pumpAndSettle();
     expect(find.text('0%'), findsOneWidget);
     await tester.tap(find.text('Due today'));
     await tester.pumpAndSettle();
-    expect(filters, ['', '', 'Due']);
-    expect(owners, [null, 6, 6]);
+    expect(filters, ['', '', '', 'Due']);
+    expect(owners, [null, 6, 6, 6]);
+    expect(customers, [null, null, 5, 5]);
     await tester.tap(find.byTooltip('New follow-up'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Customer'), 'Paper');

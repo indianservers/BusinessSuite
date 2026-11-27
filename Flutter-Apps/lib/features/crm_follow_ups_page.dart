@@ -54,6 +54,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
   String _term = '';
   String _status = '';
   Json? _owner;
+  Json? _customer;
   int _page = 1;
   int _generation = 0;
   Json? _cachedRows;
@@ -110,7 +111,8 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
       scope: scope == null
           ? null
           : '$scope:follow-ups:${Uri.encodeComponent(_term)}:$_status:$_page'
-                '${_owner == null ? '' : ':owner:${_owner!['id']}'}',
+                '${_owner == null ? '' : ':owner:${_owner!['id']}'}'
+                '${_customer == null ? '' : ':customer:${_customer!['id']}'}',
       headers: widget.headers,
       offline: _offline,
       onCached: (record) {
@@ -122,6 +124,7 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
         'search': _term,
         'status': _status,
         if (_owner != null) 'assigned_user_id': _owner!['id'],
+        if (_customer != null) 'customer_id': _customer!['id'],
         'page': _page,
         'per_page': _size,
       },
@@ -194,15 +197,16 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     _rows = _load();
   });
 
-  Future<void> _chooseOwner() async {
+  Future<void> _chooseFilter(_FollowUpFilter filter) async {
     final revision = widget.api.sessionRevision;
     final selection = await showDialog<Json>(
       context: context,
-      builder: (_) => _FollowUpOwnerFilter(
+      builder: (_) => _FollowUpFilterDialog(
         api: widget.api,
         headers: widget.headers,
         cacheScope: widget.cacheScope,
         offline: _offline,
+        filter: filter,
       ),
     );
     if (!mounted ||
@@ -211,7 +215,13 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
       return;
     }
     setState(() {
-      _owner = selection.isEmpty ? null : selection;
+      final selected = selection.isEmpty ? null : selection;
+      switch (filter) {
+        case _FollowUpFilter.owner:
+          _owner = selected;
+        case _FollowUpFilter.customer:
+          _customer = selected;
+      }
       _page = 1;
       _rows = _load();
     });
@@ -282,10 +292,18 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
               ],
             ),
             TextButton.icon(
-              onPressed: _chooseOwner,
+              onPressed: () => _chooseFilter(_FollowUpFilter.owner),
               icon: const Icon(LucideIcons.user),
               label: Text(
                 _owner == null ? 'All assignees' : '${_owner!['name']}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _chooseFilter(_FollowUpFilter.customer),
+              icon: const Icon(LucideIcons.building2),
+              label: Text(
+                _customer == null ? 'All customers' : '${_customer!['name']}',
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -362,24 +380,34 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
   });
 }
 
-class _FollowUpOwnerFilter extends StatefulWidget {
-  const _FollowUpOwnerFilter({
+enum _FollowUpFilter {
+  owner('employees', 'assignee', 'assignees'),
+  customer('customers', 'customer', 'customers');
+
+  const _FollowUpFilter(this.collection, this.label, this.plural);
+  final String collection, label, plural;
+}
+
+class _FollowUpFilterDialog extends StatefulWidget {
+  const _FollowUpFilterDialog({
     required this.api,
     required this.headers,
     required this.cacheScope,
     required this.offline,
+    required this.filter,
   });
 
   final ApiClient api;
   final Map<String, String> headers;
   final String? cacheScope;
   final bool offline;
+  final _FollowUpFilter filter;
 
   @override
-  State<_FollowUpOwnerFilter> createState() => _FollowUpOwnerFilterState();
+  State<_FollowUpFilterDialog> createState() => _FollowUpFilterDialogState();
 }
 
-class _FollowUpOwnerFilterState extends State<_FollowUpOwnerFilter> {
+class _FollowUpFilterDialogState extends State<_FollowUpFilterDialog> {
   late var _options = _load(offline: widget.offline);
   String _term = '';
 
@@ -391,23 +419,27 @@ class _FollowUpOwnerFilterState extends State<_FollowUpOwnerFilter> {
         headers: widget.headers,
         offline: offline,
         project: (record) => {
-          'employees': [
-            for (final user in (record['employees'] as List).cast<Json>())
-              {'id': user['id'], 'name': user['name']},
-          ],
+          for (final filter in _FollowUpFilter.values)
+            if (record[filter.collection] case final List rows)
+              filter.collection: [
+                for (final row in rows.cast<Json>())
+                  {'id': row['id'], 'name': row['name']},
+              ],
         },
       );
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Filter by assignee'),
+    title: Text('Filter by ${widget.filter.label}'),
     content: SizedBox(
       width: 360,
       height: 300,
       child: Column(
         children: [
           TextField(
-            decoration: const InputDecoration(labelText: 'Search assignees'),
+            decoration: InputDecoration(
+              labelText: 'Search ${widget.filter.plural}',
+            ),
             onChanged: (value) =>
                 setState(() => _term = value.trim().toLowerCase()),
           ),
@@ -419,25 +451,27 @@ class _FollowUpOwnerFilterState extends State<_FollowUpOwnerFilter> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final result = snapshot.data;
-                final record = result?.record;
-                if (record == null) {
+                final rows = result?.record?[widget.filter.collection] as List?;
+                if (rows == null) {
                   return Center(
                     child: TextButton(
                       onPressed: () => setState(() {
                         _options = _load(offline: false);
                       }),
-                      child: const Text('Retry assignees'),
+                      child: Text('Retry ${widget.filter.plural}'),
                     ),
                   );
                 }
                 final users = [
-                  for (final user in (record['employees'] as List).cast<Json>())
+                  for (final user in rows.cast<Json>())
                     if (user['id'] is int &&
                         '${user['name']}'.toLowerCase().contains(_term))
                       user,
                 ];
                 if (users.isEmpty) {
-                  return const Center(child: Text('No matching assignees'));
+                  return Center(
+                    child: Text('No matching ${widget.filter.plural}'),
+                  );
                 }
                 return ListView.builder(
                   itemCount: users.length,
@@ -455,7 +489,7 @@ class _FollowUpOwnerFilterState extends State<_FollowUpOwnerFilter> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context, <String, dynamic>{}),
-        child: const Text('All assignees'),
+        child: Text('All ${widget.filter.plural}'),
       ),
       TextButton(
         onPressed: () => Navigator.pop(context),
