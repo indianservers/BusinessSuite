@@ -251,6 +251,14 @@ enum InventoryFinanceReport {
   final Map<String, String> metrics;
   final bool reconciliation;
   final bool analysisReport;
+  bool get supportsTransactionType => switch (this) {
+    stockLedger ||
+    salesMovements ||
+    purchaseMovements ||
+    stockAdjustments ||
+    stockTransfers => true,
+    _ => false,
+  };
 
   String get endpoint => switch (this) {
     _ when analysisReport => '/srm/inventory/reports',
@@ -337,7 +345,10 @@ class _InventoryFinanceReportPageState
     'page': _page,
     'per_page': _pageSize,
     if (_search.isNotEmpty) 'search': _search,
-    ..._filters,
+    for (final entry in _filters.entries)
+      if (entry.key != 'transaction_type' ||
+          widget.report.supportsTransactionType)
+        entry.key: entry.value,
     if (widget.movementId case final int id) 'movement_id': id,
   };
 
@@ -520,7 +531,10 @@ class _InventoryFinanceReportPageState
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _LedgerFilters(values: _filters),
+      builder: (_) => _LedgerFilters(
+        values: _filters,
+        supportsTransactionType: widget.report.supportsTransactionType,
+      ),
     );
     if (mounted && filters != null) _changePage(1, filters: filters);
   }
@@ -784,9 +798,13 @@ class _InventoryFinanceReportPageState
 }
 
 class _LedgerFilters extends StatefulWidget {
-  const _LedgerFilters({required this.values});
+  const _LedgerFilters({
+    required this.values,
+    required this.supportsTransactionType,
+  });
 
   final Map<String, String> values;
+  final bool supportsTransactionType;
 
   @override
   State<_LedgerFilters> createState() => _LedgerFiltersState();
@@ -804,6 +822,11 @@ class _LedgerFiltersState extends State<_LedgerFilters> {
     'category': 'Category ID',
     'transaction_type': 'Transaction type',
   };
+  Iterable<MapEntry<String, String>> get _visibleFields =>
+      _fields.entries.where(
+        (field) =>
+            field.key != 'transaction_type' || widget.supportsTransactionType,
+      );
 
   String? _validate(String key, String input) {
     final value = input.trim();
@@ -843,7 +866,7 @@ class _LedgerFiltersState extends State<_LedgerFilters> {
             'Stock ledger filters',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          for (final field in _fields.entries)
+          for (final field in _visibleFields)
             TextFormField(
               initialValue: _values[field.key],
               decoration: InputDecoration(
@@ -877,8 +900,9 @@ class _LedgerFiltersState extends State<_LedgerFilters> {
                 onPressed: () {
                   if (!_form.currentState!.validate()) return;
                   Navigator.pop(context, {
-                    for (final key in _fields.keys)
-                      if ((_values[key] ?? '').isNotEmpty) key: _values[key]!,
+                    for (final field in _visibleFields)
+                      if ((_values[field.key] ?? '').isNotEmpty)
+                        field.key: _values[field.key]!,
                   });
                 },
                 child: const Text('Apply filters'),

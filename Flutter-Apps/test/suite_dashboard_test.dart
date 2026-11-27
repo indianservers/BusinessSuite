@@ -5014,7 +5014,9 @@ void main() {
     expect(receipts.first, isNotNull);
     expect(receipts.last, receipts.first);
     expect(recorded, isTrue);
-    expect(changedStock, [{12}]);
+    expect(changedStock, [
+      {12},
+    ]);
     expect(productReads, 2);
     expect(find.text('8.5'), findsOneWidget);
   });
@@ -6177,6 +6179,17 @@ void main() {
           await tester.tap(find.byTooltip('Stock activity reports'));
           await tester.pumpAndSettle();
           await open('Inventory Overview');
+          await tester.tap(find.byTooltip('Stock ledger filters'));
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(TextFormField, 'Transaction type'),
+            findsNothing,
+          );
+          await open('Apply filters');
+          expect(
+            calls.last.queryParameters,
+            isNot(contains('transaction_type')),
+          );
           expect(
             find.text('Products with recorded movements: 1'),
             findsOneWidget,
