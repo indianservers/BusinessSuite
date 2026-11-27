@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
@@ -3271,6 +3272,19 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/master-data/company-directory/query' => response({
+              'rows': [
+                {'id': 82, 'name': 'Sample customer', 'entityKind': 'Company'},
+              ],
+              'total': 1,
+              'pageSize': 25,
+            }),
+            '/master-data/companies/82' => response({
+              'name': 'Sample customer',
+              'contacts': [
+                {'name': 'Customer representative'},
+              ],
+            }),
             '/crm/deal-workspace/query' => response({
               'items': [
                 {
@@ -3652,6 +3666,28 @@ void main() {
           await back();
         }
         if (entry.key == 'VyaparaCRM') {
+          await tester.tap(find.byTooltip('Customers'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextField), 'sample');
+          await tester.pump(const Duration(milliseconds: 350));
+          await tester.pumpAndSettle();
+          final customerQuery = calls
+              .lastWhere(
+                (request) =>
+                    request.path == '/master-data/company-directory/query',
+              )
+              .queryParameters;
+          expect(customerQuery['role'], 'Customer');
+          expect(customerQuery['entity_kind'], 'all');
+          expect(jsonDecode(customerQuery['state'] as String), {
+            'page': 1,
+            'pageSize': 25,
+            'search': 'sample',
+          });
+          await open('Sample customer');
+          expect(find.text('Customer representative'), findsOneWidget);
+          await back();
+          await back();
           await tester.tap(find.byTooltip('Deals'));
           await tester.pumpAndSettle();
           expect(find.text('Sample CRM deal'), findsOneWidget);

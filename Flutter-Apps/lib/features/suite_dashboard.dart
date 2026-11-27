@@ -16,6 +16,7 @@ import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
+import 'crm_customer_page.dart';
 import 'crm_deal_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
@@ -1441,7 +1442,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
   bool get _crmContacts => widget.path == CrmContactPage.endpoint;
   bool get _crmDeals => widget.path == CrmDealPage.endpoint;
-  bool get _cacheCrmPages => _isCrm || _crmContacts || _crmDeals;
+  bool get _crmCustomers => widget.path == CrmCustomerPage.endpoint;
+  bool get _cacheCrmPages =>
+      _isCrm || _crmContacts || _crmDeals || _crmCustomers;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1585,8 +1588,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               day.day + (_appointmentWeek ? 7 : 1),
             ).toUtc().toIso8601String(),
           },
-          if (_hasPages) 'page': page,
-          if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
+          if (_crmCustomers)
+            'state': jsonEncode({
+              'page': page,
+              'pageSize': 25,
+              'search': searchTerm,
+            })
+          else ...{
+            if (_hasPages) 'page': page,
+            if (_searchOnServer && searchTerm.isNotEmpty) 'search': searchTerm,
+          },
         },
         scopeHeaders: widget.scopeHeaders,
       );
@@ -1652,7 +1663,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (_hasPages) {
       final total = data is Json ? data['total'] : null;
       final pageSize = data is Json
-          ? data['perPage'] ?? data['per_page']
+          ? data['perPage'] ?? data['per_page'] ?? data['pageSize']
           : null;
       final pages = data is Json ? data['pages'] : null;
       _hasNextPage = pages is int
@@ -1676,6 +1687,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_isCrm) ...['source', 'rating'],
               if (_crmContacts) ...CrmContactPage.summaryFields.keys,
               if (_crmDeals) ...CrmDealPage.summaryFields,
+              if (_crmCustomers) ...CrmCustomerPage.fields.keys,
               'order_number',
               'currency',
               'subtotal',
@@ -1875,6 +1887,29 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   child: Text('Order drafts'),
                 ),
             ],
+          ),
+        if (_isCrm)
+          IconButton(
+            tooltip: 'Customers',
+            icon: const Icon(LucideIcons.building2),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Customers',
+                  controller: widget.controller,
+                  path: CrmCustomerPage.endpoint,
+                  collection: 'rows',
+                  query: const {
+                    'source': 'crm',
+                    'role': 'Customer',
+                    'entity_kind': 'all',
+                  },
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
           ),
         if (_isCrm)
           IconButton(
@@ -2308,7 +2343,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     if (_warehouseStock) 'warehouse_name',
                                     'full_name',
                                     'company_name',
-                                    if (_crmContacts) ...['email', 'phone'],
+                                    if (_crmContacts || _crmCustomers) ...[
+                                      'email',
+                                      'phone',
+                                    ],
                                     if (_crmDeals) 'stage_name',
                                   ]
                                   .map((key) => item[key] ?? '')
@@ -2444,6 +2482,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     cached
                                         ? 'Search saved deals'
                                         : 'Search deals',
+                                  CrmCustomerPage.endpoint =>
+                                    cached
+                                        ? 'Search saved customers'
+                                        : 'Search customers',
                                   '/srm/inventory/items' ||
                                   _reorderPath ||
                                   _stockSummaryPath => 'Search products',
@@ -2566,6 +2608,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmCustomers) ...[
+                            item['entityKind'],
+                            item['email'],
+                            item['phone'],
+                          ],
                           if (_crmDeals) ...[
                             item['company_name'],
                             item['stage_name'],
@@ -2696,6 +2743,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path == CrmLeadPage.endpoint ||
                                       _crmContacts ||
                                       _crmDeals ||
+                                      _crmCustomers ||
                                       widget.path ==
                                           FinancePartyPage.endpoint) &&
                                   item['id'] is int
@@ -2705,6 +2753,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? _EmployeeDetailsPage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                          )
+                                        : _crmCustomers
+                                        ? CrmCustomerPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            cacheScope: widget.cachePrefix,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            scopeHeaders: widget.scopeHeaders,
                                           )
                                         : _crmDeals
                                         ? CrmDealPage(
