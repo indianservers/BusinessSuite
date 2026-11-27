@@ -312,14 +312,7 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
       }
       final scope = _localScope(access);
       if (scope == null) return;
-      final edits = CrmOfflineEdits(
-        scope,
-        onTaskSynced: (id, branch) async {
-          final path = CrmTaskPage.endpoint;
-          await SuiteReadCache.invalidate('$scope:$path');
-          await SuiteReadCache.invalidate('$scope:$path/$id:$branch');
-        },
-      );
+      final edits = CrmOfflineEdits.withTaskSnapshots(scope);
       if (_allowed(access, 'crm') &&
           await edits.hasPending &&
           mounted &&
@@ -2853,7 +2846,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                       .contains(
                                                         item['project_id'],
                                                       ),
-                                            onChanged: _refreshCrmRecords,
+                                            onChanged: _refresh,
                                           )
                                         : _crmCustomers
                                         ? CrmCustomerPage(

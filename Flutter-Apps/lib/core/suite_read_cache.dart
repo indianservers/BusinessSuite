@@ -125,6 +125,49 @@ class SuiteReadCache {
     '$scope:page;',
   ];
 
+  static Future<void> updateTaskStatus({
+    required String listScope,
+    required String detailScope,
+    required int id,
+    required String status,
+    required String updatedAt,
+  }) async {
+    final confirmedAt = DateTime.tryParse(updatedAt);
+    if (confirmedAt == null) return;
+    await (await _open()).transaction((tx) async {
+      final snapshots = await tx.query(
+        'snapshots',
+        columns: ['scope', 'rows'],
+        where: '($_pageScopeFilter) OR scope = ?',
+        whereArgs: [..._pageScopeArgs(listScope), detailScope],
+      );
+      for (final snapshot in snapshots) {
+        final detail = snapshot['scope'] == detailScope;
+        final rows = (jsonDecode(snapshot['rows'] as String) as List)
+            .cast<Json>();
+        var changed = false;
+        for (final row in rows) {
+          if (!detail && row['id'] != id) continue;
+          final previous = DateTime.tryParse(
+            row['updated_at']?.toString() ?? '',
+          );
+          if (previous != null && previous.isAfter(confirmedAt)) continue;
+          row['status'] = status;
+          row['updated_at'] = updatedAt;
+          changed = true;
+        }
+        if (changed) {
+          await tx.update(
+            'snapshots',
+            {'rows': jsonEncode(rows)},
+            where: 'scope = ?',
+            whereArgs: [snapshot['scope']],
+          );
+        }
+      }
+    });
+  }
+
   static Future<List<Json>?> readPages(String scope) async {
     final entries = await (await _open()).query(
       'snapshots',

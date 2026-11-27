@@ -47,7 +47,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   bool _readingPending = true;
   late final CrmOfflineEdits? _queue = widget.cacheScope == null
       ? null
-      : CrmOfflineEdits(widget.cacheScope!);
+      : CrmOfflineEdits.withTaskSnapshots(widget.cacheScope!);
   int get _id => widget.summary['id'] as int;
   static const _statuses = [
     'Backlog',

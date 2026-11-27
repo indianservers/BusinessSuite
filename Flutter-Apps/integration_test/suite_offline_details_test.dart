@@ -39,7 +39,7 @@ void main() {
     const taskPath = '/project-management/tasks/21';
     const stamp = '2026-11-27T09:00:00Z';
     final scope = '["$base",${DateTime.now().microsecondsSinceEpoch},7]';
-    final queue = CrmOfflineEdits(scope);
+    final queue = CrmOfflineEdits.withTaskSnapshots(scope);
     final requests = <RequestOptions>[];
     var connected = false;
     var status = 'To Do';
@@ -65,6 +65,15 @@ void main() {
       'refresh_token': 'device-qa',
     });
     await SuiteReadCache.write('$scope:$taskPath:3', [
+      {
+        'id': 21,
+        'title': 'CRM follow-up',
+        'status': 'To Do',
+        'updated_at': stamp,
+      },
+    ]);
+    final listScope = '$scope:/project-management/tasks';
+    await SuiteReadCache.writePage(listScope, 2, [
       {
         'id': 21,
         'title': 'CRM follow-up',
@@ -120,6 +129,14 @@ void main() {
     expect(sent.headers['X-Suite-Organization'], '7');
     expect(sent.data, {'status': 'Done', 'expected_updated_at': stamp});
     expect(await queue.pendingTask(21), isNull);
+    expect(
+      (await SuiteReadCache.readPages(listScope))?.single['status'],
+      'Done',
+    );
+    expect(
+      (await SuiteReadCache.read('$scope:$taskPath:3'))?.single['status'],
+      'Done',
+    );
     await waitFor(find.text('Done'));
     expect(find.text('Waiting to sync'), findsNothing);
   });

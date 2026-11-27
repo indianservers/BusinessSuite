@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import 'api_client.dart';
 import 'models.dart';
+import 'suite_read_cache.dart';
 
 class CrmOfflineEdits {
   CrmOfflineEdits(String scope, {this.onTaskSynced})
@@ -13,7 +14,25 @@ class CrmOfflineEdits {
       _company = '${(jsonDecode(scope) as List)[2]}';
   final String _key;
   final String _company;
-  final Future<void> Function(int taskId, String branch)? onTaskSynced;
+  final Future<void> Function(int taskId, String branch, Json record)?
+  onTaskSynced;
+
+  factory CrmOfflineEdits.withTaskSnapshots(String scope) => CrmOfflineEdits(
+    scope,
+    onTaskSynced: (id, branch, record) async {
+      final status = record['status'];
+      final updatedAt = record['updated_at'];
+      if (status is! String || updatedAt is! String) return;
+      const path = '/project-management/tasks';
+      await SuiteReadCache.updateTaskStatus(
+        listScope: '$scope:$path',
+        detailScope: '$scope:$path/$id:$branch',
+        id: id,
+        status: status,
+        updatedAt: updatedAt,
+      );
+    },
+  );
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
   static final _taskUpdates =
@@ -135,8 +154,9 @@ class CrmOfflineEdits {
         final taskId = id.startsWith('task:')
             ? int.tryParse(id.substring(5))
             : null;
+        Json? confirmedTask;
         try {
-          await api.request(
+          final response = await api.request(
             creating ? 'POST' : 'PATCH',
             taskId != null
                 ? '/project-management/tasks/$taskId'
@@ -155,6 +175,7 @@ class CrmOfflineEdits {
                 : {'X-Suite-Organization': _company},
             data: taskId == null ? edit : edit['body'],
           );
+          if (taskId != null && response is Json) confirmedTask = response;
           rows.remove(id);
         } on ApiFailure catch (failure) {
           if (failure.connectionFailure ||
@@ -166,19 +187,26 @@ class CrmOfflineEdits {
           edit['error'] = failure.toString();
           if (creating) edit['status'] = failure.status;
         }
-        await _storage.write(key: _key, value: jsonEncode(rows));
         if (taskId != null && session == api.sessionRevision) {
-          final synced = !rows.containsKey(id);
-          if (synced) {
+          if (confirmedTask != null) {
             try {
-              await onTaskSynced?.call(taskId, edit['branch'] as String);
+              await onTaskSynced?.call(
+                taskId,
+                edit['branch'] as String,
+                confirmedTask,
+              );
             } catch (_) {
               // A cache failure cannot roll back a confirmed task change.
             }
           }
-          if (session == api.sessionRevision) {
-            _taskUpdates.add((key: _key, id: taskId, synced: synced));
-          }
+        }
+        await _storage.write(key: _key, value: jsonEncode(rows));
+        if (taskId != null && session == api.sessionRevision) {
+          _taskUpdates.add((
+            key: _key,
+            id: taskId,
+            synced: !rows.containsKey(id),
+          ));
         }
         if (creating &&
             !rows.containsKey(id) &&
