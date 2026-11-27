@@ -138,7 +138,12 @@ def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_curr
     from .people_management import organization_admin
     query=db.query(PMSWorkspace).filter(func.coalesce(PMSWorkspace.organization_id,1)==organization_id_for(user),PMSWorkspace.id.notin_(archived_ids()))
     memberships={m.workspace_id:m.role for m in db.query(PMSWorkspaceMember).filter_by(user_id=user.id)}
-    if not organization_admin(user):query=query.filter(PMSWorkspace.id.in_(memberships))
+    member_workspace = PMSWorkspace.id.in_(memberships)
+    if organization_admin(user):
+        # Match scoped_workspace: legacy rows without a company require membership.
+        query = query.filter(member_workspace | (PMSWorkspace.organization_id == organization_id_for(user)))
+    else:
+        query = query.filter(member_workspace)
     rows=query.order_by(PMSWorkspace.id).all()
     counts=dict(db.query(PMSWorkspaceMember.workspace_id,func.count(PMSWorkspaceMember.id)).filter(PMSWorkspaceMember.workspace_id.in_([w.id for w in rows])).group_by(PMSWorkspaceMember.workspace_id).all()) if rows else {}
     # Reuse exactly the live project/task scope used by the overview endpoint.

@@ -2404,10 +2404,32 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     super.dispose();
   }
 
+  AppBar _recordsAppBar(BuildContext context, {required List<Widget> actions}) {
+    // Leave room for the back button, title and toolbar padding.
+    final compact = MediaQuery.sizeOf(context).width < 220 + actions.length * 48;
+    return AppBar(
+      title: Text(widget.title),
+      actions: compact ? null : actions,
+      bottom: compact
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: actions),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(widget.title),
+    appBar: _recordsAppBar(
+      context,
       actions: [
         if (widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null))
           PopupMenuButton<String>(

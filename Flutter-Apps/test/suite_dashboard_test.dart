@@ -6256,6 +6256,11 @@ void main() {
           await back();
         }
         if (entry.key == 'VyaparaCRM') {
+          final title = find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('VyaparaCRM'),
+          );
+          expect(tester.getSize(title).width, greaterThan(100));
           await tester.tap(find.byTooltip('CRM tasks'));
           await tester.pumpAndSettle();
           expect(
