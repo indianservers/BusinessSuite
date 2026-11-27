@@ -278,6 +278,22 @@ void main() {
               'record': {
                 'expected_date': '2026-12-01',
                 'notes': 'Existing notes',
+                'lines': [
+                  {
+                    'id': 19,
+                    'description': 'Printer paper',
+                    'quantity': 2,
+                    'unit_price': 0,
+                    'tax_amount': 0,
+                  },
+                  {
+                    'id': 20,
+                    'description': 'Ink cartridge',
+                    'quantity': 5,
+                    'unit_price': 0,
+                    'tax_amount': 0,
+                  },
+                ],
               },
               'history': [
                 if (issued)
@@ -363,6 +379,30 @@ void main() {
       'changes': {'expected_date': '2026-12-03'},
     });
     expect(find.text('2026-12-03'), findsOneWidget);
+    final editLine = find.byTooltip('Edit Printer paper');
+    if (editLine.evaluate().isEmpty) {
+      await tester.drag(find.byType(ListView), const Offset(0, -350));
+      await tester.pumpAndSettle();
+    }
+    await tester.ensureVisible(editLine);
+    await tester.tap(editLine);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Unit price'),
+      '12.50',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason'),
+      'Correct agreed unit price',
+    );
+    await tester.tap(find.text('Save draft changes'));
+    await tester.pumpAndSettle();
+    expect((edited?.data as Map)['lines'], [
+      {'id': 19, 'unit_price': '12.50'},
+      {'id': 20},
+    ]);
+    await tester.drag(find.byType(ListView), const Offset(0, 400));
+    await tester.pumpAndSettle();
     for (var attempt = 0; attempt < 2; attempt++) {
       await tester.tap(find.text('Issue purchase order'));
       await tester.pumpAndSettle();

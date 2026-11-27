@@ -61,10 +61,15 @@ def test_issued_record_revision_edit_archive_and_history(client,db,superuser_hea
     changes={'due_date':str(date.today()+timedelta(days=40))} if kind=='invoices' else {'notes':'Corrected with a recorded reason'}
     if kind == 'purchase-orders':
         changes['expected_date'] = str(date.today() + timedelta(days=14))
-    edited=client.patch(target,headers=superuser_headers,json=command(revised,changes=changes))
+    line_changes = (
+        {'lines': [{'id': revised['record']['lines'][0]['id'], 'unit_price': '120.50'}]}
+        if kind == 'purchase-orders' else {}
+    )
+    edited=client.patch(target,headers=superuser_headers,json=command(revised,changes=changes,**line_changes))
     assert edited.status_code==200,edited.text
     if kind == 'purchase-orders':
         assert edited.json()['record']['expected_date'] == changes['expected_date']
+        assert Decimal(str(edited.json()['record']['total_amount'])) == Decimal('277')
     assert edited.json()['history'][0]['reason']=='Customer requested a corrected document'
     assert client.patch(target,headers=superuser_headers,json=command(revised,changes=changes)).status_code==409
     archived=client.request('DELETE',target,headers=superuser_headers,json=command(edited.json()))

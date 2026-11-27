@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -110,7 +112,13 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   final _requests =
       <
         _OrderAction,
-        ({String reason, String version, String id, Json changes})
+        ({
+          String reason,
+          String version,
+          String id,
+          Json changes,
+          List<Json>? lines,
+        })
       >{};
 
   Iterable<Json> _lines(Json data) =>
@@ -192,7 +200,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<void> _changeOrder(_OrderAction action) async {
+  Future<void> _changeOrder(_OrderAction action, {int? lineId}) async {
     if (_changingOrder) return;
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -225,19 +233,22 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
       final input = await _actionInput(
         action,
         record is Json ? record : const {},
+        lineId: lineId,
       );
       if (input == null || !mounted || revision != api.sessionRevision) return;
       final previous = _requests[action];
       final request =
           previous?.version == version &&
               previous?.reason == input.reason &&
-              mapEquals(previous?.changes, input.changes)
+              mapEquals(previous?.changes, input.changes) &&
+              jsonEncode(previous?.lines) == jsonEncode(input.lines)
           ? previous!
           : (
               reason: input.reason,
               version: version,
               id: const Uuid().v4(),
               changes: input.changes,
+              lines: input.lines,
             );
       _requests[action] = request;
       final response = await api.request(
@@ -249,6 +260,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
           'reason': request.reason,
           'request_id': request.id,
           if (action == _OrderAction.edit) 'changes': request.changes,
+          if (request.lines != null) 'lines': request.lines,
         },
       );
       if (!mounted || revision != api.sessionRevision) return;
@@ -275,21 +287,40 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<({String reason, Json changes})?> _actionInput(
+  Future<({String reason, Json changes, List<Json>? lines})?> _actionInput(
     _OrderAction action,
-    Json record,
-  ) {
+    Json record, {
+    int? lineId,
+  }) {
     final form = GlobalKey<FormState>();
     var reason = '';
-    final editing = action == _OrderAction.edit;
+    final editing = action == _OrderAction.edit && lineId == null;
+    final orderLines = _lines(record).toList();
+    final selected = orderLines
+        .where((line) => line['id'] == lineId)
+        .firstOrNull;
+    if (lineId != null && selected == null) {
+      throw ApiFailure('This line has changed. Refresh before editing.');
+    }
+    const labels = {
+      'description': 'Description',
+      'quantity': 'Quantity',
+      'unit_price': 'Unit price',
+      'tax_amount': 'Tax amount',
+    };
+    final values = {
+      if (selected != null)
+        for (final key in labels.keys) key: '${selected[key] ?? ''}',
+    };
+    final original = Map<String, String>.of(values);
     final existingDate = record['expected_date']?.toString() ?? '';
     final existingNotes = record['notes']?.toString() ?? '';
     var date = existingDate;
     var notes = existingNotes;
-    return showDialog<({String reason, Json changes})>(
+    return showDialog<({String reason, Json changes, List<Json>? lines})>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(action.title),
+        title: Text(lineId == null ? action.title : 'Modify draft item'),
         scrollable: true,
         content: Form(
           key: form,
@@ -320,6 +351,30 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                   onChanged: (value) => notes = value,
                 ),
               ],
+              for (final field in original.entries)
+                TextFormField(
+                  initialValue: field.value,
+                  decoration: InputDecoration(labelText: labels[field.key]),
+                  maxLength: field.key == 'description' ? 2000 : null,
+                  keyboardType: field.key == 'description'
+                      ? null
+                      : const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (value) => values[field.key] = value.trim(),
+                  validator: (_) {
+                    final text = values[field.key]!;
+                    if (field.key == 'description') {
+                      return text.isEmpty ? 'Enter a line description.' : null;
+                    }
+                    final value = num.tryParse(text);
+                    if (value == null || !value.isFinite || value < 0) {
+                      return 'Enter a nonnegative number.';
+                    }
+                    return field.key == 'quantity' &&
+                            (value == 0 || value > 1000000)
+                        ? 'Enter a quantity above zero and at most one million.'
+                        : null;
+                  },
+                ),
               TextFormField(
                 maxLines: 3,
                 maxLength: 500,
@@ -354,11 +409,30 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                   'expected_date': date.isEmpty ? null : date,
                 if (editing && notes != existingNotes) 'notes': notes,
               };
+              final lineChanges = <String, dynamic>{
+                for (final field in values.entries)
+                  if (field.value != original[field.key])
+                    field.key: field.value,
+              };
               Navigator.pop(
                 context,
-                editing && changes.isEmpty
+                action == _OrderAction.edit &&
+                        changes.isEmpty &&
+                        lineChanges.isEmpty
                     ? null
-                    : (reason: reason, changes: changes),
+                    : (
+                        reason: reason,
+                        changes: changes,
+                        lines: lineChanges.isEmpty
+                            ? null
+                            : [
+                                for (final line in orderLines)
+                                  {
+                                    'id': line['id'],
+                                    if (line['id'] == lineId) ...lineChanges,
+                                  },
+                              ],
+                      ),
               );
             },
             child: Text(action.confirm),
@@ -583,10 +657,20 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
               );
             }
             final line = lines[index - 1];
+            final id = line['id'];
+            final name =
+                "${line['description'] ?? line['item_code'] ?? 'Item'}";
             return ListTile(
-              title: Text(
-                "${line['description'] ?? line['item_code'] ?? 'Item'}",
-              ),
+              title: Text(name),
+              trailing: canIssue && id is int
+                  ? IconButton(
+                      tooltip: 'Edit $name',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(_OrderAction.edit, lineId: id),
+                    )
+                  : null,
               subtitle: Text(
                 [
                   for (final field in kind.lineFields.entries)
