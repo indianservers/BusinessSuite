@@ -10,6 +10,7 @@ import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_customer_page.dart';
+import 'package:business_suite_mobile/features/crm_task_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
@@ -30,6 +31,98 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android saves and syncs a CRM task status from offline', (
+    tester,
+  ) async {
+    const base = 'https://example.test/api/v1';
+    const taskPath = '/project-management/tasks/21';
+    const stamp = '2026-11-27T09:00:00Z';
+    final scope = '["$base",${DateTime.now().microsecondsSinceEpoch},7]';
+    final queue = CrmOfflineEdits(scope);
+    final requests = <RequestOptions>[];
+    var connected = false;
+    var status = 'To Do';
+    final api = ApiClient(
+      baseUrl: base,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request);
+          expect(connected, isTrue);
+          expect(request.path, taskPath);
+          if (request.method == 'PATCH') status = 'Done';
+          return response({
+            'id': 21,
+            'title': 'CRM follow-up',
+            'status': status,
+            'updated_at': stamp,
+          });
+        }),
+    );
+    await api.acceptTokens({
+      'access_token': 'device-qa',
+      'refresh_token': 'device-qa',
+    });
+    await SuiteReadCache.write('$scope:$taskPath:3', [
+      {
+        'id': 21,
+        'title': 'CRM follow-up',
+        'status': 'To Do',
+        'updated_at': stamp,
+      },
+    ]);
+    Future<void> open(bool offline) async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CrmTaskPage(
+            api: api,
+            summary: const {'id': 21},
+            offline: offline,
+            scopeHeaders: const {'X-Suite-Branch': '3'},
+            cacheScope: scope,
+            canEdit: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> waitFor(Finder finder) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(finder, findsOneWidget);
+    }
+
+    await open(true);
+    final change = find.text('Change status');
+    await waitFor(change);
+    await tester.tap(change);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await waitFor(find.text('Waiting to sync'));
+    final receipt = (await queue.pendingTask(21))?['operation'];
+    expect(receipt, isNotNull);
+    expect(requests, isEmpty);
+
+    await open(true);
+    await waitFor(find.text('Saved status Done'));
+    expect(requests, isEmpty);
+
+    connected = true;
+    await queue.sync(api);
+    final sent = requests.singleWhere((request) => request.method == 'PATCH');
+    expect(sent.headers['X-Offline-Operation'], receipt);
+    expect(sent.headers['X-Suite-Branch'], '3');
+    expect(sent.headers['X-Suite-Organization'], '7');
+    expect(sent.data, {'status': 'Done', 'expected_updated_at': stamp});
+    expect(await queue.pendingTask(21), isNull);
+    await waitFor(find.text('Done'));
+    expect(find.text('Waiting to sync'), findsNothing);
+  });
 
   testWidgets(
     'Android retains CRM contact, deal, and customer details offline',

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
@@ -41,6 +43,7 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   bool _saving = false;
   String? _error;
   Json? _pending;
+  StreamSubscription<bool>? _taskUpdates;
   bool _readingPending = true;
   late final CrmOfflineEdits? _queue = widget.cacheScope == null
       ? null
@@ -86,6 +89,21 @@ class _CrmTaskPageState extends State<CrmTaskPage> {
   void initState() {
     super.initState();
     _readPending();
+    _taskUpdates = _queue?.taskUpdates(_id).listen((synced) {
+      if (!mounted || _saving) return;
+      if (synced) {
+        widget.onChanged?.call();
+        _refresh();
+      } else {
+        _readPending();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _taskUpdates?.cancel();
+    super.dispose();
   }
 
   Future<void> _readPending() async {

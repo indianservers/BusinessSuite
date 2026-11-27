@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -15,6 +16,12 @@ class CrmOfflineEdits {
   final Future<void> Function(int taskId, String branch)? onTaskSynced;
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
+  static final _taskUpdates =
+      StreamController<({String key, int id, bool synced})>.broadcast();
+
+  Stream<bool> taskUpdates(int id) => _taskUpdates.stream
+      .where((update) => update.key == _key && update.id == id)
+      .map((update) => update.synced);
 
   Future<Json> _read() async {
     final raw = await _storage.read(key: _key);
@@ -160,10 +167,18 @@ class CrmOfflineEdits {
           if (creating) edit['status'] = failure.status;
         }
         await _storage.write(key: _key, value: jsonEncode(rows));
-        if (taskId != null &&
-            !rows.containsKey(id) &&
-            session == api.sessionRevision) {
-          await onTaskSynced?.call(taskId, edit['branch'] as String);
+        if (taskId != null && session == api.sessionRevision) {
+          final synced = !rows.containsKey(id);
+          if (synced) {
+            try {
+              await onTaskSynced?.call(taskId, edit['branch'] as String);
+            } catch (_) {
+              // A cache failure cannot roll back a confirmed task change.
+            }
+          }
+          if (session == api.sessionRevision) {
+            _taskUpdates.add((key: _key, id: taskId, synced: synced));
+          }
         }
         if (creating &&
             !rows.containsKey(id) &&

@@ -61,7 +61,9 @@ void main() {
       await queue.sync(api);
       expect(await queue.pendingTask(21), isNotNull);
       final reopened = CrmOfflineEdits(scope);
+      final confirmed = reopened.taskUpdates(21).first;
       await reopened.sync(api);
+      expect(await confirmed, isTrue);
       expect(await reopened.pendingTask(21), isNull);
       expect(requests, hasLength(2));
       final receipt = requests.first.headers['X-Offline-Operation'];
