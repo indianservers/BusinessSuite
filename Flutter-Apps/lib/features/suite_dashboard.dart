@@ -533,6 +533,13 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         employeeCacheScope: app.grant == 'hrms' ? _localScope(access) : null,
         canCreateTimesheets: canCreateTimesheets,
         canCreateLead: app.grant == 'crm' && _canCreateLead(access),
+        canCreateFollowUps:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'create', const {
+              'crm_manage',
+              'crm_admin',
+              'crm_activities_manage',
+            }),
         canEditFollowUps:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'edit', const {
@@ -1446,6 +1453,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canCreateLead = false,
     this.canEditFollowUps = false,
     this.canAssignFollowUps = false,
+    this.canCreateFollowUps = false,
     this.canCreateContacts = false,
     this.canEditContacts = false,
     this.canMoveDeals = false,
@@ -1478,7 +1486,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canArchiveOrders;
   final bool canEditWarehouses;
   final bool canCreateLead;
-  final bool canEditFollowUps, canAssignFollowUps;
+  final bool canEditFollowUps, canAssignFollowUps, canCreateFollowUps;
   final bool canCreateContacts;
   final bool canEditContacts;
   final bool canMoveDeals;
@@ -2321,6 +2329,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   path: CrmTaskPage.endpoint,
                   canEditFollowUps: widget.canEditFollowUps,
                   canAssignFollowUps: widget.canAssignFollowUps,
+                  canCreateFollowUps: widget.canCreateFollowUps,
                   query: const {'sourceModule': 'crm', 'pageSize': 25},
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
@@ -2342,6 +2351,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   offline: _offlineOnly || _usedSavedFallback,
                   canEdit: widget.canEditFollowUps,
                   canAssign: widget.canAssignFollowUps,
+                  canCreate: widget.canCreateFollowUps,
                 ),
               ),
             ),

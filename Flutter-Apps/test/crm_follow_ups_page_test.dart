@@ -7,6 +7,87 @@ import 'package:flutter_test/flutter_test.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('CRM schedules a customer follow-up with a date and time', (
+    tester,
+  ) async {
+    Map? created;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch ((request.method, request.path)) {
+            case ('GET', '/follow-ups'):
+              return response({
+                'items': [
+                  if (created != null) {'id': 9, ...created!, 'status': 'Due'},
+                ],
+                'total': created == null ? 0 : 1,
+              });
+            case ('GET', '/follow-ups/options'):
+              return response({
+                'customers': [
+                  {'id': 5, 'name': 'Paper supplier'},
+                ],
+              });
+            case ('POST', '/follow-ups'):
+              created = request.data as Map;
+              return response({'id': 9}, 201);
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmFollowUpsPage(
+          api: api,
+          headers: const {'X-Suite-Branch': '6'},
+          cacheScope: null,
+          offline: false,
+          canEdit: false,
+          canCreate: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('New follow-up'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Customer'), 'Paper');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Paper supplier').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Purpose / next action'),
+      'Check delivery',
+    );
+    await tester.pumpAndSettle();
+    expect(created, isNull);
+    Future<void> tap(String label) async {
+      final target = find.text(label).last;
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Choose due date and time');
+    await tap('OK');
+    await tap('OK');
+    await tap('Schedule follow-up');
+    expect(created, {
+      'customer_id': 5,
+      'title': 'Check delivery',
+      'required': true,
+      'type': 'date',
+      'due_at': endsWith('Z'),
+      'priority': 'Normal',
+      'contact_method': 'Call',
+      'notes': '',
+    });
+    expect(find.text('Check delivery'), findsOneWidget);
+  });
+
   testWidgets('CRM can reassign with assign permission alone', (tester) async {
     var assignee = 'Original owner';
     final api = ApiClient(

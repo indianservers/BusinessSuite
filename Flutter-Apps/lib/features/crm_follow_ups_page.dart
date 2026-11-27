@@ -14,13 +14,14 @@ class CrmFollowUpsPage extends StatefulWidget {
     required this.offline,
     required this.canEdit,
     this.canAssign = false,
+    this.canCreate = false,
   });
 
   final ApiClient api;
   final Map<String, String> headers;
   final String? cacheScope;
   final bool offline;
-  final bool canEdit, canAssign;
+  final bool canEdit, canAssign, canCreate;
 
   @override
   State<CrmFollowUpsPage> createState() => _CrmFollowUpsPageState();
@@ -57,6 +58,29 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  Future<void> _create() async {
+    final revision = widget.api.sessionRevision;
+    final created = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _CreateFollowUp(
+        api: widget.api,
+        headers: widget.headers,
+        revision: revision,
+      ),
+    );
+    if (!mounted || created != true || revision != widget.api.sessionRevision) {
+      return;
+    }
+    setState(() {
+      _page = 1;
+      _rows = _load();
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Follow-up scheduled.')));
   }
 
   Json _summary(Json row) => {
@@ -156,6 +180,19 @@ class _CrmFollowUpsPageState extends State<CrmFollowUpsPage> {
     appBar: AppBar(
       title: const Text('Follow-ups'),
       actions: [
+        if (widget.canCreate)
+          FutureBuilder(
+            future: _rows,
+            builder: (_, snapshot) => IconButton(
+              tooltip: 'New follow-up',
+              icon: const Icon(LucideIcons.plus),
+              onPressed:
+                  snapshot.connectionState == ConnectionState.done &&
+                      snapshot.data?.live == true
+                  ? _create
+                  : null,
+            ),
+          ),
         IconButton(
           tooltip: 'Refresh follow-ups',
           icon: const Icon(LucideIcons.refreshCw),
@@ -351,29 +388,8 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
         _newDue ??
         DateTime.tryParse('${row['due_at']}')?.toLocal() ??
         DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(initial.year - 100),
-      lastDate: DateTime(initial.year + 100, 12, 31),
-      helpText: 'New due date',
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-      helpText: 'New due time',
-    );
-    if (time == null || !mounted) return;
-    setState(() {
-      _newDue = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-    });
+    final due = await _pickDue(context, initial);
+    if (mounted && due != null) setState(() => _newDue = due);
   }
 
   Future<Json> _load() async {
@@ -513,5 +529,235 @@ class _FollowUpDetailState extends State<_FollowUpDetail> {
         ],
       );
     },
+  );
+}
+
+Future<DateTime?> _pickDue(BuildContext context, DateTime initial) async {
+  final date = await showDatePicker(
+    context: context,
+    initialDate: initial,
+    firstDate: DateTime(initial.year - 100),
+    lastDate: DateTime(initial.year + 100, 12, 31),
+    helpText: 'New due date',
+  );
+  if (date == null || !context.mounted) return null;
+  final time = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(initial),
+    helpText: 'New due time',
+  );
+  if (time == null) return null;
+  return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+}
+
+class _CreateFollowUp extends StatefulWidget {
+  const _CreateFollowUp({
+    required this.api,
+    required this.headers,
+    required this.revision,
+  });
+
+  final ApiClient api;
+  final Map<String, String> headers;
+  final int revision;
+
+  @override
+  State<_CreateFollowUp> createState() => _CreateFollowUpState();
+}
+
+class _CreateFollowUpState extends State<_CreateFollowUp> {
+  final _title = TextEditingController();
+  final _notes = TextEditingController();
+  late var _options = _load();
+  Json? _customer;
+  DateTime? _due;
+  String _priority = 'Normal';
+  String _method = 'Call';
+  String? _error;
+  bool _saving = false;
+  bool _uncertain = false;
+
+  Future<List<Json>> _load() async {
+    final result =
+        await widget.api.request(
+              'GET',
+              '/follow-ups/options',
+              scopeHeaders: widget.headers,
+            )
+            as Json;
+    if (widget.revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    return (result['customers'] as List).cast<Json>();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave =>
+      !_saving &&
+      !_uncertain &&
+      _customer != null &&
+      _due != null &&
+      _title.text.trim().isNotEmpty;
+
+  Future<void> _save() async {
+    if (!_canSave || widget.revision != widget.api.sessionRevision) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request(
+        'POST',
+        '/follow-ups',
+        scopeHeaders: widget.headers,
+        data: {
+          'title': _title.text.trim(),
+          'customer_id': _customer!['id'],
+          'required': true,
+          'type': 'date',
+          'due_at': _due!.toUtc().toIso8601String(),
+          'priority': _priority,
+          'contact_method': _method,
+          'notes': _notes.text.trim(),
+        },
+      );
+      if (mounted && widget.revision == widget.api.sessionRevision) {
+        Navigator.pop(context, true);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted && widget.revision == widget.api.sessionRevision) {
+        setState(() {
+          _uncertain = error.connectionFailure || (error.status ?? 0) >= 500;
+          _error = _uncertain
+              ? 'Save could not be confirmed. Refresh Follow-ups before trying again.'
+              : error.message;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Widget _choice(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String> select,
+  ) => DropdownButtonFormField<String>(
+    initialValue: value,
+    decoration: InputDecoration(labelText: label),
+    onChanged: _saving ? null : (value) => setState(() => select(value!)),
+    items: [
+      for (final option in options)
+        DropdownMenuItem(value: option, child: Text(option)),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: const Text('New follow-up'),
+    content: SizedBox(
+      width: 360,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FutureBuilder(
+            future: _options,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return TextButton(
+                  onPressed: () => setState(() {
+                    _options = _load();
+                  }),
+                  child: const Text('Retry customers'),
+                );
+              }
+              if (!snapshot.hasData) return const LinearProgressIndicator();
+              final rows = snapshot.requireData;
+              return Autocomplete<Json>(
+                displayStringForOption: (row) => '${row['name']}',
+                optionsBuilder: (text) {
+                  final term = text.text.trim().toLowerCase();
+                  return rows
+                      .where(
+                        (row) => '${row['name']}'.toLowerCase().contains(term),
+                      )
+                      .take(40);
+                },
+                fieldViewBuilder: (_, controller, focus, submitted) =>
+                    TextField(
+                      controller: controller,
+                      focusNode: focus,
+                      enabled: !_saving,
+                      onChanged: (_) => setState(() => _customer = null),
+                      onSubmitted: (_) => submitted(),
+                      decoration: const InputDecoration(labelText: 'Customer'),
+                    ),
+                onSelected: (row) => setState(() => _customer = row),
+              );
+            },
+          ),
+          TextField(
+            controller: _title,
+            enabled: !_saving,
+            onChanged: (_) => setState(() {}),
+            maxLength: 220,
+            decoration: const InputDecoration(
+              labelText: 'Purpose / next action',
+            ),
+          ),
+          OutlinedButton(
+            onPressed: _saving
+                ? null
+                : () async {
+                    final due = await _pickDue(context, _due ?? DateTime.now());
+                    if (mounted && due != null) setState(() => _due = due);
+                  },
+            child: Text(switch (_due) {
+              final DateTime date =>
+                '${MaterialLocalizations.of(context).formatCompactDate(date)} · ${TimeOfDay.fromDateTime(date).format(context)}',
+              null => 'Choose due date and time',
+            }),
+          ),
+          _choice('Priority', _priority, const [
+            'Low',
+            'Normal',
+            'High',
+            'Urgent',
+          ], (value) => _priority = value),
+          _choice('Contact method', _method, const [
+            'Call',
+            'WhatsApp',
+            'Email',
+            'Visit',
+          ], (value) => _method = value),
+          TextField(
+            controller: _notes,
+            enabled: !_saving,
+            maxLength: 10000,
+            decoration: const InputDecoration(labelText: 'Notes'),
+          ),
+          if (_error != null) Text(_error!),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: _saving ? null : () => Navigator.pop(context),
+        child: const Text('Close'),
+      ),
+      FilledButton(
+        onPressed: _canSave ? _save : null,
+        child: Text(_saving ? 'Saving…' : 'Schedule follow-up'),
+      ),
+    ],
   );
 }
