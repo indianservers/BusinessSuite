@@ -63,6 +63,15 @@ def test_audit_receipt_posts_selected_order_line_and_updates_stock(client, procu
     assert response.status_code == 201
     assert response.json()["lines"][0]["purchase_order_line_id"] == order["lines"][0]["id"]
     assert client.get(f"/api/v1/srm/inventory/items/{line['product_id']}", headers=headers).json()["current_quantity"] == 2
+    document = f"/api/v1/srm/documents/purchase-orders/{order['id']}"
+    version = client.get(document, headers=headers).json()["version"]
+    cancelled = client.post(
+        f"{document}/cancel",
+        headers=headers,
+        json={"version": version, "reason": "Supplier cancelled", "request_id": str(uuid4())},
+    )
+    assert cancelled.status_code == 409
+    assert "has receipts" in cancelled.json()["detail"]
 
 
 def test_purchase_order_draft_requires_issue_before_receiving(client, procurement):

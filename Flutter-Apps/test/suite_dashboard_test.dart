@@ -42,6 +42,75 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Purchase order cancellation records a reason and refreshes', (
+    tester,
+  ) async {
+    const document = '/srm/documents/purchase-orders/72';
+    final version = 'a' * 64;
+    RequestOptions? cancelled;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case document:
+              return response({'version': version, 'editable': false});
+            case '$document/cancel':
+              expect(request.method, 'POST');
+              cancelled = request;
+              return response({
+                'record': {'id': 72, 'status': 'cancelled'},
+              });
+            case '/srm/procurement/purchase-orders/72':
+              return response({
+                'id': 72,
+                'po_number': 'PO-72',
+                'status': cancelled == null ? 'ordered' : 'cancelled',
+              });
+            default:
+              throw StateError('Unexpected request: ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InventoryProcurementPage(
+          api: api,
+          kind: ProcurementRecord.order,
+          summary: const {'id': 72},
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+          cacheScope: null,
+          offline: false,
+          canIssue: true,
+          canReceive: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel with reason'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+    expect(cancelled, isNull);
+    await tester.enterText(
+      find.byType(TextFormField),
+      'Supplier cannot fulfil',
+    );
+    await tester.tap(find.text('Confirm cancellation'));
+    await tester.pumpAndSettle();
+    expect(cancelled?.headers['X-Suite-Branch'], '6');
+    expect(cancelled?.data, {
+      'version': version,
+      'reason': 'Supplier cannot fulfil',
+      'request_id': matches(RegExp(r'^[0-9a-f-]{36}$')),
+    });
+    expect(find.text('PO-72'), findsOneWidget);
+    expect(find.text('cancelled'), findsOneWidget);
+    expect(find.text('Receive goods'), findsNothing);
+    expect(find.text('Cancel with reason'), findsNothing);
+  });
+
   testWidgets('Purchase order drafts preserve multiple item selections', (
     tester,
   ) async {

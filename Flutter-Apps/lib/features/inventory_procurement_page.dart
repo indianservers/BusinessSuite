@@ -9,6 +9,15 @@ import '../core/suite_pdf.dart';
 import 'commercial_document_history_page.dart';
 import 'inventory_goods_receipt_form.dart';
 
+enum _OrderAction {
+  issue('Issue purchase order', 'Confirm issue'),
+  revise('Create revision draft', 'Create revised draft'),
+  cancel('Cancel purchase order', 'Confirm cancellation');
+
+  const _OrderAction(this.title, this.confirm);
+  final String title, confirm;
+}
+
 enum ProcurementRecord {
   order(
     'Purchase orders',
@@ -96,7 +105,8 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
   late var _record = _load(offline: widget.offline);
   bool _changingOrder = false;
   bool _savingPdf = false;
-  final _requests = <bool, ({String reason, String version, String id})>{};
+  final _requests =
+      <_OrderAction, ({String reason, String version, String id})>{};
 
   Iterable<Json> _lines(Json data) =>
       (data['lines'] as List? ?? const []).whereType<Json>();
@@ -177,7 +187,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<void> _changeOrder({required bool revise}) async {
+  Future<void> _changeOrder(_OrderAction action) async {
     if (_changingOrder) return;
     final api = widget.api;
     final revision = api.sessionRevision;
@@ -194,23 +204,24 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
         throw ApiFailure('The purchase order version is unavailable.');
       }
       if (document['removed'] == true ||
-          (!revise && document['editable'] != true)) {
+          (action == _OrderAction.issue && document['editable'] != true) ||
+          (action == _OrderAction.cancel && document['editable'] != false)) {
         _refresh();
         throw ApiFailure(
           'This action is unavailable for the current purchase order.',
         );
       }
       final version = document['version'] as String;
-      final reason = await _actionReason(revise: revise);
+      final reason = await _actionReason(action);
       if (reason == null || !mounted || revision != api.sessionRevision) return;
-      final previous = _requests[revise];
+      final previous = _requests[action];
       final request = previous?.version == version && previous?.reason == reason
           ? previous!
           : (reason: reason, version: version, id: const Uuid().v4());
-      _requests[revise] = request;
+      _requests[action] = request;
       final response = await api.request(
         'POST',
-        '$path/${revise ? 'revise' : 'issue'}',
+        '$path/${action.name}',
         scopeHeaders: widget.scopeHeaders,
         data: {
           'version': request.version,
@@ -220,14 +231,14 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
       );
       if (!mounted || revision != api.sessionRevision) return;
       int? revisedId;
-      if (revise) {
+      if (action == _OrderAction.revise) {
         final draft = response is Json ? response['record'] : null;
         if (draft is! Json || draft['id'] is! int) {
           throw ApiFailure('The revision could not be confirmed. Try again.');
         }
         revisedId = draft['id'] as int;
       }
-      _requests.remove(revise);
+      _requests.remove(action);
       _refresh();
       widget.onOrderChanged?.call();
       if (revisedId != null) _openOrder(revisedId, false);
@@ -242,13 +253,13 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
     }
   }
 
-  Future<String?> _actionReason({required bool revise}) {
+  Future<String?> _actionReason(_OrderAction action) {
     final form = GlobalKey<FormState>();
     var reason = '';
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(revise ? 'Create revision draft' : 'Issue purchase order'),
+        title: Text(action.title),
         content: Form(
           key: form,
           child: TextFormField(
@@ -256,9 +267,12 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
             maxLength: 500,
             decoration: InputDecoration(
               labelText: 'Reason',
-              helperText: revise
-                  ? 'The original remains in the register.'
-                  : null,
+              helperText: switch (action) {
+                _OrderAction.revise => 'The original remains in the register.',
+                _OrderAction.cancel =>
+                  'The order stays in the register as cancelled.',
+                _OrderAction.issue => null,
+              },
             ),
             onChanged: (value) => reason = value.trim(),
             validator: (_) =>
@@ -274,7 +288,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
             onPressed: () {
               if (form.currentState!.validate()) Navigator.pop(context, reason);
             },
-            child: Text(revise ? 'Create revised draft' : 'Confirm issue'),
+            child: Text(action.confirm),
           ),
         ],
       ),
@@ -419,7 +433,7 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                     FilledButton(
                       onPressed: _changingOrder
                           ? null
-                          : () => _changeOrder(revise: false),
+                          : () => _changeOrder(_OrderAction.issue),
                       child: const Text('Issue purchase order'),
                     ),
                   if (widget.canReceive &&
@@ -430,8 +444,19 @@ class _InventoryProcurementPageState extends State<InventoryProcurementPage> {
                     OutlinedButton(
                       onPressed: _changingOrder
                           ? null
-                          : () => _changeOrder(revise: true),
+                          : () => _changeOrder(_OrderAction.revise),
                       child: const Text('Create revision draft'),
+                    ),
+                  if (widget.canIssue &&
+                      kind == ProcurementRecord.order &&
+                      done &&
+                      snapshot.data?.live == true &&
+                      row['status'] == 'ordered')
+                    OutlinedButton(
+                      onPressed: _changingOrder
+                          ? null
+                          : () => _changeOrder(_OrderAction.cancel),
+                      child: const Text('Cancel with reason'),
                     ),
                   if (widget.canExport &&
                       kind == ProcurementRecord.order &&
