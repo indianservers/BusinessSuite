@@ -457,98 +457,140 @@ void main() {
     expect(requests, hasLength(1));
   });
 
-  testWidgets(
-    'Android retains CRM contact, deal, and customer details offline',
-    (tester) async {
-      final scope = 'crm-detail-qa-${DateTime.now().microsecondsSinceEpoch}';
-      var connected = true;
-      final requests = <String>[];
-      final api = ApiClient(
-        baseUrl: 'https://example.test/api/v1',
-        store: MemoryStore(),
-        transport: Dio()
-          ..httpClientAdapter = FakeAdapter((request) async {
-            requests.add(request.path);
-            if (!connected) throw StateError('Offline request ${request.path}');
-            return switch (request.path) {
-              '/crm/contacts/4' => response({
-                'id': 4,
-                'full_name': 'Cached contact',
-                'timeline': [
-                  {'title': 'Requested a quote', 'occurredAt': '2026-11-27'},
-                ],
-              }),
-              '/crm/deal-workspace/9/record' => response({
-                'id': 9,
-                'name': 'Cached deal',
-                'description': 'Annual support renewal',
-              }),
-              '/master-data/companies/7' => response({
-                'name': 'Cached customer',
-                'contacts': [
-                  {'name': 'Customer representative'},
-                ],
-              }),
-              _ => throw StateError('Unexpected request ${request.path}'),
-            };
-          }),
+  testWidgets('Android retains CRM contact, deal, and customer details offline', (
+    tester,
+  ) async {
+    final scope =
+        '["https://example.test/api/v1",${DateTime.now().microsecondsSinceEpoch},7]';
+    var connected = true;
+    var customerName = 'Cached customer';
+    var version = 'customer-v1';
+    final requests = <String>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request.path);
+          if (!connected) throw StateError('Offline request ${request.path}');
+          if (request.method == 'PATCH') {
+            expect(request.path, '/master-data/companies/7');
+            expect(request.headers['X-Suite-Branch'], '3');
+            expect(request.headers['X-Suite-Organization'], '7');
+            expect(request.queryParameters['source'], 'crm');
+            expect(request.data, {
+              'name': 'Offline customer edit',
+              'version': version,
+            });
+            customerName = 'Offline customer edit';
+            version = 'customer-v2';
+            return response({
+              'id': 7,
+              'name': customerName,
+              'version': version,
+            });
+          }
+          return switch (request.path) {
+            '/crm/contacts/4' => response({
+              'id': 4,
+              'full_name': 'Cached contact',
+              'timeline': [
+                {'title': 'Requested a quote', 'occurredAt': '2026-11-27'},
+              ],
+            }),
+            '/crm/deal-workspace/9/record' => response({
+              'id': 9,
+              'name': 'Cached deal',
+              'description': 'Annual support renewal',
+            }),
+            '/master-data/companies/7' => response({
+              'id': 7,
+              'name': customerName,
+              'version': version,
+              'canEdit': true,
+              'contacts': [
+                {'name': 'Customer representative'},
+              ],
+            }),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+
+    Future<void> open(Widget page) async {
+      await tester.pumpWidget(MaterialApp(home: page));
+      await tester.pumpAndSettle();
+    }
+
+    for (final offline in [false, true]) {
+      connected = !offline;
+      await open(
+        CrmContactPage(
+          api: api,
+          summary: const {'id': 4},
+          offline: offline,
+          cacheScope: scope,
+          canEdit: true,
+          scopeHeaders: const {},
+        ),
       );
-
-      Future<void> open(Widget page) async {
-        await tester.pumpWidget(MaterialApp(home: page));
-        await tester.pumpAndSettle();
-      }
-
-      for (final offline in [false, true]) {
-        connected = !offline;
-        await open(
-          CrmContactPage(
-            api: api,
-            summary: const {'id': 4},
-            offline: offline,
-            cacheScope: scope,
-            canEdit: true,
-            scopeHeaders: const {},
-          ),
-        );
-        expect(find.text('Requested a quote'), findsOneWidget);
-        expect(
-          find.text('Edit contact'),
-          offline ? findsNothing : findsOneWidget,
-        );
-        await open(
-          CrmDealPage(
-            api: api,
-            summary: const {'id': 9},
-            offline: offline,
-            cacheScope: scope,
-            canMove: true,
-            scopeHeaders: const {},
-          ),
-        );
-        expect(find.text('Annual support renewal'), findsOneWidget);
-        expect(
-          find.text('Review stage move'),
-          offline ? findsNothing : findsOneWidget,
-        );
-        await open(
-          CrmCustomerPage(
-            api: api,
-            summary: const {'id': 7},
-            offline: offline,
-            cacheScope: scope,
-            scopeHeaders: const {},
-          ),
-        );
-        expect(find.text('Customer representative'), findsOneWidget);
-      }
-      expect(requests, [
-        '/crm/contacts/4',
-        '/crm/deal-workspace/9/record',
-        '/master-data/companies/7',
-      ]);
-    },
-  );
+      expect(find.text('Requested a quote'), findsOneWidget);
+      expect(
+        find.text('Edit contact'),
+        offline ? findsNothing : findsOneWidget,
+      );
+      await open(
+        CrmDealPage(
+          api: api,
+          summary: const {'id': 9},
+          offline: offline,
+          cacheScope: scope,
+          canMove: true,
+          scopeHeaders: const {},
+        ),
+      );
+      expect(find.text('Annual support renewal'), findsOneWidget);
+      expect(
+        find.text('Review stage move'),
+        offline ? findsNothing : findsOneWidget,
+      );
+      await open(
+        CrmCustomerPage(
+          api: api,
+          summary: const {'id': 7},
+          offline: offline,
+          cacheScope: scope,
+          scopeHeaders: const {'X-Suite-Branch': '3'},
+        ),
+      );
+      expect(find.text('Customer representative'), findsOneWidget);
+    }
+    expect(requests, [
+      '/crm/contacts/4',
+      '/crm/deal-workspace/9/record',
+      '/master-data/companies/7',
+    ]);
+    await tester.tap(find.text('Edit customer').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Customer name'),
+      'Offline customer edit',
+    );
+    final save = find.text('Save edit offline');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Customer edit saved · awaiting sync'), findsOneWidget);
+    expect(customerName, 'Cached customer');
+    expect(requests, hasLength(3));
+    connected = true;
+    await tester.tap(find.text('Sync now').hitTestable());
+    await tester.pumpAndSettle();
+    expect(customerName, 'Offline customer edit');
+    expect(find.text('Offline customer edit'), findsOneWidget);
+    expect(find.text('Customer edit saved · awaiting sync'), findsNothing);
+  });
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
     var connected = true;

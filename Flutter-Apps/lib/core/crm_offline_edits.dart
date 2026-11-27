@@ -11,9 +11,11 @@ import 'suite_read_cache.dart';
 
 class CrmOfflineEdits {
   CrmOfflineEdits(String scope, {this.onTaskSynced})
-    : _key = 'crm_edits_${Uri.encodeComponent(scope)}',
+    : _scope = scope,
+      _key = 'crm_edits_${Uri.encodeComponent(scope)}',
       _company = '${(jsonDecode(scope) as List)[2]}';
   final String _key;
+  final String _scope;
   final String _company;
   final Future<void> Function(int taskId, String branch, Json record)?
   onTaskSynced;
@@ -38,6 +40,12 @@ class CrmOfflineEdits {
   );
   static const _storage = FlutterSecureStorage();
   static final Map<String, Future<void>> _running = {};
+  static final _customerUpdates =
+      StreamController<(String, String)>.broadcast();
+
+  Stream<void> customerUpdates(int id) => _customerUpdates.stream
+      .where((event) => event == (_key, 'customer:$id'))
+      .map<void>((_) {});
   static final _taskUpdates =
       StreamController<
         ({String key, int id, ({bool synced, Json? record}) result})
@@ -54,6 +62,24 @@ class CrmOfflineEdits {
   }
 
   Future<Json?> pending(int id) async => (await _read())['$id'] as Json?;
+  Future<Json?> pendingCustomer(int id) async =>
+      (await _read())['customer:$id'] as Json?;
+
+  Future<void> enqueueCustomer(int id, Json body, String branch) =>
+      _serialized(() async {
+        final rows = await _read();
+        if (rows.containsKey('customer:$id')) {
+          throw StateError('This customer already has a saved edit.');
+        }
+        rows['customer:$id'] = {'body': body, 'branch': branch};
+        await _storage.write(key: _key, value: jsonEncode(rows));
+      });
+
+  Future<void> discardCustomer(int id) => _serialized(() async {
+    final rows = await _read();
+    rows.remove('customer:$id');
+    await _storage.write(key: _key, value: jsonEncode(rows));
+  });
   Future<Json?> pendingTask(int id) async =>
       (await _read())['task:$id'] as Json?;
 
@@ -142,6 +168,7 @@ class CrmOfflineEdits {
     ApiClient api, {
     int? leadId,
     int? onlyTask,
+    int? onlyCustomer,
     void Function()? onCreated,
   }) {
     final session = api.sessionRevision;
@@ -149,6 +176,8 @@ class CrmOfflineEdits {
       final rows = await _read();
       final ids = onlyTask != null
           ? ['task:$onlyTask']
+          : onlyCustomer != null
+          ? ['customer:$onlyCustomer']
           : leadId == null
           ? rows.keys.toList()
           : ['$leadId'];
@@ -157,10 +186,14 @@ class CrmOfflineEdits {
         final edit = rows[id] as Json?;
         if (edit == null || edit['error'] != null) continue;
         final creating = id.startsWith('create:');
+        final customer = id.startsWith('customer:');
+        final customerPath = '/master-data/companies/${id.split(':').last}';
+        final branch = edit['branch'] as String? ?? '';
         final taskId = id.startsWith('task:')
             ? int.tryParse(id.substring(5))
             : null;
         Json? confirmedTask;
+        Json? confirmedCustomer;
         try {
           final response = await api.request(
             creating ? 'POST' : 'PATCH',
@@ -168,7 +201,10 @@ class CrmOfflineEdits {
                 ? '/project-management/tasks/$taskId'
                 : creating
                 ? '/crm/lead-management/leads'
+                : customer
+                ? customerPath
                 : '/crm/lead-management/leads/$id',
+            query: customer ? const {'source': 'crm'} : null,
             scopeHeaders: taskId != null
                 ? {
                     ...creationHeaders(edit['operation'] as String),
@@ -178,10 +214,14 @@ class CrmOfflineEdits {
                   }
                 : creating
                 ? creationHeaders(id.substring('create:'.length))
-                : {'X-Suite-Organization': _company},
-            data: taskId == null ? edit : edit['body'],
+                : {
+                    'X-Suite-Organization': _company,
+                    if (customer && branch.isNotEmpty) 'X-Suite-Branch': branch,
+                  },
+            data: taskId == null && !customer ? edit : edit['body'],
           );
           if (taskId != null && response is Json) confirmedTask = response;
+          if (customer && response is Json) confirmedCustomer = response;
           rows.remove(id);
         } on ApiFailure catch (failure) {
           if (failure.connectionFailure ||
@@ -207,6 +247,42 @@ class CrmOfflineEdits {
           }
         }
         await _storage.write(key: _key, value: jsonEncode(rows));
+        if (customer &&
+            !rows.containsKey(id) &&
+            session == api.sessionRevision) {
+          try {
+            final key = '$_scope:$customerPath:$branch';
+            await flushCrmDetailWrite(key);
+            final saved = await SuiteReadCache.read(key);
+            final changes = edit['body'] as Json;
+            if (saved != null &&
+                saved.isNotEmpty &&
+                saved.first['version'] == changes['version']) {
+              final previous = saved.first;
+              await SuiteReadCache.write(key, [
+                {
+                  for (final entry in previous.entries)
+                    entry.key: confirmedCustomer?.containsKey(entry.key) == true
+                        ? confirmedCustomer![entry.key]
+                        : changes.containsKey(entry.key)
+                        ? changes[entry.key]
+                        : entry.value,
+                  'canEdit':
+                      previous['canEdit'] == true &&
+                      confirmedCustomer?['version'] is String,
+                },
+              ]);
+            }
+            await SuiteReadCache.invalidate(
+              '$_scope:/master-data/company-directory/query',
+            );
+          } catch (_) {
+            // The server has already accepted the saved edit.
+          }
+        }
+        if (customer && session == api.sessionRevision) {
+          _customerUpdates.add((_key, id));
+        }
         if (taskId != null && session == api.sessionRevision) {
           _taskUpdates.add((
             key: _key,
