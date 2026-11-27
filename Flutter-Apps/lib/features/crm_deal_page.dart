@@ -12,7 +12,7 @@ class CrmDealPage extends StatefulWidget {
     required this.offline,
     required this.scopeHeaders,
     this.canMove = false,
-    this.onMoved,
+    this.onChanged,
   });
 
   static const endpoint = '/crm/deal-workspace/query';
@@ -30,7 +30,7 @@ class CrmDealPage extends StatefulWidget {
   final bool offline;
   final Map<String, String> scopeHeaders;
   final bool canMove;
-  final VoidCallback? onMoved;
+  final VoidCallback? onChanged;
 
   @override
   State<CrmDealPage> createState() => _CrmDealPageState();
@@ -82,7 +82,22 @@ class _CrmDealPageState extends State<CrmDealPage> {
     if (!mounted || stage == null) return;
     _movedStage = stage;
     _refresh();
-    widget.onMoved?.call();
+    widget.onChanged?.call();
+  }
+
+  Future<void> _edit(Json deal) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => _DealEditPage(
+          api: widget.api,
+          deal: deal,
+          scopeHeaders: widget.scopeHeaders,
+        ),
+      ),
+    );
+    if (!mounted || changed != true) return;
+    _refresh();
+    widget.onChanged?.call();
   }
 
   @override
@@ -149,12 +164,19 @@ class _CrmDealPageState extends State<CrmDealPage> {
             if (widget.canMove &&
                 snapshot.connectionState == ConnectionState.done &&
                 snapshot.data != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton(
-                  onPressed: _reviewStage,
-                  child: const Text('Review stage move'),
-                ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (data['version'] is int)
+                    OutlinedButton(
+                      onPressed: () => _edit(data),
+                      child: const Text('Edit deal'),
+                    ),
+                  OutlinedButton(
+                    onPressed: _reviewStage,
+                    child: const Text('Review stage move'),
+                  ),
+                ],
               ),
             for (final field in fields.entries)
               if (field.value != null && field.value.toString().isNotEmpty)
@@ -165,6 +187,124 @@ class _CrmDealPageState extends State<CrmDealPage> {
           ],
         );
       },
+    ),
+  );
+}
+
+class _DealEditPage extends StatefulWidget {
+  const _DealEditPage({
+    required this.api,
+    required this.deal,
+    required this.scopeHeaders,
+  });
+  final ApiClient api;
+  final Json deal;
+  final Map<String, String> scopeHeaders;
+
+  @override
+  State<_DealEditPage> createState() => _DealEditPageState();
+}
+
+class _DealEditPageState extends State<_DealEditPage> {
+  final _form = GlobalKey<FormState>();
+  final _changes = <String, dynamic>{};
+  bool _saving = false;
+  String? _error;
+  static const _fields = {
+    'name': 'Deal name',
+    'description': 'Description',
+    'amount': 'Amount',
+    'expected_close_date': 'Expected close date',
+  };
+
+  String? _validate(String key, String text) {
+    if (key == 'name' && text.isEmpty) return 'Enter a deal name';
+    if (key == 'amount' && text.isNotEmpty) {
+      final amount = num.tryParse(text);
+      if (amount == null || !amount.isFinite || amount < 0) {
+        return 'Enter a valid amount';
+      }
+    }
+    if (key == 'expected_close_date' && text.isNotEmpty) {
+      final date = DateTime.tryParse(text);
+      if (date == null || date.toIso8601String().split('T').first != text) {
+        return 'Enter a date as YYYY-MM-DD';
+      }
+    }
+    return null;
+  }
+
+  Future<void> _save() async {
+    if (_saving || _form.currentState?.validate() != true) return;
+    _changes.clear();
+    _form.currentState!.save();
+    if (_changes.isEmpty) {
+      Navigator.pop(context, false);
+      return;
+    }
+    final revision = widget.api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.request(
+        'PATCH',
+        '/crm/deals/${widget.deal['id']}',
+        scopeHeaders: widget.scopeHeaders,
+        data: {..._changes, 'expected_version': widget.deal['version']},
+      );
+      if (mounted && revision == widget.api.sessionRevision) {
+        Navigator.pop(context, true);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Edit deal')),
+    body: Form(
+      key: _form,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final field in _fields.entries)
+              TextFormField(
+                initialValue: widget.deal[field.key]?.toString(),
+                enabled: !_saving,
+                decoration: InputDecoration(labelText: field.value),
+                maxLength: field.key == 'name' ? 180 : null,
+                maxLines: field.key == 'description' ? 3 : 1,
+                keyboardType: field.key == 'amount'
+                    ? const TextInputType.numberWithOptions(decimal: true)
+                    : null,
+                validator: (value) => _validate(field.key, value?.trim() ?? ''),
+                onSaved: (value) {
+                  final text = value?.trim() ?? '';
+                  final current =
+                      widget.deal[field.key]?.toString().trim() ?? '';
+                  if (text == current) return;
+                  _changes[field.key] = text.isEmpty
+                      ? null
+                      : field.key == 'amount'
+                      ? num.parse(text)
+                      : text;
+                },
+              ),
+            if (_error case final error?) Text(error),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Saving…' : 'Save changes'),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }

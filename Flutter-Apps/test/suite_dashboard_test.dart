@@ -36,6 +36,62 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'api_client_test.dart' show FakeAdapter, MemoryStore, response;
 
 void main() {
+  testWidgets('Deal edit sends only changed values with the loaded version', (
+    tester,
+  ) async {
+    final record = <String, dynamic>{
+      'id': 18,
+      'version': 3,
+      'name': 'Renewal',
+      'amount': 2000,
+      'currency': 'INR',
+    };
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'PATCH') {
+            writes.add(request);
+            record['name'] = 'Annual renewal';
+            record['version'] = 4;
+          }
+          return response(record);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmDealPage(
+          api: api,
+          summary: const {'id': 18},
+          offline: false,
+          canMove: true,
+          scopeHeaders: const {'X-Suite-Organization': '7'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit deal'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Deal name'),
+      'Annual renewal',
+    );
+    final save = find.text('Save changes');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(writes.single.path, '/crm/deals/18');
+    expect(writes.single.headers['X-Suite-Organization'], '7');
+    expect(writes.single.data, {
+      'name': 'Annual renewal',
+      'expected_version': 3,
+    });
+    expect(find.text('Annual renewal'), findsOneWidget);
+    expect(find.text('2000 INR'), findsOneWidget);
+  });
+
   testWidgets('Deal stage move uses the server plan and current version', (
     tester,
   ) async {

@@ -2683,7 +2683,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _usedSavedFallback,
                                             scopeHeaders: widget.scopeHeaders,
                                             canMove: widget.canMoveDeals,
-                                            onMoved: _refreshCrmRecords,
+                                            onChanged: _refreshCrmRecords,
                                           )
                                         : _crmContacts
                                         ? CrmContactPage(
