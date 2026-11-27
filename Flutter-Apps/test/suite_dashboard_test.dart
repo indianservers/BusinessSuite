@@ -3086,6 +3086,27 @@ void main() {
               ],
               'unpriced_currency_items': 1,
             }),
+            '/crm/deal-workspace/query' => response({
+              'items': [
+                {
+                  'id': 83,
+                  'name': request.queryParameters['page'] == 2
+                      ? 'Next deal'
+                      : 'Sample CRM deal',
+                  'stage_name': 'Qualified',
+                  'amount': 5000,
+                  'currency': 'INR',
+                },
+              ],
+              'pages': 2,
+            }),
+            '/crm/deal-workspace/83/record' => response({
+              'id': 83,
+              'name': 'Next deal',
+              'description': 'A renewal from the CRM pipeline',
+              'amount': 5000,
+              'currency': 'INR',
+            }),
             '/crm/contacts' => response({
               'items': [
                 {
@@ -3446,6 +3467,16 @@ void main() {
           await back();
         }
         if (entry.key == 'VyaparaCRM') {
+          await tester.tap(find.byTooltip('Deals'));
+          await tester.pumpAndSettle();
+          expect(find.text('Sample CRM deal'), findsOneWidget);
+          await tester.tap(find.text('Next'));
+          await tester.pumpAndSettle();
+          await open('Next deal');
+          expect(find.text('A renewal from the CRM pipeline'), findsOneWidget);
+          expect(find.text('Qualified'), findsOneWidget);
+          await back();
+          await back();
           await tester.tap(find.byTooltip('Contacts'));
           await tester.pumpAndSettle();
           await tester.enterText(find.byType(TextField), 'sample');

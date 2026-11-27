@@ -16,6 +16,7 @@ import '../core/suite_read_cache.dart';
 import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
+import 'crm_deal_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_order_drafts_page.dart';
@@ -1412,7 +1413,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   Timer? _searchDebounce;
   bool get _isCrm => widget.path == CrmLeadPage.endpoint;
   bool get _crmContacts => widget.path == CrmContactPage.endpoint;
-  bool get _cacheCrmPages => _isCrm || _crmContacts;
+  bool get _crmDeals => widget.path == CrmDealPage.endpoint;
+  bool get _cacheCrmPages => _isCrm || _crmContacts || _crmDeals;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1625,7 +1627,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       final pageSize = data is Json
           ? data['perPage'] ?? data['per_page']
           : null;
-      _hasNextPage = total is int && pageSize is int && page * pageSize < total;
+      final pages = data is Json ? data['pages'] : null;
+      _hasNextPage = pages is int
+          ? page < pages
+          : total is int && pageSize is int && page * pageSize < total;
     }
     if (cacheKey != null && searchTerm.isEmpty) {
       final projection = [
@@ -1643,6 +1648,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'company_name',
               if (_isCrm) ...['source', 'rating'],
               if (_crmContacts) ...CrmContactPage.summaryFields.keys,
+              if (_crmDeals) ...CrmDealPage.summaryFields,
               'order_number',
               'currency',
               'subtotal',
@@ -1842,6 +1848,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   child: Text('Order drafts'),
                 ),
             ],
+          ),
+        if (_isCrm)
+          IconButton(
+            tooltip: 'Deals',
+            icon: const Icon(LucideIcons.handshake),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Deals',
+                  controller: widget.controller,
+                  path: CrmDealPage.endpoint,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
           ),
         if (_isCrm)
           IconButton(
@@ -2235,6 +2258,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     'full_name',
                                     'company_name',
                                     if (_crmContacts) ...['email', 'phone'],
+                                    if (_crmDeals) 'stage_name',
                                   ]
                                   .map((key) => item[key] ?? '')
                                   .followedBy([
@@ -2365,6 +2389,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     cached
                                         ? 'Search saved contacts'
                                         : 'Search contacts',
+                                  CrmDealPage.endpoint =>
+                                    cached
+                                        ? 'Search saved deals'
+                                        : 'Search deals',
                                   '/srm/inventory/items' ||
                                   _reorderPath ||
                                   _stockSummaryPath => 'Search products',
@@ -2487,6 +2515,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmDeals) ...[
+                            item['company_name'],
+                            item['stage_name'],
+                            if (item['amount'] != null)
+                              '${item['amount']} ${item['currency'] ?? ''}'
+                                  .trim(),
+                          ],
                           if (_crmContacts) ...[
                             item['company_name'],
                             item['email'],
@@ -2609,6 +2644,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                           GstInvoicePage.listEndpoint ||
                                       widget.path == CrmLeadPage.endpoint ||
                                       _crmContacts ||
+                                      _crmDeals ||
                                       widget.path ==
                                           FinancePartyPage.endpoint) &&
                                   item['id'] is int
@@ -2618,6 +2654,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                         ? _EmployeeDetailsPage(
                                             api: widget.controller.api,
                                             id: item['id'] as int,
+                                          )
+                                        : _crmDeals
+                                        ? CrmDealPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            scopeHeaders: widget.scopeHeaders,
                                           )
                                         : _crmContacts
                                         ? CrmContactPage(
