@@ -4940,6 +4940,7 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
     var recorded = false;
     var productReads = 0;
+    final changedStock = <Set<int>>[];
     final receipts = <Object?>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -4987,6 +4988,7 @@ void main() {
           summary: const {'id': 12},
           offline: false,
           canRecordStock: true,
+          onStockChanged: changedStock.add,
           scopeHeaders: const {'X-Suite-Branch': '3'},
         ),
       ),
@@ -5005,12 +5007,14 @@ void main() {
     await tester.tap(find.text('Save movement'));
     await tester.pumpAndSettle();
     expect(find.text('Pending stock movement'), findsOneWidget);
+    expect(changedStock, isEmpty);
     await tester.tap(find.text('Retry same movement'));
     await tester.pumpAndSettle();
     expect(receipts, hasLength(2));
     expect(receipts.first, isNotNull);
     expect(receipts.last, receipts.first);
     expect(recorded, isTrue);
+    expect(changedStock, [{12}]);
     expect(productReads, 2);
     expect(find.text('8.5'), findsOneWidget);
   });

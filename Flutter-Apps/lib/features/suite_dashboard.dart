@@ -4243,7 +4243,7 @@ class InventoryProductPage extends StatefulWidget {
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool canRecordStock;
-  final VoidCallback? onStockChanged;
+  final ValueChanged<Set<int>>? onStockChanged;
 
   @override
   State<InventoryProductPage> createState() => _InventoryProductPageState();
@@ -4371,6 +4371,7 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
   Future<void> _recordStock() async {
     final id = widget.summary['id'];
     if (id is! int) return;
+    final session = widget.api.sessionRevision;
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => InventoryStockMovementPage(
@@ -4382,8 +4383,8 @@ class _InventoryProductPageState extends State<InventoryProductPage> {
         ),
       ),
     );
-    if (mounted && changed == true) {
-      widget.onStockChanged?.call();
+    if (mounted && changed == true && session == widget.api.sessionRevision) {
+      widget.onStockChanged?.call({id});
       _refresh();
     }
   }
