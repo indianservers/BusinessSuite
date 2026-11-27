@@ -3723,9 +3723,18 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final calls = <RequestOptions>[];
+      final guidedFlows = <Map<String, dynamic>>[
+        {'id': 15, 'name': 'Renewals', 'active': true},
+      ];
       final transport = Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           calls.add(request);
+          if (request.path == '/crm/guided-selling-flows' &&
+              request.method == 'POST') {
+            final created = {'id': 16, ...request.data as Map<String, dynamic>};
+            guidedFlows.add(created);
+            return response(created, 201);
+          }
           return switch (request.path) {
             '/access/me' => response({
               'companyName': 'Example company',
@@ -4006,6 +4015,13 @@ void main() {
               ],
               'recommendations': [],
             }),
+            '/crm/guided-selling-flows' => response({
+              'items': guidedFlows,
+              'total': guidedFlows.length,
+            }),
+            '/crm/guided-selling-flows/15' => response(
+              guidedFlows.first..addAll(request.data as Map<String, dynamic>),
+            ),
             '/crm/quotations/44/pdf' => response({
               'message': 'Unexpected payload',
             }),
@@ -4118,6 +4134,11 @@ void main() {
         ..user = SessionUser.fromJson({
           'id': 5,
           'email': 'mobile@example.test',
+          'role': {
+            'permissions': [
+              {'name': 'crm_cpq_manage'},
+            ],
+          },
         });
       await tester.pumpWidget(BusinessSuiteApp(controller: controller));
       await tester.pumpAndSettle();
@@ -4524,6 +4545,27 @@ void main() {
           );
           expect(evaluation.method, 'POST');
           expect(evaluation.data, {'amount': 250000, 'discount': 250.50});
+          await back();
+          await tester.tap(find.byTooltip('Guided Selling'));
+          await tester.pumpAndSettle();
+          expect(find.text('Renewals'), findsOneWidget);
+          await tester.tap(find.byTooltip('Edit Renewals'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byType(Switch));
+          await tester.pumpAndSettle();
+          await open('Save changes');
+          expect(find.text('Inactive'), findsOneWidget);
+          expect(
+            calls
+                .lastWhere((r) => r.path == '/crm/guided-selling-flows/15')
+                .data,
+            {'active': false},
+          );
+          await tester.tap(find.byTooltip('New guided selling flow'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextFormField), 'New sales');
+          await open('Create flow');
+          expect(find.text('New sales'), findsOneWidget);
           await back();
           await back();
           await back();

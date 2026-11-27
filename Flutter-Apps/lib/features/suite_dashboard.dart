@@ -17,6 +17,7 @@ import 'notes_page.dart';
 import 'crm_lead_page.dart';
 import 'crm_contact_page.dart';
 import 'crm_cpq_evaluator.dart';
+import 'crm_guided_selling_form.dart';
 import 'crm_customer_page.dart';
 import 'crm_quotation_page.dart';
 import 'crm_task_page.dart';
@@ -530,6 +531,20 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
               }),
             ),
         canViewQuoteSalesOrders: app.grant == 'crm' && _allowed(access, 'srm'),
+        canCreateGuidedFlow:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'create', const {
+              'crm_cpq_manage',
+              'crm_manage',
+              'crm_admin',
+            }),
+        canEditGuidedFlow:
+            app.grant == 'crm' &&
+            _canWriteCrm(access, 'edit', const {
+              'crm_cpq_manage',
+              'crm_manage',
+              'crm_admin',
+            }),
         canCancelQuotes:
             app.grant == 'crm' &&
             _canWriteCrm(access, 'edit', const {
@@ -1381,6 +1396,8 @@ class _SuiteRecords extends StatefulWidget {
     this.canMoveDeals = false,
     this.canCreateDeals = false,
     this.canManageQuotes = false,
+    this.canCreateGuidedFlow = false,
+    this.canEditGuidedFlow = false,
     this.canCancelQuotes = false,
     this.canCreateQuotes = false,
     this.canViewQuoteSalesOrders = false,
@@ -1407,6 +1424,8 @@ class _SuiteRecords extends StatefulWidget {
   final bool canMoveDeals;
   final bool canCreateDeals;
   final bool canManageQuotes;
+  final bool canCreateGuidedFlow;
+  final bool canEditGuidedFlow;
   final bool canCancelQuotes;
   final bool canCreateQuotes;
   final bool canViewQuoteSalesOrders;
@@ -1505,6 +1524,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   static const _quoteApprovalsPath = '/crm/quote-approvals';
   static const _cpqPath = '/crm/cpq-rules';
   bool get _crmCpq => widget.path == _cpqPath;
+  bool get _crmGuidedSelling => widget.path == CrmGuidedSellingForm.endpoint;
   bool get _crmQuoteApprovals => widget.path == _quoteApprovalsPath;
   static const _approvalFields = [
     'quote_id',
@@ -1523,7 +1543,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
       _crmTasks ||
       _crmQuotations ||
       _crmQuoteApprovals ||
-      _crmCpq;
+      _crmCpq ||
+      _crmGuidedSelling;
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cacheCrmPages || _isEmployees;
   bool get _searchOnServer =>
@@ -1789,6 +1810,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmQuotations) ...CrmQuotationPage.fields,
               if (_crmQuoteApprovals) ..._approvalFields,
               if (_crmCpq) ...['rule_type', 'active'],
+              if (_crmGuidedSelling) 'active',
               'order_number',
               'currency',
               'subtotal',
@@ -1920,6 +1942,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     canViewSalesOrder: widget.canViewQuoteSalesOrders,
     onChanged: _refreshCrmRecords,
   );
+
+  Future<void> _openGuidedFlow({Json flow = const {}}) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CrmGuidedSellingForm(
+          api: widget.controller.api,
+          scopeHeaders: widget.scopeHeaders,
+          flow: flow,
+        ),
+      ),
+    );
+    if (mounted && saved == true) await _refreshCrmRecords();
+  }
 
   void _refresh() {
     _searchDebounce?.cancel();
@@ -2060,6 +2095,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   controller: widget.controller,
                   path: CrmDealPage.endpoint,
                   canMoveDeals: widget.canMoveDeals,
+                  canCreateGuidedFlow: widget.canCreateGuidedFlow,
+                  canEditGuidedFlow: widget.canEditGuidedFlow,
                   canCreateDeals: widget.canCreateDeals,
                   canManageQuotes: widget.canManageQuotes,
                   canCancelQuotes: widget.canCancelQuotes,
@@ -2123,6 +2160,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               MaterialPageRoute<void>(
                 builder: (_) => _SuiteRecords(
                   title: 'Quotations',
+                  canCreateGuidedFlow: widget.canCreateGuidedFlow,
+                  canEditGuidedFlow: widget.canEditGuidedFlow,
                   controller: widget.controller,
                   path: CrmQuotationPage.endpoint,
                   canManageQuotes: widget.canManageQuotes,
@@ -2168,6 +2207,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               MaterialPageRoute<void>(
                 builder: (_) => _SuiteRecords(
                   title: 'CPQ Rules',
+                  canCreateGuidedFlow: widget.canCreateGuidedFlow,
+                  canEditGuidedFlow: widget.canEditGuidedFlow,
                   controller: widget.controller,
                   path: _cpqPath,
                   cachePrefix: widget.cachePrefix,
@@ -2189,6 +2230,34 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_crmCpq)
+          IconButton(
+            tooltip: 'Guided Selling',
+            icon: const Icon(Icons.alt_route),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Guided Selling',
+                  controller: widget.controller,
+                  path: CrmGuidedSellingForm.endpoint,
+                  canCreateGuidedFlow: widget.canCreateGuidedFlow,
+                  canEditGuidedFlow: widget.canEditGuidedFlow,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_crmGuidedSelling &&
+            widget.canCreateGuidedFlow &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'New guided selling flow',
+            icon: const Icon(Icons.add),
+            onPressed: _openGuidedFlow,
           ),
         if (_crmDeals &&
             widget.canCreateDeals &&
@@ -2865,6 +2934,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_crmGuidedSelling)
+                            if (item['active'] case final bool active)
+                              active ? 'Active' : 'Inactive',
                           if (_crmCpq) ...[
                             item['rule_type'],
                             if (item['active'] case final bool active)
@@ -2907,6 +2979,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           if (_stockAlerts)
                             'Reorder at ${item['reorder_threshold']}',
                         ].whereType<String>().join(' · ');
+                        if (_crmGuidedSelling) {
+                          return ListTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            trailing:
+                                widget.canEditGuidedFlow &&
+                                    !_offlineOnly &&
+                                    !_usedSavedFallback &&
+                                    item['id'] is int
+                                ? IconButton(
+                                    tooltip: 'Edit $label',
+                                    icon: const Icon(Icons.edit_outlined),
+                                    onPressed: () =>
+                                        _openGuidedFlow(flow: item),
+                                  )
+                                : null,
+                          );
+                        }
                         if (_crmQuoteApprovals) {
                           final quote = item['quote_id'];
                           final approver =
