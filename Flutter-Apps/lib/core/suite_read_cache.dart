@@ -150,6 +150,19 @@ class SuiteReadCache {
     );
   }
 
+  static Future<void> clearInventoryReportSnapshots(
+    String scope,
+    String endpoint,
+    String branch,
+  ) async {
+    final suffix = ':$endpoint:$branch';
+    await (await _open()).delete(
+      'snapshots',
+      where: 'scope >= ? AND scope < ? AND substr(scope, -length(?)) = ?',
+      whereArgs: ['$scope:', '$scope;', suffix, suffix],
+    );
+  }
+
   static String _pagePrefix(String scope) => '$scope:page:';
   static const _pageScopeFilter = 'scope = ? OR (scope >= ? AND scope < ?)';
 

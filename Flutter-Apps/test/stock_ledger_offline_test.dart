@@ -43,10 +43,24 @@ void main() {
             'invalidated': 0,
           };
           return 1;
-        case 'delete':
-          return 0;
         case 'update':
-          final values = (call.arguments as Map)['arguments'] as List;
+          final args = call.arguments as Map;
+          final values = args['arguments'] as List;
+          if ((args['sql'] as String).startsWith('DELETE')) {
+            if (values.length != 4) return 0;
+            expect(values, [
+              'ledger-test:ledger:',
+              'ledger-test:ledger;',
+              ':/srm/inventory/reports:6',
+              ':/srm/inventory/reports:6',
+            ]);
+            snapshots.removeWhere(
+              (key, _) =>
+                  key.startsWith(values.first as String) &&
+                  key.endsWith(values.last as String),
+            );
+            return 0;
+          }
           if (values.length == 2) return 0;
           if (values.length == 3) {
             expect(
@@ -79,6 +93,7 @@ void main() {
     });
     var requests = 0;
     var connected = true;
+    var denied = false;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -102,6 +117,9 @@ void main() {
           }
           expect(request.path, '/srm/inventory/reports');
           requests++;
+          if (denied) {
+            return response({'detail': 'Inventory access revoked'}, 403);
+          }
           if (!connected) {
             throw DioException(
               requestOptions: request,
@@ -236,5 +254,15 @@ void main() {
     await open(true, filters: {'product_id': '12', 'warehouse_id': '6'});
     expect(find.text('Movements for 6'), findsOneWidget);
     expect(requests, 8);
+    denied = true;
+    await tester.tap(find.byTooltip('Refresh report'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Inventory access revoked'), findsOneWidget);
+    expect(find.text('Movements for 6'), findsNothing);
+    await open(true);
+    expect(find.text('No saved report.'), findsOneWidget);
+    await warehouse('6');
+    expect(find.text('No saved report.'), findsOneWidget);
+    expect(requests, 9);
   });
 }

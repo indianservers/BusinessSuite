@@ -9,6 +9,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_pdf.dart';
+import '../core/suite_read_cache.dart';
 
 const _analysisFilterLabels = {
   'start_date': 'From',
@@ -376,7 +377,7 @@ class _InventoryFinanceReportPageState
         : ':movement:${widget.movementId}';
     final ledgerScope =
         '$scope:${widget.report.slug}$movement:$_page:${Uri.encodeComponent(_search)}';
-    return loadCrmDetail(
+    final result = loadCrmDetail(
       api: widget.api,
       path: _endpoint,
       scope: scope == null || !_analysis
@@ -387,6 +388,13 @@ class _InventoryFinanceReportPageState
       headers: widget.scopeHeaders,
       offline: offline,
       reuseFresh: _analysis && !refresh,
+      clearDeniedSnapshots: !_analysis || scope == null
+          ? null
+          : () => SuiteReadCache.clearInventoryReportSnapshots(
+              '$scope:${widget.report.slug}',
+              _endpoint,
+              widget.scopeHeaders['X-Suite-Branch'] ?? '',
+            ),
       onUnavailable: () {
         if (mounted && request == _request) setState(() => _offline = true);
       },
@@ -425,6 +433,8 @@ class _InventoryFinanceReportPageState
         ],
       },
     );
+    result.ignore(); // The FutureBuilder observes the same future on repaint.
+    return result;
   }
 
   Future<void> _exportLedger(String format) async {

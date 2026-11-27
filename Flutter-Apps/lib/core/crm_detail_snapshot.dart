@@ -39,6 +39,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   void Function(Json)? onCached,
   bool reuseFresh = false,
   void Function()? onUnavailable,
+  Future<void> Function()? clearDeniedSnapshots,
 }) async {
   final revision = api.sessionRevision;
   final branch = headers['X-Suite-Branch'] ?? '';
@@ -106,7 +107,11 @@ Future<({Json? record, bool live})> loadCrmDetail({
       if (key != null && const {401, 403, 404}.contains(error.status)) {
         try {
           await _pendingDetails.remove(key)?.write;
-          await SuiteReadCache.clear(key);
+          if (error.status != 404 && clearDeniedSnapshots != null) {
+            await clearDeniedSnapshots();
+          } else {
+            await SuiteReadCache.clear(key);
+          }
         } catch (_) {}
       }
       checkSession();
