@@ -223,9 +223,20 @@ class SalesOrderDrafts {
     Json payload, {
     String? customerName,
     String? replaceRejected,
+    String? replaceUnsent,
+    bool unsent = false,
     String? branch,
     Map<String, String> scopeHeaders = const {},
   }) => _modify((drafts) async {
+    if (replaceUnsent != null) {
+      final previous = drafts[replaceUnsent] as Json?;
+      if (!gst || previous?['unsent'] != true) {
+        throw StateError(
+          'This draft has already been submitted or changed. Reopen the saved drafts list.',
+        );
+      }
+      drafts.remove(replaceUnsent);
+    }
     if (replaceRejected != null) {
       final previous = drafts[replaceRejected] as Json?;
       if (previous?['status'] != 422) {
@@ -240,6 +251,7 @@ class SalesOrderDrafts {
       'customer_name': ?customerName,
       'branch': ?branch,
       if (scopeHeaders.isNotEmpty) 'headers': scopeHeaders,
+      if (gst && unsent) 'unsent': true,
     };
     await _write(drafts);
   });
@@ -287,6 +299,10 @@ class SalesOrderDrafts {
         if (!api.hasSession || api.sessionRevision != revision) return;
         final draft = drafts[operation] as Json;
         if (draft['error'] != null) continue;
+        if (gst && draft.remove('unsent') == true) {
+          await _write(drafts);
+          if (!api.hasSession || api.sessionRevision != revision) return;
+        }
         try {
           await submit(
             api,

@@ -48,7 +48,7 @@ Future<Json?> showGstInvoiceDraftForm(
   SalesOrderDrafts? drafts,
   String? customerCacheScope,
   bool offline = false,
-  Json? rejectedDraft,
+  Json? savedDraft,
 }) => showDialog<Json>(
   context: context,
   barrierDismissible: false,
@@ -58,7 +58,7 @@ Future<Json?> showGstInvoiceDraftForm(
     drafts: drafts,
     customerCacheScope: customerCacheScope,
     offline: offline,
-    rejectedDraft: rejectedDraft,
+    savedDraft: savedDraft,
   ),
 );
 
@@ -69,7 +69,7 @@ class _GstDraftForm extends StatefulWidget {
     this.drafts,
     this.customerCacheScope,
     required this.offline,
-    this.rejectedDraft,
+    this.savedDraft,
   });
 
   final ApiClient api;
@@ -77,7 +77,7 @@ class _GstDraftForm extends StatefulWidget {
   final SalesOrderDrafts? drafts;
   final String? customerCacheScope;
   final bool offline;
-  final Json? rejectedDraft;
+  final Json? savedDraft;
 
   @override
   State<_GstDraftForm> createState() => _GstDraftFormState();
@@ -86,7 +86,7 @@ class _GstDraftForm extends StatefulWidget {
 class _GstDraftFormState extends State<_GstDraftForm> {
   late final _revision = widget.api.sessionRevision;
   final _operation = const Uuid().v4();
-  Json? get _original => widget.rejectedDraft?['payload'] as Json?;
+  Json? get _original => widget.savedDraft?['payload'] as Json?;
   late final _lines = [
     for (final line in (_original?['lines'] as List? ?? const []).cast<Json>())
       {...line},
@@ -100,7 +100,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
       : {
           'id': _original!['customer_id'],
           'name':
-              widget.rejectedDraft?['customer_name'] ??
+              widget.savedDraft?['customer_name'] ??
               'Customer #${_original!['customer_id']}',
         };
   Json? _pending;
@@ -139,13 +139,21 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     });
   }
 
-  Future<void> _saveLocally(SalesOrderDrafts drafts, Json payload) async {
+  Future<void> _saveLocally(
+    SalesOrderDrafts drafts,
+    Json payload, {
+    required bool unsent,
+  }) async {
+    final previous = widget.savedDraft;
+    final previousId = previous?['operation'] as String?;
     await drafts.save(
       _operation,
       payload,
       customerName: _customer?['name'] as String?,
       scopeHeaders: widget.scopeHeaders,
-      replaceRejected: widget.rejectedDraft?['operation'] as String?,
+      replaceRejected: previous?['status'] == 422 ? previousId : null,
+      replaceUnsent: previous?['unsent'] == true ? previousId : null,
+      unsent: unsent,
     );
     if (mounted && widget.api.sessionRevision == _revision) {
       Navigator.pop(context, {'local': true});
@@ -170,11 +178,11 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     };
     try {
       final drafts = widget.drafts;
-      if (widget.offline || widget.rejectedDraft != null) {
+      if (widget.offline || widget.savedDraft != null) {
         if (drafts == null) {
           throw ApiFailure('Local draft storage is unavailable.', 400);
         }
-        await _saveLocally(drafts, payload);
+        await _saveLocally(drafts, payload, unsent: true);
         return;
       }
       final result = drafts == null
@@ -201,7 +209,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           when !widget.offline &&
               (error.connectionFailure || (error.status ?? 0) >= 500)) {
         try {
-          await _saveLocally(drafts, payload);
+          await _saveLocally(drafts, payload, unsent: false);
           return;
         } catch (_) {
           if (!mounted || widget.api.sessionRevision != _revision) return;
@@ -221,7 +229,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     } catch (error) {
       if (!mounted || widget.api.sessionRevision != _revision) return;
       setState(() {
-        if (widget.offline || widget.rejectedDraft != null) _pending = null;
+        if (widget.offline || widget.savedDraft != null) _pending = null;
         _error = 'Could not save the draft. $error';
       });
     } finally {
@@ -234,9 +242,11 @@ class _GstDraftFormState extends State<_GstDraftForm> {
     canPop: !_saving,
     child: AlertDialog(
       title: Text(
-        widget.rejectedDraft == null
+        widget.savedDraft == null
             ? 'New GST invoice draft'
-            : 'Correct GST invoice draft',
+            : widget.savedDraft?['status'] == 422
+            ? 'Correct GST invoice draft'
+            : 'Edit saved GST invoice draft',
       ),
       scrollable: true,
       content: Form(
@@ -251,7 +261,7 @@ class _GstDraftFormState extends State<_GstDraftForm> {
             ),
             for (final key in _invoiceDates.keys)
               _invoiceDateField(key, _dates, enabled: _pending == null),
-            if (widget.rejectedDraft?['error'] case final String rejection)
+            if (widget.savedDraft?['error'] case final String rejection)
               Text(rejection),
             for (final (index, line) in _lines.indexed)
               ListTile(
@@ -289,8 +299,10 @@ class _GstDraftFormState extends State<_GstDraftForm> {
           child: Text(
             _saving
                 ? 'Saving…'
-                : widget.rejectedDraft != null
+                : widget.savedDraft?['status'] == 422
                 ? 'Save corrected draft'
+                : widget.savedDraft != null
+                ? 'Save changes'
                 : widget.offline
                 ? 'Save draft offline'
                 : _pending == null

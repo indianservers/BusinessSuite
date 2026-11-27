@@ -606,14 +606,14 @@ class SalesOrderDraftsPage extends StatefulWidget {
     required this.drafts,
     this.onSynced,
     this.correctPurchaseDraft,
-    this.correctGstDraft,
+    this.editGstDraft,
   });
   final ApiClient api;
   final SalesOrderDrafts drafts;
   final VoidCallback? onSynced;
   final Widget Function(Json draft)? correctPurchaseDraft;
   final Future<void> Function(BuildContext context, Json draft)?
-  correctGstDraft;
+  editGstDraft;
 
   @override
   State<SalesOrderDraftsPage> createState() => _SalesOrderDraftsPageState();
@@ -644,7 +644,7 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
 
   Future<void> _correct(Json draft) async {
     if (widget.drafts.gst) {
-      await widget.correctGstDraft?.call(context, draft);
+      await widget.editGstDraft?.call(context, draft);
       return;
     }
     await Navigator.of(context).push<Object?>(
@@ -762,10 +762,12 @@ class _SalesOrderDraftsPageState extends State<SalesOrderDraftsPage> {
                 ),
                 onTap:
                     (widget.drafts.gst
-                            ? widget.correctGstDraft != null
+                            ? widget.editGstDraft != null &&
+                                  (row['unsent'] == true ||
+                                      row['status'] == 422)
                             : !widget.drafts.purchase ||
                                   widget.correctPurchaseDraft != null) &&
-                        row['status'] == 422
+                        (widget.drafts.gst || row['status'] == 422)
                     ? () => _correct(row)
                     : null,
                 trailing: IconButton(

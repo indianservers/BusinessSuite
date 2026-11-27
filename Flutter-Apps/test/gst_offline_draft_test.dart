@@ -55,14 +55,14 @@ void main() {
         home: SalesOrderDraftsPage(
           api: api,
           drafts: drafts,
-          correctGstDraft: (context, draft) async {
+          editGstDraft: (context, draft) async {
             await showGstInvoiceDraftForm(
               context,
               api: api,
               scopeHeaders: headers,
               drafts: drafts,
               offline: true,
-              rejectedDraft: draft,
+              savedDraft: draft,
             );
           },
         ),
@@ -183,5 +183,64 @@ void main() {
     expect(entry['headers'], headers);
     expect(entry['payload']['customer_id'], 5);
     expect(entry['payload']['lines'].single['description'], 'Delivery');
+    expect(entry['unsent'], true);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderDraftsPage(
+          api: api,
+          drafts: drafts,
+          editGstDraft: (context, draft) async {
+            await showGstInvoiceDraftForm(
+              context,
+              api: api,
+              scopeHeaders: headers,
+              drafts: drafts,
+              offline: true,
+              savedDraft: draft,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tap('GST invoice');
+    expect(find.text('Edit saved GST invoice draft'), findsOneWidget);
+    await tap('Delivery');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Description'),
+      'Updated delivery',
+    );
+    await tap('Save line');
+    await tap('Save changes');
+    final edited = (await drafts.entries()).single;
+    expect(
+      edited['payload']['lines'].single['description'],
+      'Updated delivery',
+    );
+    expect(edited['unsent'], true);
+    final operation = edited['operation'] as String;
+    api.dio.httpClientAdapter = FakeAdapter((request) async {
+      expect(request.data['request_id'], operation);
+      throw DioException(
+        requestOptions: request,
+        type: DioExceptionType.connectionError,
+      );
+    });
+    await tester.runAsync(() async {
+      await api.acceptTokens({'access_token': 'a', 'refresh_token': 'b'});
+      await drafts.sync(api);
+    });
+    await tester.pumpAndSettle();
+    expect((await drafts.entries()).single['unsent'], isNull);
+    expect(
+      tester
+          .widget<ListTile>(find.widgetWithText(ListTile, 'GST invoice'))
+          .onTap,
+      isNull,
+    );
+    await expectLater(
+      drafts.save('replacement', {}, replaceUnsent: operation, unsent: true),
+      throwsStateError,
+    );
   });
 }

@@ -2216,7 +2216,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           api: widget.controller.api,
           drafts: drafts,
           onSynced: _refresh,
-          correctGstDraft: widget.canCreateOrderInvoices
+          editGstDraft: widget.canCreateOrderInvoices
               ? (context, draft) async {
                   final headers =
                       (draft['headers'] as Json?)?.cast<String, String>() ??
@@ -2226,7 +2226,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     api: widget.controller.api,
                     scopeHeaders: headers,
                     drafts: drafts,
-                    rejectedDraft: draft,
+                    savedDraft: draft,
                     offline: _offlineOnly || _usedSavedFallback,
                     customerCacheScope: gstCacheKey(
                       widget.cachePrefix,
