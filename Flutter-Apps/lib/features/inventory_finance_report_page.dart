@@ -336,10 +336,16 @@ class _InventoryFinanceReportPageState
   int _pageSize = 25;
   int _page = 1;
   late String _search = widget.initialSearch;
-  late Map<String, String> _filters = widget.initialFilters;
+  late Map<String, String> _filters = _orderedFilters(widget.initialFilters);
   late bool _offline = widget.offline;
   bool _exporting = false;
   bool get _analysis => widget.report.analysisReport;
+  Map<String, String> _orderedFilters(Map<String, String> filters) => {
+    for (final key in _analysisFilterLabels.keys)
+      if (key != 'transaction_type' || widget.report.supportsTransactionType)
+        if (filters[key] case final String value when value.isNotEmpty)
+          key: value,
+  };
   String get _endpoint => _analysis && widget.financeAnalysis
       ? '/fam/inventory/reports'
       : widget.report.endpoint;
@@ -354,10 +360,7 @@ class _InventoryFinanceReportPageState
     'page': _page,
     'per_page': _pageSize,
     if (_search.isNotEmpty) 'search': _search,
-    for (final entry in _filters.entries)
-      if (entry.key != 'transaction_type' ||
-          widget.report.supportsTransactionType)
-        entry.key: entry.value,
+    ..._filters,
     if (widget.movementId case final int id) 'movement_id': id,
   };
 
@@ -530,7 +533,7 @@ class _InventoryFinanceReportPageState
       _page = page;
       if (search != null) _search = search.trim();
       if (pageSize != null) _pageSize = pageSize;
-      if (filters != null) _filters = filters;
+      if (filters != null) _filters = _orderedFilters(filters);
       _report = _load(offline: _offline);
     });
   }

@@ -115,16 +115,24 @@ void main() {
       String branch = '6',
       String scope = 'ledger-test',
       bool finance = false,
+      Map<String, String> filters = const {},
     }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: InventoryFinanceReportPage(
-            key: ValueKey((offline, branch, scope, finance)),
+            key: ValueKey((
+              offline,
+              branch,
+              scope,
+              finance,
+              filters.toString(),
+            )),
             api: api,
             report: InventoryFinanceReport.stockLedger,
             scopeHeaders: {'X-Suite-Branch': branch},
             cacheScope: scope,
             financeAnalysis: finance,
+            initialFilters: filters,
             offline: offline,
           ),
         ),
@@ -198,5 +206,11 @@ void main() {
     await open(true);
     expect(find.text('Movements for all'), findsOneWidget);
     expect(requests, 5);
+    await open(false, filters: {'warehouse_id': '6', 'product_id': '12'});
+    expect(find.text('Movements for 6'), findsOneWidget);
+    expect(requests, 6);
+    await open(true, filters: {'product_id': '12', 'warehouse_id': '6'});
+    expect(find.text('Movements for 6'), findsOneWidget);
+    expect(requests, 6);
   });
 }
