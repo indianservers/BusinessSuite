@@ -14,6 +14,7 @@ import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_customer_page.dart';
 import 'package:business_suite_mobile/features/crm_task_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
+import 'package:business_suite_mobile/features/crm_pipeline_page.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/inventory_stock_movement_page.dart';
@@ -33,6 +34,83 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android pipeline renders saved deals during refresh', (
+    tester,
+  ) async {
+    final scope = 'pipeline-${DateTime.now().microsecondsSinceEpoch}';
+    const pipelines = '/crm/pipelines?per_page=100';
+    const stages =
+        '/crm/pipeline-stages?pipeline_id=2&sort_by=position&sort_order=asc&per_page=100';
+    const deals = '/crm/deals?pipeline_id=2&page=1&per_page=25';
+    final cached = {
+      pipelines: [
+        {'id': 2, 'name': 'Saved sales pipeline', 'is_default': true},
+      ],
+      stages: [
+        {'id': 4, 'name': 'Qualified'},
+      ],
+      deals: [
+        {'id': 83, 'name': 'Saved pipeline deal'},
+      ],
+    };
+    for (final entry in cached.entries) {
+      await SuiteReadCache.write('$scope:${entry.key}:', [
+        {'items': entry.value, 'total': entry.value.length},
+      ]);
+    }
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    final requests = <String>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests.add(request.path);
+          await gate.future;
+          return response({
+            'items': request.path == deals
+                ? [
+                    {'id': 83, 'name': 'Refreshed pipeline deal'},
+                  ]
+                : cached[request.path],
+            'total': 1,
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CrmPipelinePage(
+          api: api,
+          scopeHeaders: const {},
+          cacheScope: scope,
+          offline: false,
+          canMove: true,
+          dealBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
+      ),
+    );
+    Future<void> waitFor(String label) async {
+      final finder = find.text(label);
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while (finder.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump();
+      }
+      expect(finder, findsOneWidget, reason: 'Requested: $requests');
+    }
+
+    await waitFor('Saved pipeline deal');
+    await waitFor('Qualified');
+    expect(requests.toSet(), containsAll(cached.keys));
+    expect(find.byTooltip('Move Saved pipeline deal'), findsNothing);
+    gate.complete();
+    await waitFor('Refreshed pipeline deal');
+    expect(find.byTooltip('Move Refreshed pipeline deal'), findsOneWidget);
+  });
 
   testWidgets('Android shows a saved CRM contact while refresh is pending', (
     tester,

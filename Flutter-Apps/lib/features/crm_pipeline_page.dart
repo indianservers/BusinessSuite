@@ -30,36 +30,54 @@ class CrmPipelinePage extends StatefulWidget {
   State<CrmPipelinePage> createState() => _CrmPipelinePageState();
 }
 
+class _PipelineRequest {
+  late final Future<({Json? record, bool live})> future;
+  Json? saved;
+}
+
 class _CrmPipelinePageState extends State<CrmPipelinePage> {
   static const _pageSize = 25;
   late bool _offline = widget.offline;
   late var _pipelines = _list('/crm/pipelines', const {'per_page': '100'});
-  Future<({Json? record, bool live})>? _stages, _deals;
+  _PipelineRequest? _stages, _deals;
   int? _pipeline, _stage;
   int _page = 1;
   String _search = '';
 
-  Future<({Json? record, bool live})> _list(
+  _PipelineRequest _list(
     String path,
     Map<String, String> query, {
     Set<String>? fields,
-  }) => loadCrmDetail(
-    api: widget.api,
-    path: Uri(path: path, queryParameters: query).toString(),
-    scope: query.containsKey('search') ? null : widget.cacheScope,
-    headers: widget.scopeHeaders,
-    offline: _offline,
-    project: (data) => {
-      'total': data['total'],
-      'items': [
-        for (final row in _items(data))
-          if (fields == null)
-            row
-          else
-            {for (final field in fields) field: row[field]},
-      ],
-    },
-  );
+  }) {
+    final request = _PipelineRequest();
+    request.future = loadCrmDetail(
+      api: widget.api,
+      path: Uri(path: path, queryParameters: query).toString(),
+      scope: query.containsKey('search') ? null : widget.cacheScope,
+      headers: widget.scopeHeaders,
+      offline: _offline,
+      onCached: (record) {
+        if (mounted &&
+            (identical(request, _pipelines) ||
+                identical(request, _stages) ||
+                identical(request, _deals))) {
+          setState(() => request.saved = record);
+        }
+      },
+      project: (data) => {
+        'total': data['total'],
+        'items': [
+          for (final row in _items(data))
+            if (fields == null)
+              row
+            else
+              {for (final field in fields) field: row[field]},
+        ],
+      },
+    );
+    request.future.ignore();
+    return request;
+  }
 
   static List<Json> _items(Json? record) =>
       (record?['items'] as List? ?? const []).whereType<Json>().toList();
@@ -137,14 +155,16 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
       ],
     ),
     body: FutureBuilder<({Json? record, bool live})>(
-      future: _pipelines,
+      future: _pipelines.future,
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-        if (snapshot.connectionState != ConnectionState.done) {
+        final done = snapshot.connectionState == ConnectionState.done;
+        final record = done ? snapshot.data?.record : _pipelines.saved;
+        if (!done && record == null) {
           return const Center(child: CircularProgressIndicator());
         }
         final pipelines = _items(
-          snapshot.data?.record,
+          record,
         ).where((row) => row['id'] is int).toList();
         if (pipelines.isEmpty) {
           return Center(
@@ -155,14 +175,14 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
             ),
           );
         }
-        final pipeline =
-            _pipeline ??
-            (pipelines.firstWhere(
-                  (row) => row['is_default'] == true,
-                  orElse: () => pipelines.first,
-                )['id']
-                as int);
-        if (_pipeline == null) _selectPipeline(pipeline);
+        final pipeline = pipelines.any((row) => row['id'] == _pipeline)
+            ? _pipeline!
+            : (pipelines.firstWhere(
+                    (row) => row['is_default'] == true,
+                    orElse: () => pipelines.first,
+                  )['id']
+                  as int);
+        if (_pipeline != pipeline) _selectPipeline(pipeline);
         return Column(
           children: [
             Padding(
@@ -186,12 +206,13 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
             ),
             FutureBuilder<({Json? record, bool live})>(
               key: ValueKey(pipeline),
-              future: _stages,
+              future: _stages?.future,
               builder: (context, stages) {
                 if (stages.hasError) return Text('${stages.error}');
-                final rows = _items(
-                  stages.data?.record,
-                ).where((row) => row['id'] is int);
+                final record = stages.connectionState == ConnectionState.done
+                    ? stages.data?.record
+                    : _stages?.saved;
+                final rows = _items(record).where((row) => row['id'] is int);
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -220,7 +241,7 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
                 );
               },
             ),
-            if (!_offline && snapshot.data?.live == true)
+            if (!_offline && done && snapshot.data?.live == true)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
@@ -240,18 +261,20 @@ class _CrmPipelinePageState extends State<CrmPipelinePage> {
   );
 
   Widget _dealList(int pipeline) => FutureBuilder<({Json? record, bool live})>(
-    future: _deals,
+    future: _deals?.future,
     builder: (context, snapshot) {
       if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-      if (snapshot.connectionState != ConnectionState.done) {
+      final done = snapshot.connectionState == ConnectionState.done;
+      final record = done ? snapshot.data?.record : _deals?.saved;
+      if (!done && record == null) {
         return const Center(child: CircularProgressIndicator());
       }
-      final record = snapshot.data?.record;
       final rows = _items(record);
-      final live = snapshot.data?.live == true;
+      final live = done && snapshot.data?.live == true;
       final total = record?['total'];
       return Column(
         children: [
+          if (!done) const LinearProgressIndicator(),
           if (!live)
             Text(
               record == null ? 'No saved deals for this view.' : 'Saved deals',
