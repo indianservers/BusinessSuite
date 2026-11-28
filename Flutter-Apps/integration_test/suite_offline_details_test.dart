@@ -1657,13 +1657,30 @@ void main() {
     },
   );
 
-  final invoiceSearch = ValueVariant<bool>({false, true});
-  testWidgets('Android searches older sales orders and GST invoices', (
+  final commercialSearch = ValueVariant<String>({
+    'sales',
+    'invoice',
+    'inventory',
+  });
+  testWidgets('Android keeps Sales, GST and Inventory search results offline', (
     tester,
   ) async {
-    final invoice = invoiceSearch.currentValue!;
-    final endpoint = invoice ? '/srm/invoices' : '/srm/sales-orders';
-    final numberField = invoice ? 'invoice_number' : 'order_number';
+    final kind = commercialSearch.currentValue!;
+    final (endpoint, numberField, menu, offlineLabel) = switch (kind) {
+      'invoice' => (
+        '/srm/invoices',
+        'invoice_number',
+        'GST Billing',
+        'Search saved invoices',
+      ),
+      'inventory' => (
+        '/srm/inventory/items',
+        'item_name',
+        'Inventory',
+        'Search saved products',
+      ),
+      _ => ('/srm/sales-orders', 'order_number', null, 'Search saved orders'),
+    };
     final id = DateTime.now().microsecondsSinceEpoch;
     var requests = 0;
     final searches = <Object?>[];
@@ -1680,7 +1697,7 @@ void main() {
             });
           case '/notifications/unread-count':
             return response({'unread': 0});
-          case '/srm/sales-orders' when invoice:
+          case '/srm/sales-orders' when menu != null:
             return response([]);
           case final path when path == endpoint:
             if (request.queryParameters['search'] case final String term) {
@@ -1726,8 +1743,8 @@ void main() {
     }
 
     await openSales();
-    if (invoice) {
-      await tester.tap(find.byTooltip('GST Billing'));
+    if (menu != null) {
+      await tester.tap(find.byTooltip(menu));
       await tester.pumpAndSettle();
     }
     expect(find.text('QA-SALE-1'), findsOneWidget);
@@ -1754,9 +1771,7 @@ void main() {
     expect(snapshots?.single[numberField], 'QA-SALE-2');
     lostConnection = true;
     await tester.enterText(search, 'QA-SALE');
-    final savedSearch = find.text(
-      invoice ? 'Search saved invoices' : 'Search saved orders',
-    );
+    final savedSearch = find.text(offlineLabel);
     final deadline = DateTime.now().add(const Duration(seconds: 15));
     while (savedSearch.evaluate().isEmpty &&
         DateTime.now().isBefore(deadline)) {
@@ -1772,7 +1787,7 @@ void main() {
     expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsNothing);
     expect(searches, ['archived', 'QA-SALE']);
     await tester.pumpWidget(const SizedBox.shrink());
-  }, variant: invoiceSearch);
+  }, variant: commercialSearch);
 
   testWidgets(
     'Android Notes reopens a durable draft and syncs it after reconnect',

@@ -1880,7 +1880,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (path == null) return [];
     final cacheKey = _cacheKey;
     final savedSearchKey =
-        (path == GstInvoicePage.listEndpoint || path == '/srm/sales-orders') &&
+        (_inventory ||
+                path == GstInvoicePage.listEndpoint ||
+                path == '/srm/sales-orders') &&
             cacheKey != null
         ? '$cacheKey:recent-search-results'
         : null;
@@ -3767,7 +3769,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                     cached
                                         ? 'Search saved quotations'
                                         : 'Search quotations',
-                                  '/srm/inventory/items' ||
+                                  '/srm/inventory/items' =>
+                                    cached
+                                        ? 'Search saved products'
+                                        : 'Search products',
                                   _reorderPath ||
                                   _stockSummaryPath => 'Search products',
                                   _warehousesPath => 'Search warehouses',
