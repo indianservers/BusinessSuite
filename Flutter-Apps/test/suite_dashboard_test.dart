@@ -5555,6 +5555,65 @@ void main() {
     }
   }, variant: crmCollectionAccess);
 
+  testWidgets('GST delivery retries a blocked attempt and stops on unknown', (
+    tester,
+  ) async {
+    var sends = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            expect(request.path, '/srm/invoices/86');
+            return response({
+              'invoice_number': 'GST-086',
+              'document_status': 'issued',
+              'delivery_status': 'not_sent',
+              'branch_id': 6,
+            });
+          }
+          expect(request.method, 'POST');
+          expect(request.path, '/srm/invoices/86/send');
+          expect(request.headers['X-Suite-Branch'], '6');
+          sends++;
+          return response({
+            'delivery': {
+              'status': sends == 1 ? 'blocked' : 'unknown',
+              'error': sends == 1 ? 'Mail provider unavailable' : '',
+            },
+          });
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: GstInvoicePage(api: api, id: 86, canEdit: true)),
+    );
+    await tester.pumpAndSettle();
+    final send = find.text('Send to billing recipient');
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+    expect(sends, 0);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(sends, 0);
+    for (final label in ['Send to billing recipient', 'Retry delivery']) {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirm send'));
+      await tester.pumpAndSettle();
+    }
+    expect(sends, 2);
+    expect(find.text('unknown'), findsOneWidget);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Send to billing recipient'),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('GST receipt retries the saved payment after reopening', (
     tester,
   ) async {

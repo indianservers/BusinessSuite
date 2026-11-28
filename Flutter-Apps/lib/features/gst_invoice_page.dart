@@ -516,6 +516,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   int _loadGeneration = 0;
   bool _exporting = false;
   bool _issuing = false;
+  bool _sending = false;
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   String? get _key =>
       GstInvoicePage.cacheKey(widget.cacheScope, _path, widget.scopeHeaders);
@@ -902,6 +903,78 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     }
   }
 
+  Future<void> _sendInvoice(Json invoice) async {
+    if (_sending) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    setState(() => _sending = true);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Send invoice?'),
+          content: Text(
+            'Send ${invoice['invoice_number']} to the billing recipient on the issued invoice.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm send'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true || api.sessionRevision != revision) {
+        return;
+      }
+      final result =
+          await api.request(
+                'POST',
+                '$_path/send',
+                scopeHeaders: _invoiceHeaders,
+              )
+              as Json;
+      if (!mounted || api.sessionRevision != revision) return;
+      final delivery = result['delivery'] as Json?;
+      final status = delivery?['status'] ?? result['delivery_status'];
+      final updated = {
+        ...invoice,
+        ...result,
+        'delivery_status': ?status,
+      };
+      setState(() {
+        _invoice = Future.value((updated, false));
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            [
+              if (status != null) 'Delivery: $status',
+              if (delivery?['error'] case final String message
+                  when message.isNotEmpty)
+                message,
+            ].join('\n'),
+          ),
+        ),
+      );
+      await _saveSnapshot(updated);
+      if (mounted && api.sessionRevision == revision) await _notifyChanged();
+    } on ApiFailure catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        _refresh();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sales invoice')),
@@ -924,6 +997,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
           return const Center(child: CircularProgressIndicator());
         }
         final saved = data?.$2 ?? true;
+        final deliveryStatus = invoice['delivery_status'];
         final currency = invoice['currency'] ?? '';
         final lines = (invoice['lines'] as List? ?? []).whereType<Json>();
         final editable =
@@ -953,6 +1027,30 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 onPressed: _exporting ? null : () => _export(invoice),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: Text(_exporting ? 'Preparing PDF…' : 'Save invoice PDF'),
+              ),
+            if (!saved &&
+                widget.canEdit &&
+                invoice['document_status'] == 'issued')
+              OutlinedButton.icon(
+                icon: const Icon(Icons.mail_outline),
+                onPressed:
+                    _sending ||
+                        const {
+                          'sent',
+                          'legacy_sent',
+                          'sending',
+                          'unknown',
+                          'queued',
+                        }.contains(deliveryStatus)
+                    ? null
+                    : () => _sendInvoice(invoice),
+                label: Text(
+                  _sending
+                      ? 'Sending…'
+                      : const {'blocked', 'failed'}.contains(deliveryStatus)
+                      ? 'Retry delivery'
+                      : 'Send to billing recipient',
+                ),
               ),
             if (!saved && invoice['can_request_payment'] == true)
               PaymentRequestButton(
