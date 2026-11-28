@@ -2610,6 +2610,74 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     });
   }
 
+  Future<void> _chooseStockBranch() async {
+    final revision = widget.controller.api.sessionRevision;
+    final headers = {...widget.scopeHeaders}..remove('X-Suite-Branch');
+    final branches = loadCrmDetail(
+      api: widget.controller.api,
+      path: '/branches/context',
+      scope: widget.cachePrefix,
+      headers: headers,
+      offline: _offlineOnly || _usedSavedFallback,
+      project: (data) => {'branches': data['branches']},
+    );
+    branches.ignore();
+    final branch = await showDialog<Json>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Choose inventory branch'),
+        children: [
+          FutureBuilder(
+            future: branches,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return ListTile(title: Text('${snapshot.error}'));
+              }
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final options = (snapshot.data?.record?['branches'] as List? ??
+                      const [])
+                  .whereType<Json>()
+                  .where((row) => row['id'] is int && row['is_active'] == true);
+              if (options.isEmpty) {
+                return const ListTile(title: Text('No active branches found'));
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final option in options)
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, option),
+                      child: Text('${option['name']}'),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+    if (!mounted ||
+        branch == null ||
+        revision != widget.controller.api.sessionRevision) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _SuiteRecords(
+          title: 'Stock Summary · ${branch['name']}',
+          controller: widget.controller,
+          path: _stockSummaryPath,
+          scopeHeaders: {...headers, 'X-Suite-Branch': '${branch['id']}'},
+          cachePrefix: widget.cachePrefix,
+          canViewFinanceInventory: widget.canViewFinanceInventory,
+          offlineOnly: _offlineOnly || _usedSavedFallback,
+        ),
+      ),
+    );
+  }
+
   void _openStockLedger([Map<String, String> filters = const {}]) =>
       _openMovementReport(InventoryFinanceReport.stockLedger, filters);
 
@@ -3313,6 +3381,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 ),
               ),
             ),
+          ),
+        if (_stockSummary)
+          IconButton(
+            tooltip: 'Choose inventory branch',
+            icon: const Icon(LucideIcons.gitBranch),
+            onPressed: _chooseStockBranch,
           ),
         if (_stockSummary)
           IconButton(

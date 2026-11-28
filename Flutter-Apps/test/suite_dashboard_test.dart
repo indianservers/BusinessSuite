@@ -7199,6 +7199,16 @@ void main() {
           await back();
           await tester.tap(find.byTooltip('Stock Summary'));
           await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('Choose inventory branch'));
+          await tester.pumpAndSettle();
+          await open('Main Branch');
+          expect(find.text('Stock Summary · Main Branch'), findsOneWidget);
+          expect(
+            calls.lastWhere((r) => r.path == '/srm/inventory/reports/stock-summary')
+                .headers['X-Suite-Branch'],
+            '6',
+          );
+          await back();
           expect(find.text('Healthy product'), findsOneWidget);
           expect(find.textContaining('Quantity 10'), findsOneWidget);
           expect(find.textContaining('Stock value 240 INR'), findsOneWidget);
