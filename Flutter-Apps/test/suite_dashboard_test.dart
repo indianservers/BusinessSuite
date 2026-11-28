@@ -2771,6 +2771,66 @@ void main() {
     expect(find.text('Planning meeting'), findsOneWidget);
   });
 
+  final tagConnections = ValueVariant({true, false});
+  testWidgets('Notes filters by the same tag online and offline', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    final online = tagConnections.currentValue!;
+    final cache = NotesOfflineCache('["https://example.test/api/v1",202,7]');
+    const private = {
+      'can_edit': true,
+      'visibility': 'private',
+      'visibility_scope': 'private',
+    };
+    const notes = [
+      {
+        ...private,
+        'id': 1,
+        'title': 'Release checklist',
+        'tags': ['launch'],
+      },
+      {
+        ...private,
+        'id': 2,
+        'title': 'Planning meeting',
+        'tags': ['planning'],
+      },
+    ];
+    await cache.saveSummaries(notes);
+    final queries = <Object?>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.path, '/project-management/notes');
+          final tag = request.queryParameters['tag'];
+          queries.add(tag);
+          return response(tag == 'launch' ? [notes.first] : notes);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(api: api, cache: cache, offline: !online),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filter by tag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '  Launch  ');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(find.text('Release checklist'), findsOneWidget);
+    expect(find.text('Planning meeting'), findsNothing);
+    expect(await cache.summaries(), hasLength(2));
+    await tester.tap(find.byTooltip('Clear tag filter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Planning meeting'), findsOneWidget);
+    expect(queries, online ? [null, 'launch', null] : isEmpty);
+  }, variant: tagConnections);
+
   testWidgets('Notes moves a saved note through the shared folder action', (
     tester,
   ) async {

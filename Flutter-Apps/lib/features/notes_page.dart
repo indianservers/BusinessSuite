@@ -122,6 +122,7 @@ class _NotesPageState extends State<NotesPage> {
   String _view = 'all';
   Json? _folder;
   String _sort = 'modified';
+  String _tag = '';
   String? _error;
   bool _loading = true;
   bool _savedView = false;
@@ -152,6 +153,7 @@ class _NotesPageState extends State<NotesPage> {
     final view = _view;
     final folderId = _folder?['id'];
     final sort = _sort;
+    final tag = _tag;
     final canReadSaved = const {
       'all',
       'pinned',
@@ -209,7 +211,7 @@ class _NotesPageState extends State<NotesPage> {
             (edits?['favorite'] ?? note['favorite']) != true) {
           return false;
         }
-        return true;
+        return _matchesTag(edits?['tags'] ?? note['tags'], tag);
       }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
 
       void displayMatches(Map<int, String> bodies) {
@@ -259,6 +261,7 @@ class _NotesPageState extends State<NotesPage> {
                   'folder_id': ?folderId,
                   if (sort != 'modified') 'sort': sort,
                   if (query.isNotEmpty) 'q': query,
+                  if (tag.isNotEmpty) 'tag': tag,
                 },
               )
               as List;
@@ -271,7 +274,7 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = false;
         _loading = false;
       });
-      if (view == 'all' && query.isEmpty) {
+      if (view == 'all' && query.isEmpty && tag.isEmpty) {
         try {
           await widget.cache?.saveSummaries(notes);
         } catch (_) {
@@ -311,6 +314,46 @@ class _NotesPageState extends State<NotesPage> {
         } catch (_) {}
       }
     }
+  }
+
+  bool _matchesTag(Object? tags, String tag) =>
+      tag.isEmpty || (tags is List && tags.contains(tag));
+
+  Future<void> _chooseTag() async {
+    var tag = _tag;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter notes by tag'),
+        content: TextFormField(
+          initialValue: tag,
+          autofocus: true,
+          maxLength: 40,
+          decoration: const InputDecoration(labelText: 'Tag'),
+          onChanged: (value) => tag = value,
+          onFieldSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, tag),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || selected == null) return;
+    _setTag(selected.trim().toLowerCase());
+  }
+
+  void _setTag(String tag) {
+    if (_tag == tag) return;
+    _tag = tag;
+    _debounce?.cancel();
+    unawaited(_load());
   }
 
   Future<List<Json>> _folders({bool offline = false}) async {
@@ -556,6 +599,7 @@ class _NotesPageState extends State<NotesPage> {
             if (_view == 'personal' && values['project_id'] != null) {
               return false;
             }
+            if (!_matchesTag(values['tags'], _tag)) return false;
             return term.isEmpty ||
                 '${values['title']} ${values['content']} ${values['tags'] ?? ''}'
                     .toLowerCase()
@@ -630,6 +674,11 @@ class _NotesPageState extends State<NotesPage> {
               PopupMenuItem(value: 'title', child: Text('Title')),
             ],
           ),
+          IconButton(
+            tooltip: 'Filter by tag',
+            icon: const Icon(Icons.label_outline),
+            onPressed: _chooseTag,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -657,6 +706,12 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
           if (_loading) const LinearProgressIndicator(),
+          if (_tag.isNotEmpty)
+            InputChip(
+              label: Text(_tag),
+              deleteButtonTooltipMessage: 'Clear tag filter',
+              onDeleted: () => _setTag(''),
+            ),
           if (_folder?['name'] case final String name)
             Text(name, style: Theme.of(context).textTheme.titleMedium),
           if (_savedView) const Text('Saved private notes'),
