@@ -2772,82 +2772,107 @@ void main() {
   });
 
   final tagConnections = ValueVariant({true, false});
-  testWidgets('Notes filters by tag and attachments online and offline', (
-    tester,
-  ) async {
-    FlutterSecureStorage.setMockInitialValues({});
-    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
-    final online = tagConnections.currentValue!;
-    final cache = NotesOfflineCache('["https://example.test/api/v1",202,7]');
-    const private = {
-      'can_edit': true,
-      'visibility': 'private',
-      'visibility_scope': 'private',
-    };
-    const notes = [
-      {
-        ...private,
-        'id': 1,
-        'title': 'Release checklist',
-        'tags': ['launch'],
-        'has_attachments': false,
-      },
-      {
-        ...private,
-        'id': 2,
-        'title': 'Planning meeting',
-        'tags': ['planning'],
-        'has_attachments': true,
-      },
-    ];
-    await cache.saveSummaries(notes);
-    final queries = <(Object?, Object?)>[];
-    final api = ApiClient(
-      baseUrl: 'https://example.test/api/v1',
-      store: MemoryStore(),
-      transport: Dio()
-        ..httpClientAdapter = FakeAdapter((request) async {
-          expect(request.path, '/project-management/notes');
-          final tag = request.queryParameters['tag'];
-          final attachments = request.queryParameters['has_attachments'];
-          queries.add((tag, attachments));
-          return response([
-            for (final note in notes)
-              if ((tag == null || (note['tags'] as List).contains(tag)) &&
-                  (attachments != true || note['has_attachments'] == true))
-                note,
-          ]);
-        }),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NotesPage(api: api, cache: cache, offline: !online),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Filter by tag'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField), '  Launch  ');
-    await tester.tap(find.text('Apply'));
-    await tester.pumpAndSettle();
-    expect(find.text('Release checklist'), findsOneWidget);
-    expect(find.text('Planning meeting'), findsNothing);
-    expect(await cache.summaries(), hasLength(2));
-    await tester.tap(find.byTooltip('Clear tag filter'));
-    await tester.pumpAndSettle();
-    expect(find.text('Planning meeting'), findsOneWidget);
-    await tester.tap(find.text('Has attachments'));
-    await tester.pumpAndSettle();
-    expect(find.text('Release checklist'), findsNothing);
-    expect(find.text('Planning meeting'), findsOneWidget);
-    expect(await cache.summaries(), hasLength(2));
-    expect(
-      queries,
-      online
-          ? [(null, null), ('launch', null), (null, null), (null, true)]
-          : isEmpty,
-    );
-  }, variant: tagConnections);
+  testWidgets(
+    'Notes filters by tag, attachments and dates online and offline',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+      final online = tagConnections.currentValue!;
+      final cache = NotesOfflineCache('["https://example.test/api/v1",202,7]');
+      const private = {
+        'can_edit': true,
+        'visibility': 'private',
+        'visibility_scope': 'private',
+      };
+      final today = DateTime.now().toIso8601String().split('T').first;
+      final notes = [
+        {
+          ...private,
+          'id': 1,
+          'title': 'Release checklist',
+          'tags': ['launch'],
+          'has_attachments': false,
+          'updated_at': '${today}T12:00:00Z',
+        },
+        {
+          ...private,
+          'id': 2,
+          'title': 'Planning meeting',
+          'tags': ['planning'],
+          'has_attachments': true,
+          'updated_at': '2020-01-01T00:00:00Z',
+        },
+      ];
+      await cache.saveSummaries(notes);
+      final queries = <(Object?, Object?)>[];
+      final dates = <(Object?, Object?)>[];
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1',
+        store: MemoryStore(),
+        transport: Dio()
+          ..httpClientAdapter = FakeAdapter((request) async {
+            expect(request.path, '/project-management/notes');
+            final tag = request.queryParameters['tag'];
+            final attachments = request.queryParameters['has_attachments'];
+            queries.add((tag, attachments));
+            final after = request.queryParameters['modified_after'];
+            final before = request.queryParameters['modified_before'];
+            dates.add((after, before));
+            return response([
+              for (final note in notes)
+                if ((tag == null || (note['tags'] as List).contains(tag)) &&
+                    (attachments != true || note['has_attachments'] == true) &&
+                    (after == null ||
+                        (note['updated_at'] as String).startsWith(today)))
+                  note,
+            ]);
+          }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(api: api, cache: cache, offline: !online),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Filter by tag'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), '  Launch  ');
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+      expect(find.text('Release checklist'), findsOneWidget);
+      expect(find.text('Planning meeting'), findsNothing);
+      expect(await cache.summaries(), hasLength(2));
+      await tester.tap(find.byTooltip('Clear tag filter'));
+      await tester.pumpAndSettle();
+      expect(find.text('Planning meeting'), findsOneWidget);
+      await tester.tap(find.text('Has attachments'));
+      await tester.pumpAndSettle();
+      expect(find.text('Release checklist'), findsNothing);
+      expect(find.text('Planning meeting'), findsOneWidget);
+      expect(await cache.summaries(), hasLength(2));
+      expect(
+        queries,
+        online
+            ? [(null, null), ('launch', null), (null, null), (null, true)]
+            : isEmpty,
+      );
+      await tester.tap(find.text('Has attachments'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modified dates'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apply dates'));
+      await tester.pumpAndSettle();
+      expect(find.text('Release checklist'), findsOneWidget);
+      expect(find.text('Planning meeting'), findsNothing);
+      expect(await cache.summaries(), hasLength(2));
+      if (online) expect(dates.last, (today, today));
+      await tester.tap(find.byTooltip('Clear modified dates'));
+      await tester.pumpAndSettle();
+      expect(find.text('Planning meeting'), findsOneWidget);
+      if (!online) expect(queries, isEmpty);
+    },
+    variant: tagConnections,
+  );
 
   testWidgets('Notes moves a saved note through the shared folder action', (
     tester,

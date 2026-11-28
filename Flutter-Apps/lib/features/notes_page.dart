@@ -124,6 +124,7 @@ class _NotesPageState extends State<NotesPage> {
   String _sort = 'modified';
   String _tag = '';
   bool _withAttachments = false;
+  DateTimeRange? _modifiedRange;
   String? _error;
   bool _loading = true;
   bool _savedView = false;
@@ -156,6 +157,9 @@ class _NotesPageState extends State<NotesPage> {
     final sort = _sort;
     final tag = _tag;
     final withAttachments = _withAttachments;
+    final range = _modifiedRange;
+    final modifiedAfter = range == null ? null : _dateKey(range.start);
+    final modifiedBefore = range == null ? null : _dateKey(range.end);
     final canReadSaved = const {
       'all',
       'pinned',
@@ -213,6 +217,15 @@ class _NotesPageState extends State<NotesPage> {
             (edits?['favorite'] ?? note['favorite']) != true) {
           return false;
         }
+        if (modifiedAfter != null && modifiedBefore != null) {
+          final modified = DateTime.tryParse('${note['updated_at']}');
+          if (modified == null) return false;
+          final date = _dateKey(modified);
+          if (date.compareTo(modifiedAfter) < 0 ||
+              date.compareTo(modifiedBefore) > 0) {
+            return false;
+          }
+        }
         return (!withAttachments || note['has_attachments'] == true) &&
             _matchesTag(edits?['tags'] ?? note['tags'], tag);
       }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
@@ -266,6 +279,8 @@ class _NotesPageState extends State<NotesPage> {
                   if (query.isNotEmpty) 'q': query,
                   if (tag.isNotEmpty) 'tag': tag,
                   if (withAttachments) 'has_attachments': true,
+                  'modified_after': ?modifiedAfter,
+                  'modified_before': ?modifiedBefore,
                 },
               )
               as List;
@@ -278,7 +293,11 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = false;
         _loading = false;
       });
-      if (view == 'all' && query.isEmpty && tag.isEmpty && !withAttachments) {
+      if (view == 'all' &&
+          query.isEmpty &&
+          tag.isEmpty &&
+          !withAttachments &&
+          range == null) {
         try {
           await widget.cache?.saveSummaries(notes);
         } catch (_) {
@@ -322,6 +341,28 @@ class _NotesPageState extends State<NotesPage> {
 
   bool _matchesTag(Object? tags, String tag) =>
       tag.isEmpty || (tags is List && tags.contains(tag));
+
+  String _dateKey(DateTime date) => date.toIso8601String().split('T').first;
+
+  Future<void> _chooseModifiedRange() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final range = await showDateRangePicker(
+      context: context,
+      helpText: 'Notes modified dates',
+      saveText: 'Apply dates',
+      firstDate: DateTime(1900),
+      lastDate: DateTime(9999, 12, 30),
+      initialDateRange:
+          _modifiedRange ?? DateTimeRange(start: today, end: today),
+    );
+    if (mounted && range != null) _setModifiedRange(range);
+  }
+
+  void _setModifiedRange(DateTimeRange? range) {
+    _modifiedRange = range;
+    _debounce?.cancel();
+    unawaited(_load());
+  }
 
   Future<void> _chooseTag() async {
     var tag = _tag;
@@ -592,6 +633,7 @@ class _NotesPageState extends State<NotesPage> {
     final term = _query.trim().toLowerCase();
     final drafts =
         !_withAttachments &&
+            _modifiedRange == null &&
             const {'all', 'quick', 'personal', 'folder'}.contains(_view)
         ? _creations.where((draft) {
             final values = draft['values'];
@@ -712,15 +754,35 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
           if (_loading) const LinearProgressIndicator(),
-          FilterChip(
-            label: const Text('Has attachments'),
-            avatar: const Icon(Icons.attach_file),
-            selected: _withAttachments,
-            onSelected: (selected) {
-              _withAttachments = selected;
-              _debounce?.cancel();
-              unawaited(_load());
-            },
+          Wrap(
+            spacing: 8,
+            children: [
+              FilterChip(
+                label: const Text('Has attachments'),
+                avatar: const Icon(Icons.attach_file),
+                selected: _withAttachments,
+                onSelected: (selected) {
+                  _withAttachments = selected;
+                  _debounce?.cancel();
+                  unawaited(_load());
+                },
+              ),
+              if (_modifiedRange case final DateTimeRange range)
+                InputChip(
+                  label: Text(
+                    '${_dateKey(range.start)} – ${_dateKey(range.end)}',
+                  ),
+                  onPressed: _chooseModifiedRange,
+                  onDeleted: () => _setModifiedRange(null),
+                  deleteButtonTooltipMessage: 'Clear modified dates',
+                )
+              else
+                ActionChip(
+                  avatar: const Icon(Icons.date_range),
+                  label: const Text('Modified dates'),
+                  onPressed: _chooseModifiedRange,
+                ),
+            ],
           ),
           if (_tag.isNotEmpty)
             InputChip(
