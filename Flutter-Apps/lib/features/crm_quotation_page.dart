@@ -506,6 +506,7 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                         api: widget.api,
                         sourceType: 'crm_quotation',
                         sourceId: id,
+                        cacheScope: widget.cacheScope,
                         scopeHeaders: widget.scopeHeaders,
                       ),
                   if (live)

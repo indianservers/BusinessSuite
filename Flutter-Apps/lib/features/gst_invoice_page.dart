@@ -922,6 +922,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 api: widget.api,
                 sourceType: 'srm_invoice',
                 sourceId: widget.id,
+                cacheScope: widget.cacheScope,
                 scopeHeaders: _invoiceHeaders,
               ),
             for (final field in const {

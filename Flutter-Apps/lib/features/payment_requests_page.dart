@@ -4,6 +4,61 @@ import 'package:uuid/uuid.dart';
 
 import '../core/api_client.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
+
+Future<({Json record, bool live})> _readPaymentSnapshot({
+  required ApiClient api,
+  required String? key,
+  required bool offline,
+  required Future<Json> Function() load,
+  required Json Function(Json) project,
+}) async {
+  final revision = api.sessionRevision;
+  if (!offline) {
+    try {
+      final record = await load();
+      if (revision == api.sessionRevision && key != null) {
+        try {
+          await SuiteReadCache.write(key, [project(record)]);
+        } catch (_) {
+          // The live payment information is already available.
+        }
+      }
+      if (revision != api.sessionRevision) {
+        throw ApiFailure('Your session ended. Sign in again.', 401);
+      }
+      return (record: record, live: true);
+    } on ApiFailure catch (error) {
+      if (const {401, 403, 404}.contains(error.status) && key != null) {
+        try {
+          await SuiteReadCache.clear(key);
+        } catch (_) {}
+      }
+      if (key == null ||
+          (!error.connectionFailure && (error.status ?? 0) < 500)) {
+        rethrow;
+      }
+    }
+  }
+  final saved = key == null
+      ? null
+      : (await SuiteReadCache.read(key))?.firstOrNull;
+  if (revision != api.sessionRevision) {
+    throw ApiFailure('Your session ended. Sign in again.', 401);
+  }
+  if (saved == null) {
+    throw ApiFailure('No payment information saved on this device.');
+  }
+  return (record: saved, live: false);
+}
+
+String? _paymentCacheKey(
+  String? scope,
+  Map<String, String> headers,
+  String resource,
+) => scope == null
+    ? null
+    : "$scope:payments:${headers['X-Suite-Branch'] ?? ''}:$resource";
 
 enum _PaymentSource {
   invoice('srm_invoice', 'Issued invoice', '/srm/business/collection-invoices'),
@@ -23,11 +78,15 @@ class PaymentSourceDirectory extends StatefulWidget {
     required this.api,
     required this.scopeHeaders,
     this.crm = false,
+    this.cacheScope,
+    this.offline = false,
   });
 
   final ApiClient api;
   final Map<String, String> scopeHeaders;
   final bool crm;
+  final String? cacheScope;
+  final bool offline;
 
   @override
   State<PaymentSourceDirectory> createState() => _PaymentSourceDirectoryState();
@@ -38,12 +97,41 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
       ? const [_PaymentSource.deal, _PaymentSource.quotation]
       : const [_PaymentSource.invoice, _PaymentSource.order];
   late var _source = _sources.first;
+  late var _offline = widget.offline;
   final _search = TextEditingController();
-  late var _records = _load();
+  late var _records = _load(offline: widget.offline);
 
-  Future<List<Json>> _load() async {
-    final revision = widget.api.sessionRevision;
+  Future<({Json record, bool live})> _load({bool offline = false}) {
     final source = _source;
+    return _readPaymentSnapshot(
+      api: widget.api,
+      key: _paymentCacheKey(
+        widget.cacheScope,
+        widget.scopeHeaders,
+        'sources:${source.key}',
+      ),
+      offline: offline,
+      load: () async => {'items': await _loadSources(source)},
+      project: (record) => {
+        'items': [
+          for (final row in (record['items'] as List).cast<Json>())
+            {
+              for (final field in [
+                'id',
+                'invoice_number',
+                'order_number',
+                'quote_number',
+                'name',
+                'title',
+              ])
+                if (row.containsKey(field)) field: row[field],
+            },
+        ],
+      },
+    );
+  }
+
+  Future<List<Json>> _loadSources(_PaymentSource source) async {
     final result = await widget.api.request(
       'GET',
       source.endpoint,
@@ -53,9 +141,6 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
       },
       scopeHeaders: widget.scopeHeaders,
     );
-    if (revision != widget.api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
     final rows = (result is List ? result : result['items']) as List;
     return [
       for (final row in rows.cast<Json>())
@@ -65,8 +150,9 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
     ];
   }
 
-  void _refresh() => setState(() {
-    _records = _load();
+  void _refresh({bool offline = false}) => setState(() {
+    _offline = offline;
+    _records = _load(offline: offline);
   });
 
   String _label(Json row) =>
@@ -98,7 +184,7 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                   if (source == null || _source == source) return;
                   _source = source;
                   _search.clear();
-                  _refresh();
+                  _refresh(offline: _offline);
                 },
               ),
               TextField(
@@ -128,8 +214,10 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                   ),
                 );
               }
+              final saved = !snapshot.data!.live;
               final query = _search.text.trim().toLowerCase();
-              final matches = snapshot.data!
+              final matches = (snapshot.data!.record['items'] as List)
+                  .cast<Json>()
                   .where(
                     (row) =>
                         row['id'] is int &&
@@ -143,9 +231,18 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
               }
               final source = _source;
               return ListView.builder(
-                itemCount: matches.length,
+                itemCount: matches.length + (saved ? 1 : 0),
                 itemBuilder: (context, index) {
-                  final row = matches[index];
+                  if (saved && index == 0) {
+                    return ListTile(
+                      title: const Text('Saved payment sources'),
+                      trailing: TextButton(
+                        onPressed: _refresh,
+                        child: const Text('Reconnect'),
+                      ),
+                    );
+                  }
+                  final row = matches[index - (saved ? 1 : 0)];
                   return ListTile(
                     title: Text(_label(row)),
                     trailing: const Icon(Icons.chevron_right),
@@ -156,6 +253,8 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                           sourceType: source.key,
                           sourceId: row['id'] as int,
                           scopeHeaders: widget.scopeHeaders,
+                          cacheScope: widget.cacheScope,
+                          offline: saved,
                         ),
                       ),
                     ),
@@ -177,12 +276,14 @@ class PaymentRequestButton extends StatelessWidget {
     required this.sourceType,
     required this.sourceId,
     required this.scopeHeaders,
+    this.cacheScope,
   });
 
   final ApiClient api;
   final String sourceType;
   final int sourceId;
   final Map<String, String> scopeHeaders;
+  final String? cacheScope;
 
   @override
   Widget build(BuildContext context) => OutlinedButton.icon(
@@ -195,6 +296,7 @@ class PaymentRequestButton extends StatelessWidget {
           sourceType: sourceType,
           sourceId: sourceId,
           scopeHeaders: scopeHeaders,
+          cacheScope: cacheScope,
         ),
       ),
     ),
@@ -208,12 +310,16 @@ class PaymentRequestsPage extends StatefulWidget {
     required this.sourceType,
     required this.sourceId,
     required this.scopeHeaders,
+    this.cacheScope,
+    this.offline = false,
   });
 
   final ApiClient api;
   final String sourceType;
   final int sourceId;
   final Map<String, String> scopeHeaders;
+  final String? cacheScope;
+  final bool offline;
 
   @override
   State<PaymentRequestsPage> createState() => _PaymentRequestsPageState();
@@ -232,10 +338,36 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
     'source_type': widget.sourceType,
     'source_id': widget.sourceId,
   };
-  late var _records = _load();
+  late var _records = _load(offline: widget.offline);
 
-  Future<({Json context, List<Json> items})> _load() async {
-    final revision = widget.api.sessionRevision;
+  Future<({Json record, bool live})> _load({bool offline = false}) =>
+      _readPaymentSnapshot(
+        api: widget.api,
+        key: _paymentCacheKey(
+          widget.cacheScope,
+          widget.scopeHeaders,
+          '${widget.sourceType}:${widget.sourceId}',
+        ),
+        offline: offline,
+        load: _loadLive,
+        project: (record) => {
+          'context': {'reference': record['context']['reference']},
+          'items': [
+            for (final row in (record['items'] as List).cast<Json>())
+              {
+                for (final field in [
+                  'currency',
+                  'amount',
+                  'status',
+                  'request_id',
+                ])
+                  field: row[field],
+              },
+          ],
+        },
+      );
+
+  Future<Json> _loadLive() async {
     final result = await Future.wait([
       for (final path in ['$_path/context', _path])
         widget.api.request(
@@ -245,13 +377,10 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
           scopeHeaders: widget.scopeHeaders,
         ),
     ]);
-    if (revision != widget.api.sessionRevision) {
-      throw ApiFailure('Your session ended. Sign in again.', 401);
-    }
-    return (
-      context: result.first as Json,
-      items: (result.last['items'] as List).cast<Json>(),
-    );
+    return {
+      'context': result.first as Json,
+      'items': result.last['items'] as List,
+    };
   }
 
   void _refresh() => setState(() {
@@ -475,7 +604,8 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
         }
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
         final data = snapshot.data!;
-        final source = data.context;
+        final source = data.record['context'] as Json;
+        final items = (data.record['items'] as List).cast<Json>();
         final gateway = source['gateway'] as Json?;
         final connected = gateway?['connected'] == true;
         final available = num.tryParse('${source['available_amount']}') ?? 0;
@@ -486,14 +616,17 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
               '${source['reference']}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            if (!connected)
+            if (!data.live)
+              const Text('Saved payment requests · Refresh to reconnect')
+            else if (!connected)
               const Text('No online payment gateway connected.')
             else if (gateway?['test_mode'] == true)
               const Text('Gateway test mode'),
-            Text(
-              'Available to request · ${source['currency']} ${source['available_amount']}',
-            ),
-            if (source['payable'] == true && available > 0)
+            if (data.live)
+              Text(
+                'Available to request · ${source['currency']} ${source['available_amount']}',
+              ),
+            if (data.live && source['payable'] == true && available > 0)
               Form(
                 key: _form,
                 child: Column(
@@ -543,8 +676,8 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
             if (_notice case final String notice) Text(notice),
             if (_error case final String error) Text(error),
             const Divider(),
-            if (data.items.isEmpty) const Text('No payment requests yet'),
-            for (final item in data.items)
+            if (items.isEmpty) const Text('No payment requests yet'),
+            for (final item in items)
               _requestCard(item, source, connected: connected),
           ],
         );

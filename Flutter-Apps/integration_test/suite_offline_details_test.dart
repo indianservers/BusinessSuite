@@ -27,6 +27,7 @@ import 'package:business_suite_mobile/features/inventory_stock_movement_page.dar
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/notes_page.dart';
+import 'package:business_suite_mobile/features/payment_requests_page.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
 import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
@@ -41,6 +42,85 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android reads saved payment requests offline without actions', (
+    tester,
+  ) async {
+    final scope = 'payments-${DateTime.now().microsecondsSinceEpoch}';
+    var requests = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests++;
+          return switch (request.path) {
+            '/srm/business/collection-invoices' => response({
+              'items': [
+                {
+                  'id': 16,
+                  'invoice_number': 'GST-16',
+                  'document_status': 'issued',
+                },
+              ],
+            }),
+            '/payment-requests/context' => response({
+              'reference': 'GST-16',
+              'currency': 'INR',
+              'available_amount': '200',
+              'payable': true,
+            }),
+            '/payment-requests' => response({
+              'items': [
+                {
+                  'id': 2,
+                  'request_id': 'request-2',
+                  'currency': 'INR',
+                  'amount': '100',
+                  'status': 'link_ready',
+                  'payment_url': 'https://pay.example.test/2',
+                  'instructions': 'Use reference 16',
+                },
+              ],
+            }),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    Future<void> openDirectory({required bool offline}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PaymentSourceDirectory(
+            api: api,
+            scopeHeaders: const {'X-Suite-Branch': '4'},
+            cacheScope: scope,
+            offline: offline,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      if (offline) expect(find.text('Saved payment sources'), findsOneWidget);
+      await tester.tap(find.text('GST-16'));
+      await tester.pumpAndSettle();
+    }
+
+    await openDirectory(offline: false);
+    expect(find.text('INR 100'), findsOneWidget);
+    expect(find.text('Save payment request'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await openDirectory(offline: true);
+    expect(
+      find.text('Saved payment requests · Refresh to reconnect'),
+      findsOneWidget,
+    );
+    expect(find.text('INR 100'), findsOneWidget);
+    expect(find.textContaining('Use reference 16'), findsNothing);
+    expect(find.text('Save payment request'), findsNothing);
+    expect(find.text('Copy request text'), findsNothing);
+    expect(requests, 3);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('Android saves a milestone invoice when the connection drops', (
     tester,

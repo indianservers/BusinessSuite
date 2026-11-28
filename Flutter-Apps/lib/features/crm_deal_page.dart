@@ -199,6 +199,7 @@ class _CrmDealPageState extends State<CrmDealPage> {
                   api: widget.api,
                   sourceType: 'crm_deal',
                   sourceId: id,
+                  cacheScope: widget.cacheScope,
                   scopeHeaders: widget.scopeHeaders,
                 ),
             if (widget.canMove &&

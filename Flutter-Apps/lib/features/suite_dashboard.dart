@@ -2671,7 +2671,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             },
           ),
         if ((widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null)) ||
-            (widget.showInventory && !_offlineOnly && !_usedSavedFallback))
+            (widget.showInventory &&
+                (widget.cachePrefix != null ||
+                    (!_offlineOnly && !_usedSavedFallback))))
           PopupMenuButton<String>(
             tooltip: 'Sales order actions',
             onSelected: (action) async {
@@ -2681,6 +2683,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     builder: (_) => PaymentSourceDirectory(
                       api: widget.controller.api,
                       scopeHeaders: widget.scopeHeaders,
+                      cacheScope: widget.cachePrefix,
+                      offline: _offlineOnly || _usedSavedFallback,
                     ),
                   ),
                 );
@@ -2722,7 +2726,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   value: 'new',
                   child: Text('New sales order'),
                 ),
-              if (widget.showInventory && !_offlineOnly && !_usedSavedFallback)
+              if (widget.showInventory &&
+                  (widget.cachePrefix != null ||
+                      (!_offlineOnly && !_usedSavedFallback)))
                 const PopupMenuItem(
                   value: 'payments',
                   child: Text('Payment requests'),
@@ -2736,8 +2742,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (_crmDeals &&
             (widget.canMoveDeals || widget.canManageQuotes) &&
-            !_offlineOnly &&
-            !_usedSavedFallback)
+            (widget.cachePrefix != null ||
+                (!_offlineOnly && !_usedSavedFallback)))
           IconButton(
             tooltip: 'Payment requests',
             icon: const Icon(LucideIcons.banknote),
@@ -2747,6 +2753,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   api: widget.controller.api,
                   scopeHeaders: widget.scopeHeaders,
                   crm: true,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
                 ),
               ),
             ),

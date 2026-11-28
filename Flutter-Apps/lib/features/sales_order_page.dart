@@ -347,6 +347,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 api: widget.api,
                 sourceType: 'srm_order',
                 sourceId: widget.summary['id'] as int,
+                cacheScope: widget.cacheScope,
                 scopeHeaders: widget.scopeHeaders,
               ),
             if (!pending && widget.canEdit && action != null)
