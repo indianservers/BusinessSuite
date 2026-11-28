@@ -47,6 +47,7 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
   String? _error;
   bool _saving = false;
   int _loadRevision = 0;
+  DateTimeRange? _eligibilityRange;
   late var _detail = _load(offline: widget.offline);
 
   Future<({Json? record, bool live})> _load({bool offline = false}) {
@@ -92,6 +93,91 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     _error = null;
     _detail = _load();
   });
+
+  Future<void> _checkEligibility() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final revision = widget.api.sessionRevision;
+    final range = await showDateRangePicker(
+      context: context,
+      helpText: 'Billing eligibility dates',
+      saveText: 'Check eligibility',
+      firstDate: DateTime(1900),
+      lastDate: DateTime(9999, 12, 31),
+      initialDateRange:
+          _eligibilityRange ?? DateTimeRange(start: today, end: today),
+    );
+    if (range == null || !mounted || revision != widget.api.sessionRevision) {
+      return;
+    }
+    _eligibilityRange = range;
+    final result = _loadEligibility(range, revision);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Billing eligibility'),
+        scrollable: true,
+        content: FutureBuilder(
+          future: result,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const LinearProgressIndicator();
+            }
+            if (snapshot.hasError) return Text('${snapshot.error}');
+            final milestones = snapshot.data!;
+            if (milestones.isEmpty) {
+              return const Text('No eligible milestones in this period.');
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  milestones.length == 1
+                      ? '1 eligible milestone'
+                      : '${milestones.length} eligible milestones',
+                ),
+                for (final milestone in milestones)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('${milestone['name']}'),
+                    subtitle: Text(
+                      [
+                        milestone['due_date'],
+                        milestone['amount'],
+                      ].whereType<Object>().join(' · '),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<Json>> _loadEligibility(DateTimeRange range, int revision) async {
+    final result =
+        await widget.api.request(
+              'GET',
+              '$_path/eligibility',
+              query: {
+                'date_from': range.start.toIso8601String().split('T').first,
+                'date_to': range.end.toIso8601String().split('T').first,
+              },
+              scopeHeaders: widget.scopeHeaders,
+            )
+            as Json;
+    if (revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    return (result['milestones'] as List).cast<Json>();
+  }
 
   Future<void> _change(String action, String label) async {
     if (_saving) return;
@@ -219,6 +305,12 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
               ),
             if (detail != null) ...[
               const ListTile(title: Text('Billing milestones')),
+              if (live)
+                OutlinedButton.icon(
+                  onPressed: _saving ? null : _checkEligibility,
+                  icon: const Icon(Icons.date_range),
+                  label: const Text('Check billing eligibility'),
+                ),
               if (milestones.isEmpty)
                 const ListTile(title: Text('No milestones')),
               for (final milestone in milestones)

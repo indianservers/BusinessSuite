@@ -48,6 +48,7 @@ void main() {
     final id = DateTime.now().microsecondsSinceEpoch;
     var status = 'draft';
     var detailReads = 0;
+    var eligibilityReads = 0;
     Json plan() => {
       'id': 32,
       'name': 'Support billing',
@@ -93,6 +94,23 @@ void main() {
               expectSync(request.method, 'POST');
               status = 'active';
               return response(plan());
+            case '/srm/billing-plans/32/eligibility':
+              eligibilityReads++;
+              expectSync(request.method, 'GET');
+              final today = DateTime.now().toIso8601String().split('T').first;
+              expectSync(request.queryParameters, {
+                'date_from': today,
+                'date_to': today,
+              });
+              return response({
+                'milestones': [
+                  {
+                    'name': 'Eligible delivery',
+                    'amount': 600,
+                    'due_date': today,
+                  },
+                ],
+              });
             default:
               throw StateError('Unexpected request ${request.path}');
           }
@@ -133,6 +151,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pause billing plan'), findsOneWidget);
     expect(detailReads, 2);
+    final checkEligibility = find.text('Check billing eligibility');
+    await tester.ensureVisible(checkEligibility);
+    await tester.tap(checkEligibility);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check eligibility'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 eligible milestone'), findsOneWidget);
+    expect(find.text('Eligible delivery'), findsOneWidget);
+    expect(eligibilityReads, 1);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
     await flushCrmDetailWrite('["$base",$id,7]:/srm/billing-plans/32:');
     for (var index = 0; index < 4; index++) {
       await tester.pageBack();
@@ -143,6 +172,7 @@ void main() {
     expect(find.text('Saved billing plan'), findsOneWidget);
     expect(find.text('First delivery'), findsOneWidget);
     expect(find.text('Pause billing plan'), findsNothing);
+    expect(checkEligibility, findsNothing);
     expect(detailReads, 2);
     await tester.pumpWidget(const SizedBox.shrink());
   });
