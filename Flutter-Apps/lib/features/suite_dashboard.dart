@@ -3382,7 +3382,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
-        if (_stockSummary || _stockAlerts || _warehouseStock || _valuation)
+        if (_stockSummary ||
+            _stockAlerts ||
+            _warehouseStock ||
+            _valuation ||
+            _activityReport)
           IconButton(
             tooltip: 'Choose inventory branch',
             icon: const Icon(LucideIcons.gitBranch),
@@ -3407,7 +3411,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => _SuiteRecords(
-                    title: InventoryStockReceipts.activityReports[path]!,
+                    title: widget.title.replaceFirst(
+                      'Stock Summary',
+                      InventoryStockReceipts.activityReports[path]!,
+                    ),
                     controller: widget.controller,
                     path: path,
                     scopeHeaders: widget.scopeHeaders,

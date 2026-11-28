@@ -1812,7 +1812,11 @@ void main() {
               'items': [
                 {
                   'id': 4,
-                  'item_name': 'Cached activity item',
+                  'item_name': switch (request.headers['X-Suite-Branch']) {
+                    '21' => 'North activity item',
+                    '22' => 'South activity item',
+                    _ => 'Cached activity item',
+                  },
                   'last_movement_date': '2026-01-05',
                   'age_days': 101,
                   'quantity_out': 4,
@@ -1898,6 +1902,15 @@ void main() {
         await tap(find.text(branch));
         expect(find.text('$branch stock'), findsOneWidget);
         expect(find.text('$other stock'), findsNothing);
+        for (final report in InventoryStockReceipts.activityReports.values) {
+          await tap(find.byTooltip('Stock activity reports'));
+          await tap(find.text(report));
+          expect(find.text('$report · $branch'), findsOneWidget);
+          expect(find.text('$branch activity item'), findsOneWidget);
+          expect(find.text('$other activity item'), findsNothing);
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+        }
         await tester.pageBack();
         await tester.pumpAndSettle();
       }
@@ -1922,7 +1935,7 @@ void main() {
 
     await checkReports(false);
     for (final path in InventoryStockReceipts.activityReports.keys) {
-      expect(requests.where((request) => request == path), hasLength(1));
+      expect(requests.where((request) => request == path), hasLength(3));
     }
     final beforeOffline = requests.length;
     connected = false;
