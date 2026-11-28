@@ -213,21 +213,22 @@ class NotesOfflineCache {
         await _storeEdits(edits);
       });
 
-  Future<void> enqueue(Json note, Json values) => _serial(() async {
-    final id = note['id'];
-    if (!canQueueEdit(note)) {
-      throw StateError('This note is unavailable for offline editing.');
-    }
-    final edits = await _edits();
-    if (edits.containsKey('$id')) {
-      throw StateError('This note already has an edit awaiting sync.');
-    }
-    edits['$id'] = {
-      'values': {...values, 'version': note['version']},
-      'operation': const Uuid().v4(),
-    };
-    await _storeEdits(edits);
-  });
+  Future<void> enqueue(Json note, Json values, {String? operation}) =>
+      _serial(() async {
+        final id = note['id'];
+        if (!canQueueEdit(note)) {
+          throw StateError('This note is unavailable for offline editing.');
+        }
+        final edits = await _edits();
+        if (edits.containsKey('$id')) {
+          throw StateError('This note already has an edit awaiting sync.');
+        }
+        edits['$id'] = {
+          'values': {...values, 'version': note['version']},
+          'operation': operation ?? const Uuid().v4(),
+        };
+        await _storeEdits(edits);
+      });
 
   bool canQueueEdit(Json note) =>
       note['id'] is int && note['version'] is int && _eligible(note);

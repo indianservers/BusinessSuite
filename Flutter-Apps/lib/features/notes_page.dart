@@ -1027,14 +1027,13 @@ class _NoteEditorState extends State<_NoteEditor> {
         return;
       }
       Object? updated;
+      final operation = note == null ? _createOperation : const Uuid().v4();
       try {
         updated = await widget.api.request(
           note == null ? 'POST' : 'PUT',
           note == null ? _notesPath : '$_notesPath/${note['id']}',
           data: values,
-          scopeHeaders: {
-            if (note == null) 'X-Offline-Operation': _createOperation,
-          },
+          scopeHeaders: {'X-Offline-Operation': operation},
         );
       } on ApiFailure catch (failure) {
         final cache = widget.cache;
@@ -1047,7 +1046,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         if (note == null) {
           await cache.enqueueNew(values, operation: _createOperation);
         } else {
-          await cache.enqueue(note, values);
+          await cache.enqueue(note, values, operation: operation);
         }
       }
       if (!mounted || revision != widget.api.sessionRevision) return;

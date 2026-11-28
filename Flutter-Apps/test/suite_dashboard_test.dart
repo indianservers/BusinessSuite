@@ -3464,12 +3464,15 @@ void main() {
           },
         ]);
         await cache.saveDetail({...private, 'content': 'Saved body'});
+        String? firstOperation;
         final dio = Dio()
           ..httpClientAdapter = FakeAdapter((request) async {
             if (!connectedInitially) {
               fail('Offline Notes should not call the server');
             }
             if (request.method == 'PUT') {
+              firstOperation =
+                  request.headers['X-Offline-Operation'] as String?;
               throw DioException(
                 requestOptions: request,
                 type: DioExceptionType.connectionError,
@@ -3513,6 +3516,9 @@ void main() {
         expect((await cache.pending(1))?['values']['content'], 'Offline edit');
         expect((await cache.pending(1))?['values']['favorite'], isTrue);
         expect((await cache.pending(1))?['values']['archived'], isTrue);
+        final queuedOperation = (await cache.pending(1))?['operation'];
+        expect(queuedOperation, isA<String>());
+        if (connectedInitially) expect(queuedOperation, firstOperation);
         expect(find.text('Offline edit'), findsOneWidget);
         expect(find.byTooltip('Awaiting sync'), findsOneWidget);
         dio.httpClientAdapter = FakeAdapter((request) async {
@@ -3523,6 +3529,7 @@ void main() {
           expect(request.path, '/project-management/notes/1');
           expect(request.headers['X-Suite-Organization'], '7');
           expect(request.data['version'], 3);
+          expect(request.headers['X-Offline-Operation'], queuedOperation);
           return response({'detail': 'The note changed on web'}, 409);
         });
         await tester.runAsync(() => cache.sync(api));
