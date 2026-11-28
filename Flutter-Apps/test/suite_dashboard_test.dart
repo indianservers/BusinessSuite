@@ -5555,6 +5555,62 @@ void main() {
     }
   }, variant: crmCollectionAccess);
 
+  testWidgets('GST cancellation keeps its reason when Accounting blocks it', (
+    tester,
+  ) async {
+    var attempts = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            expect(request.path, '/srm/invoices/87');
+            return response({
+              'invoice_number': 'GST-087',
+              'document_status': 'issued',
+              'branch_id': 6,
+              'can_request_payment': true,
+            });
+          }
+          expect(request.method, 'POST');
+          expect(request.path, '/srm/business/invoices/87/cancel');
+          expect(request.headers['X-Suite-Branch'], '6');
+          expect(request.data, {'reason': 'Duplicate commercial document'});
+          attempts++;
+          return attempts == 1
+              ? response({'detail': 'Reverse the posted voucher first'}, 409)
+              : response({'document_status': 'cancelled', 'balance_amount': 0});
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GstInvoicePage(api: api, id: 87, canEdit: true, canIssue: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final cancel = find.text('Cancel invoice');
+    await tester.tap(cancel);
+    await tester.pumpAndSettle();
+    final confirm = find.text('Confirm cancellation');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(attempts, 0);
+    await tester.enterText(
+      find.byType(TextFormField),
+      'Duplicate commercial document',
+    );
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(find.text('Reverse the posted voucher first'), findsOneWidget);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(attempts, 2);
+    expect(find.text('cancelled'), findsOneWidget);
+    expect(cancel, findsNothing);
+    expect(find.text('Request payment'), findsNothing);
+  });
+
   testWidgets('GST delivery retries a blocked attempt and stops on unknown', (
     tester,
   ) async {

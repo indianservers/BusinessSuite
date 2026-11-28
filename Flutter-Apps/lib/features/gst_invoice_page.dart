@@ -941,11 +941,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (!mounted || api.sessionRevision != revision) return;
       final delivery = result['delivery'] as Json?;
       final status = delivery?['status'] ?? result['delivery_status'];
-      final updated = {
-        ...invoice,
-        ...result,
-        'delivery_status': ?status,
-      };
+      final updated = {...invoice, ...result, 'delivery_status': ?status};
       setState(() {
         _invoice = Future.value((updated, false));
       });
@@ -973,6 +969,106 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  Future<void> _cancelInvoice(Json invoice) async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final headers = _invoiceHeaders;
+    final form = GlobalKey<FormState>();
+    var reason = '';
+    var saving = false;
+    String? error;
+    final result = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => StatefulBuilder(
+        builder: (context, update) => PopScope(
+          canPop: !saving,
+          child: AlertDialog(
+            title: Text('Cancel ${invoice['invoice_number']}?'),
+            scrollable: true,
+            content: Form(
+              key: form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Applied payments and posted vouchers must be reversed in Accounting first.',
+                  ),
+                  TextFormField(
+                    enabled: !saving,
+                    decoration: const InputDecoration(
+                      labelText: 'Cancellation reason',
+                    ),
+                    maxLength: 500,
+                    onChanged: (value) => reason = value.trim(),
+                    validator: (_) => reason.runes.length < 3
+                        ? 'Enter at least three characters.'
+                        : null,
+                  ),
+                  if (error != null) Text(error!),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(context),
+                child: const Text('Keep invoice'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (!form.currentState!.validate()) return;
+                        if (api.sessionRevision != revision) {
+                          update(
+                            () => error = 'Your session ended. Sign in again.',
+                          );
+                          return;
+                        }
+                        update(() {
+                          saving = true;
+                          error = null;
+                        });
+                        try {
+                          final data =
+                              await api.request(
+                                    'POST',
+                                    '/srm/business/invoices/${widget.id}/cancel',
+                                    scopeHeaders: headers,
+                                    data: {'reason': reason},
+                                  )
+                                  as Json;
+                          if (context.mounted) Navigator.pop(context, data);
+                        } on ApiFailure catch (failure) {
+                          if (context.mounted) {
+                            update(() {
+                              saving = false;
+                              error = '$failure';
+                            });
+                          }
+                        }
+                      },
+                child: Text(saving ? 'Cancelling…' : 'Confirm cancellation'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || result == null || api.sessionRevision != revision) return;
+    final updated = {...invoice, ...result};
+    setState(() {
+      _invoice = Future.value((updated, false));
+    });
+    await _saveSnapshot(updated);
+    if (mounted && api.sessionRevision == revision) await _notifyChanged();
   }
 
   @override
@@ -1052,7 +1148,9 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                       : 'Send to billing recipient',
                 ),
               ),
-            if (!saved && invoice['can_request_payment'] == true)
+            if (!saved &&
+                invoice['document_status'] == 'issued' &&
+                invoice['can_request_payment'] == true)
               PaymentRequestButton(
                 api: widget.api,
                 sourceType: 'srm_invoice',
@@ -1060,13 +1158,26 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 cacheScope: widget.cacheScope,
                 scopeHeaders: _invoiceHeaders,
               ),
-            if (!saved && invoice['can_record_payment'] == true)
+            if (!saved &&
+                invoice['document_status'] == 'issued' &&
+                invoice['can_record_payment'] == true)
               if (widget.cacheScope case final String scope)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.receipt_long_outlined),
                   label: const Text('Record payment received'),
                   onPressed: () => _recordReceipt(invoice, scope),
                 ),
+            if (!saved &&
+                widget.canIssue &&
+                widget.canEdit &&
+                const {'draft', 'issued'}.contains(invoice['document_status']))
+              OutlinedButton.icon(
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('Cancel invoice'),
+                onPressed: _issuing || _sending
+                    ? null
+                    : () => _cancelInvoice(invoice),
+              ),
             if (const {
               'issued',
               'cancelled',
