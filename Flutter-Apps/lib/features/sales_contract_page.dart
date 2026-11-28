@@ -4,6 +4,8 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'gst_invoice_page.dart';
+import 'sales_order_page.dart';
 
 class SalesContractPage extends StatefulWidget {
   const SalesContractPage({
@@ -63,6 +65,19 @@ class _SalesContractPageState extends State<SalesContractPage> {
         project: (record) => {
           for (final field in ['title', 'currency', ..._fields.keys])
             field: record[field],
+          if (record['sales_order'] case final Json order)
+            'sales_order': {
+              for (final field in ['id', 'order_number', 'title', 'status'])
+                field: order[field],
+            },
+          'invoices': [
+            for (final invoice
+                in (record['invoices'] as List? ?? []).whereType<Json>())
+              {
+                for (final field in ['id', ...GstInvoicePage.summaryFields])
+                  field: invoice[field],
+              },
+          ],
         },
       );
 
@@ -129,6 +144,9 @@ class _SalesContractPageState extends State<SalesContractPage> {
         final loading = snapshot.connectionState != ConnectionState.done;
         final result = loading ? null : snapshot.data;
         final record = result?.record ?? _cached ?? widget.summary;
+        final offline = result?.live != true;
+        final order = record['sales_order'] as Json?;
+        final invoices = (record['invoices'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -158,6 +176,49 @@ class _SalesContractPageState extends State<SalesContractPage> {
                         : '${record[field.key]}',
                   ),
                 ),
+            if (order?['id'] is int || invoices.isNotEmpty) ...[
+              const Divider(),
+              Text(
+                'Related records',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (order?['id'] is int)
+                ListTile(
+                  title: Text('${order!['order_number'] ?? 'Sales order'}'),
+                  subtitle: const Text('Sales order'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SalesOrderPage(
+                        api: widget.api,
+                        summary: order,
+                        offline: offline,
+                        cacheScope: widget.cacheScope,
+                        scopeHeaders: widget.scopeHeaders,
+                      ),
+                    ),
+                  ),
+                ),
+              for (final invoice in invoices)
+                if (invoice['id'] case final int id)
+                  ListTile(
+                    title: Text('${invoice['invoice_number'] ?? 'Invoice'}'),
+                    subtitle: const Text('GST invoice'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => GstInvoicePage(
+                          api: widget.api,
+                          id: id,
+                          summary: invoice,
+                          offline: offline,
+                          cacheScope: widget.cacheScope,
+                          scopeHeaders: widget.scopeHeaders,
+                        ),
+                      ),
+                    ),
+                  ),
+            ],
           ],
         );
       },

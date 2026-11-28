@@ -663,6 +663,10 @@ void main() {
       'contract_number': 'CTR-004',
       'status': status,
       'terms': 'Annual maintenance',
+      'sales_order': {'id': 9, 'order_number': 'SO-009'},
+      'invoices': [
+        {'id': 12, 'invoice_number': 'INV-012'},
+      ],
     };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -692,6 +696,16 @@ void main() {
             '/srm/sales-orders' => response({'items': []}),
             '/srm/contracts' => response([contract()]),
             '/srm/contracts/4' => response(contract()),
+            '/srm/sales-orders/9' => response({
+              'order_number': 'SO-009',
+              'terms': 'Linked order terms',
+            }),
+            '/srm/invoices/12' => response({
+              'invoice_number': 'INV-012',
+              'lines': [
+                {'description': 'Linked invoice service'},
+              ],
+            }),
             _ => throw StateError('Unexpected request ${request.path}'),
           };
         }),
@@ -730,6 +744,25 @@ void main() {
     expect(activations, 1);
     expect(find.text('active', findRichText: true), findsOneWidget);
     expect(find.text('Activate contract'), findsNothing);
+    for (final (link, detail) in const [
+      ('SO-009', 'Linked order terms'),
+      ('INV-012', 'Linked invoice service'),
+    ]) {
+      final tile = find.widgetWithText(ListTile, link);
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ).first,
+      );
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(find.text(detail, findRichText: true), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
     final live = tester.widget<SalesContractPage>(
       find.byType(SalesContractPage),
     );
