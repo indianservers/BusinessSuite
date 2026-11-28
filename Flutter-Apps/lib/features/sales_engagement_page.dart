@@ -76,6 +76,58 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
     _detail = _load();
   });
 
+  void _openProject(int id, {required bool offline}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PmsProjectOverviewPage(
+          api: widget.api,
+          projectId: id,
+          scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cacheScope,
+          offline: offline,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createProject() async {
+    if (_saving) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final response =
+          await api.request(
+                'POST',
+                '$_path/create-pms-project',
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json;
+      if (!mounted || api.sessionRevision != revision) return;
+      final project = response['project'] as Json?;
+      if (project?['id'] case final int id) {
+        _refresh();
+        widget.onChanged?.call();
+        _openProject(id, offline: false);
+      } else {
+        setState(() {
+          _error =
+              response['message'] as String? ??
+              'Project handoff is unavailable.';
+        });
+      }
+    } on ApiFailure catch (error) {
+      if (mounted && api.sessionRevision == revision) {
+        setState(() => _error = error.message);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _change(String action) async {
     if (_saving) return;
     final revision = widget.api.sessionRevision;
@@ -191,17 +243,15 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
               ListTile(
                 title: const Text('Open delivery project'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PmsProjectOverviewPage(
-                      api: widget.api,
-                      projectId: id,
-                      scopeHeaders: widget.scopeHeaders,
-                      cacheScope: widget.cacheScope,
-                      offline: !live,
-                    ),
-                  ),
-                ),
+                onTap: () => _openProject(id, offline: !live),
+              )
+            else if (live &&
+                widget.canEdit &&
+                status is String &&
+                !const {'closed', 'cancelled'}.contains(status))
+              OutlinedButton(
+                onPressed: _saving ? null : _createProject,
+                child: const Text('Create delivery project'),
               ),
             ListTile(
               title: const Text('Lifecycle history'),
