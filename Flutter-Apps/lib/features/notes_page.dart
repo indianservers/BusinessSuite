@@ -1261,7 +1261,11 @@ class _NoteEditorState extends State<_NoteEditor> {
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {
         try {
-          await widget.cache?.saveDetail(updated);
+          if (updated['archived'] == true || note?['archived'] == true) {
+            await widget.cache?.saveArchiveChange(updated);
+          } else {
+            await widget.cache?.saveDetail(updated);
+          }
         } catch (_) {
           // A local cache failure does not undo a server save.
         }

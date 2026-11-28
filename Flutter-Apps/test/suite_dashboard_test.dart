@@ -3447,7 +3447,7 @@ void main() {
     expect(find.text(content), findsNothing);
   });
 
-  test('syncing an archived note evicts its offline copies', () async {
+  test('Notes moves a synced archive edit into the saved Archive', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     FlutterSecureStorage.setMockInitialValues({});
     final cache = NotesOfflineCache('["https://example.test/api/v1",39,7]');
@@ -3459,6 +3459,7 @@ void main() {
       'visibility_scope': 'private',
       'visibility': 'private',
       'can_edit': true,
+      'has_attachments': true,
     };
     await cache.saveSummaries([note]);
     await cache.saveDetail(note);
@@ -3482,6 +3483,12 @@ void main() {
     expect(await cache.pending(51), isNull);
     expect(await cache.summaries(), isEmpty);
     expect(await cache.detail(51), isNull);
+    expect((await cache.archivedSummaries()).single['has_attachments'], isTrue);
+    expect((await cache.archivedDetail(51))?['content'], 'Saved body');
+    await cache.saveArchiveChange({...note, 'version': 4, 'archived': false});
+    expect(await cache.archivedSummaries(), isEmpty);
+    expect(await cache.archivedDetail(51), isNull);
+    expect((await cache.summaries()).single['version'], 4);
   });
 
   testWidgets('Notes moves a note to Trash and restores it by version', (

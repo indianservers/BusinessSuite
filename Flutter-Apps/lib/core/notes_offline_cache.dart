@@ -152,22 +152,28 @@ class NotesOfflineCache {
     await _write(suffix, details.take(12).toList());
   }
 
+  Future<void> saveArchiveChange(Json note) =>
+      _serial(() => _saveSyncedNote(note));
+
   Future<void> _saveSyncedNote(Json note) async {
-    if (!_eligible(note)) {
+    if (!_privateNote(note)) {
       await forgetNote(note['id']);
       return;
     }
-    final current = await summaries();
-    final existing = current
-        .where((row) => row['id'] == note['id'])
-        .firstOrNull;
+    final (active, archived) = await (summaries(), archivedSummaries()).wait;
+    final isArchived = _archived(note);
+    final current = isArchived ? archived : active;
+    final existing = [
+      ...current,
+      ...(isArchived ? active : archived),
+    ].where((row) => row['id'] == note['id']).firstOrNull;
     if (existing?['version'] is int &&
         note['version'] is int &&
         (existing!['version'] as int) > (note['version'] as int)) {
       return;
     }
     await saveDetail(note);
-    await _write('summaries', [
+    await _write(isArchived ? 'archive' : 'summaries', [
       {
         ...?existing,
         for (final key in [
@@ -183,6 +189,7 @@ class NotesOfflineCache {
           'task_id',
           'pinned',
           'favorite',
+          'has_attachments',
           'archived',
           'visibility',
           'visibility_scope',
@@ -315,6 +322,7 @@ class NotesOfflineCache {
                     data: edit['values'],
                   )
                   as Json;
+          if (api.sessionRevision != revision) return;
           await _saveSyncedNote(note);
           edits.remove(id);
         } on ApiFailure catch (failure) {
