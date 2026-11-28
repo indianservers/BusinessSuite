@@ -1778,6 +1778,17 @@ void main() {
                 'currency': 'INR',
                 'priority': 10,
                 'active': true,
+                'effective_from': '2026-11-01',
+                'lines': [
+                  {
+                    'item_name': 'Wholesale carton',
+                    'sku': 'CT-10',
+                    'min_quantity': 12,
+                    'price': 24,
+                    'discount_percent': 5,
+                    'tax_inclusive': true,
+                  },
+                ],
               },
             ],
           }),
@@ -1880,6 +1891,11 @@ void main() {
       expect(find.text('Wholesale rates'), findsOneWidget);
       expect(find.textContaining('PL-31'), findsOneWidget);
       expect(find.textContaining('Priority 10 · Active'), findsOneWidget);
+      await tap(find.text('Wholesale rates'));
+      expect(find.text('Wholesale carton'), findsOneWidget);
+      expect(find.text('Effective from 2026-11-01'), findsOneWidget);
+      expect(find.textContaining('Minimum quantity: 12'), findsOneWidget);
+      expect(find.textContaining('Tax inclusive'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tap(find.byTooltip('Warehouses'));

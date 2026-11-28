@@ -1767,7 +1767,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     'customer_type',
     'currency',
     'priority',
+    'effective_from',
+    'effective_to',
   ];
+  static const _priceLineFields = {
+    'sku': 'SKU',
+    'min_quantity': 'Minimum quantity',
+    'price': 'Price',
+    'discount_percent': 'Discount percent',
+    'discount_amount': 'Discount amount',
+  };
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
   num? _stockNumber(Object? value) =>
@@ -2266,7 +2275,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             if (_valuation && record['totals_by_currency'] is List)
               'totals_by_currency': record['totals_by_currency'],
-            if (_priceLists) 'active': record['active'],
+            if (_priceLists) ...{
+              'active': record['active'],
+              if (record['lines'] is List)
+                'lines': [
+                  for (final line in (record['lines'] as List).whereType<Json>())
+                    {
+                      for (final key in [
+                        'item_name',
+                        ..._priceLineFields.keys,
+                        'tax_inclusive',
+                        'active',
+                      ])
+                        key: line[key],
+                    },
+                ],
+            },
           },
       ];
       Future<void> saveProjection() async {
@@ -4263,6 +4287,38 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             'Reorder at ${item['reorder_threshold']}',
                           ],
                         ].whereType<String>().join(' · ');
+                        if (_priceLists) {
+                          final lines = item['lines'];
+                          return ExpansionTile(
+                            title: Text('$label'),
+                            subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                            children: [
+                              if (item['effective_from'] case final String from)
+                                ListTile(title: Text('Effective from $from')),
+                              if (item['effective_to'] case final String to)
+                                ListTile(title: Text('Effective to $to')),
+                              if (lines is! List || lines.isEmpty)
+                                ListTile(
+                                  title: Text(lines is List
+                                      ? 'No product rates'
+                                      : 'Product rates unavailable. Refresh the list to load them.'),
+                                ),
+                              if (lines is List)
+                                for (final line in lines.whereType<Json>())
+                                  ListTile(
+                                    title: Text("${line['item_name'] ?? 'Product'}"),
+                                    subtitle: Text([
+                                      for (final field in _priceLineFields.entries)
+                                        if (line[field.key] case final Object value)
+                                          '${field.value}: $value',
+                                      if (line['tax_inclusive'] == true)
+                                        'Tax inclusive',
+                                      if (line['active'] == false) 'Inactive',
+                                    ].join('\n')),
+                                  ),
+                            ],
+                          );
+                        }
                         final procurement = _procurement;
                         if (procurement != null && item['id'] is int) {
                           return ListTile(
