@@ -5,6 +5,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'gst_invoice_page.dart';
 import 'pms_project_overview_page.dart';
 import 'sales_billing_plan_page.dart';
 import 'sales_contract_page.dart';
@@ -96,6 +97,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     'lines': [
       for (final line in (data['lines'] as List? ?? []).whereType<Json>())
         {for (final field in _lineFields) field: line[field]},
+    ],
+    'invoices': [
+      for (final invoice in (data['invoices'] as List? ?? []).whereType<Json>())
+        {
+          'id': invoice['id'],
+          for (final field in GstInvoicePage.summaryFields)
+            field: invoice[field],
+        },
     ],
     for (final entry in _linkedRecords.entries)
       if (data[entry.key] case final Json record)
@@ -331,6 +340,29 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 ),
               ),
             if (pending) const LinearProgressIndicator(),
+            for (final invoice
+                in (data['invoices'] as List? ?? []).whereType<Json>())
+              if (invoice['id'] case final int id)
+                ListTile(
+                  title: Text('${invoice['invoice_number'] ?? 'Invoice #$id'}'),
+                  subtitle: Text('${invoice['status'] ?? ''}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GstInvoicePage(
+                        api: widget.api,
+                        id: id,
+                        summary: invoice,
+                        scopeHeaders: widget.scopeHeaders,
+                        cacheScope: widget.cacheScope,
+                        offline: pending || snapshot.data == null,
+                        canEdit: widget.invoiceBuilder != null,
+                        canIssue: widget.canApproveInvoices,
+                        canExport: widget.canExportInvoices,
+                      ),
+                    ),
+                  ),
+                ),
             if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(

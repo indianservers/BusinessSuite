@@ -8,6 +8,9 @@ def test_srm_sales_order_and_manual_source_duplicate_prevention(client, db, supe
 
     first = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
     assert first.status_code == 201, first.text
+    saved_order = client.get(f"/api/v1/srm/sales-orders/{order['id']}", headers=superuser_headers)
+    assert saved_order.status_code == 200, saved_order.text
+    assert [row["id"] for row in saved_order.json()["invoices"]] == [first.json()["id"]]
 
     duplicate = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
     assert duplicate.status_code == 409

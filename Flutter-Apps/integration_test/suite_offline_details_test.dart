@@ -94,6 +94,7 @@ void main() {
                 'billing_plan': plan(),
                 'contract': {'id': 42, 'contract_number': 'CT-042'},
                 'pms_project': {'id': 43, 'name': 'Support rollout'},
+                'invoices': [if (milestoneStatus == 'invoiced') invoice],
               });
             case '/srm/contracts/42':
               return response({
@@ -332,6 +333,11 @@ void main() {
     }
     await openOrder();
     await checkContractAndProject(offline: true);
+    await openLinkedRecord('MS-061');
+    expect(find.byType(GstInvoicePage), findsOneWidget);
+    expect(find.text('MS-061'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await openLinkedRecord('Billing plan');
     expect(find.text('Saved billing plan'), findsOneWidget);
     expect(find.text('invoiced · 725.5'), findsOneWidget);

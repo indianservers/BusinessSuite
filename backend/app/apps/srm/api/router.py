@@ -2999,7 +2999,19 @@ def create_sales_order_operation(data: SRMSalesOrderCreate, db: Session, current
 
 @router.get("/sales-orders/{sales_order_id}")
 def get_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    from app.apps.srm.access import has_any_permission
+
     item = get_sales_order_for_user(db, sales_order_id, current_user)
+    invoices = []
+    if has_any_permission(current_user, {"srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"}):
+        fields = (
+            SRMInvoice.id, SRMInvoice.invoice_number, SRMInvoice.status,
+            SRMInvoice.currency, SRMInvoice.total_amount,
+        )
+        rows = authorized_invoice_query(db, current_user).filter(
+            SRMInvoice.sales_order_id == item.id,
+        ).order_by(SRMInvoice.id.desc()).limit(20).with_entities(*fields).all()
+        invoices = [dict(row._mapping) for row in rows]
     selected=db.info.get('business_pack_scope') is not None
     if selected:
         from app.business_packs.financial_projections import assert_contextless_order
@@ -3027,6 +3039,7 @@ def get_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_
         "engagement": _serialize(engagement),
         "billing_plan": _serialize(billing_plan),
         "pms_project": _serialize(project),
+        "invoices": invoices,
         "audit": [_serialize(audit) for audit in audits],
     }
 
