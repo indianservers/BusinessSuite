@@ -3775,9 +3775,11 @@ void main() {
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         if (request.path == '/srm/invoices/7') {
-          return response({'invoice_number': 'GST-7'});
+          expect(request.headers['X-Suite-Branch'], 'all');
+          return response({'invoice_number': 'GST-7', 'branch_id': 3});
         }
         expect(request.path, '/srm/invoices/7/pdf');
+        expect(request.headers['X-Suite-Branch'], '3');
         expect(request.responseType, ResponseType.bytes);
         pdfRequests++;
         return response({'detail': 'Not a PDF'});
@@ -3792,6 +3794,8 @@ void main() {
           ),
           id: 7,
           canExport: true,
+          summary: const {'branch_id': 2},
+          scopeHeaders: const {'X-Suite-Branch': 'all'},
         ),
       ),
     );

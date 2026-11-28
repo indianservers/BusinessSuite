@@ -40,6 +40,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
   void Function(Json)? onCached,
   bool reuseFresh = false,
   void Function()? onUnavailable,
+  void Function()? onRefreshFailed,
   Future<void> Function()? clearDeniedSnapshots,
 }) async {
   final revision = api.sessionRevision;
@@ -122,6 +123,7 @@ Future<({Json? record, bool live})> loadCrmDetail({
         rethrow;
       }
       if (error.connectionFailure) onUnavailable?.call();
+      onRefreshFailed?.call();
     } finally {
       awaitingLive = false;
     }

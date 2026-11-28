@@ -489,7 +489,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   String get _path => '${GstInvoicePage.listEndpoint}/${widget.id}';
   String? get _key =>
       GstInvoicePage.cacheKey(widget.cacheScope, _path, widget.scopeHeaders);
-  Map<String, String> get _writeHeaders {
+  Map<String, String> get _invoiceHeaders {
     final branch = _liveBranch ?? widget.summary?['branch_id'];
     if (branch is! int || branch <= 0) return widget.scopeHeaders;
     return {...widget.scopeHeaders, 'X-Suite-Branch': '$branch'};
@@ -663,7 +663,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (!mounted || confirmed != true || api.sessionRevision != revision) {
         return;
       }
-      await api.request('POST', '$_path/approve', scopeHeaders: _writeHeaders);
+      await api.request('POST', '$_path/approve', scopeHeaders: _invoiceHeaders);
       if (mounted && api.sessionRevision == revision) {
         setState(() {
           _invoice = _load();
@@ -696,7 +696,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       final bytes = await fetchSuitePdf(
         api,
         '$_path/pdf',
-        scopeHeaders: widget.scopeHeaders,
+        scopeHeaders: _invoiceHeaders,
       );
       if (!mounted || api.sessionRevision != revision) return;
       final number = '${invoice['invoice_number'] ?? widget.id}'.replaceAll(
@@ -734,7 +734,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                   'PATCH',
                   '/srm/business/invoices/${widget.id}/lines/${line['id']}',
                   data: values,
-                  scopeHeaders: _writeHeaders,
+                  scopeHeaders: _invoiceHeaders,
                 )
                 as Json,
       ),
@@ -763,7 +763,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 'POST',
                 '$_path/lines',
                 data: {...values, 'source_type': 'manual'},
-                scopeHeaders: _writeHeaders,
+                scopeHeaders: _invoiceHeaders,
               )
               as Json;
         },
@@ -831,7 +831,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                             'PATCH',
                             _path,
                             data: changed,
-                            scopeHeaders: _writeHeaders,
+                            scopeHeaders: _invoiceHeaders,
                           );
                           if (context.mounted) Navigator.pop(context, true);
                         } catch (failure) {

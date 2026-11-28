@@ -37,6 +37,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   late bool _offline = widget.offline;
   late Future<Json?> _order = _load();
   bool _saving = false;
+  bool _refreshFailed = false;
   String? _actionError;
   Json? _invoice;
   String get _path => '/srm/sales-orders/${widget.summary['id']}';
@@ -111,6 +112,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   Future<Json?> _load({bool reconnect = false}) async {
     final api = widget.api;
     final revision = api.sessionRevision;
+    var refreshFailed = false;
     try {
       final result = await loadCrmDetail(
         api: api,
@@ -124,9 +126,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         onCached: (saved) {
           if (mounted) setState(() => _saved = saved);
         },
+        onRefreshFailed: () => refreshFailed = true,
         project: _projectDetails,
       );
       if (!mounted || revision != api.sessionRevision) return null;
+      _refreshFailed = refreshFailed;
       if (!result.live) {
         setState(() => _saved = result.record);
         return null;
@@ -318,12 +322,22 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             if (!pending && snapshot.data == null)
               ListTile(
                 title: Text(
-                  '${_offline ? 'Offline · ' : ''}'
+                  '${_offline
+                      ? 'Offline · '
+                      : _refreshFailed
+                      ? 'Refresh unavailable · '
+                      : ''}'
                   '${detail == null ? 'Saved order summary' : 'Saved order details'}',
                 ),
                 trailing: TextButton(
                   onPressed: _refresh,
-                  child: Text(_offline ? 'Reconnect' : 'Refresh'),
+                  child: Text(
+                    _offline
+                        ? 'Reconnect'
+                        : _refreshFailed
+                        ? 'Retry'
+                        : 'Refresh',
+                  ),
                 ),
               ),
             for (final field in const {
