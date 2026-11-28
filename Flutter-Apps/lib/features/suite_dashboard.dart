@@ -2154,6 +2154,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_crmDeals) ...CrmDealPage.summaryFields,
               if (_crmCustomers) ...CrmCustomerPage.fields.keys,
               if (_crmTasks) ...['due_date', 'updated_at'],
+              if (_inventory) 'updated_at',
               if (_crmQuotations) ...CrmQuotationPage.fields,
               if (_crmQuoteApprovals) ..._approvalFields,
               if (_crmCpq) ...['rule_type', 'active'],

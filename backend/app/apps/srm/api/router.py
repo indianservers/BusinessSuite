@@ -1418,6 +1418,7 @@ def list_srm_products(
             SRMProduct.barcode, SRMProduct.category_name,
             SRMProduct.hsn_code, SRMProduct.sales_rate, SRMProduct.gst_rate,
             SRMProduct.current_quantity, SRMProduct.reorder_level, SRMProduct.unit_code,
+            SRMProduct.updated_at,
         ).order_by(SRMProduct.item_name, SRMProduct.id)
         if page is not None:
             rows = rows.offset((page - 1) * per_page).limit(per_page)

@@ -1763,6 +1763,7 @@ void main() {
                   'id': 2,
                   numberField: 'ARCHIVED-RECORD',
                   if (kind == 'crm') 'version': 2,
+                  if (kind == 'inventory') 'updated_at': '2026-11-28T10:00:00Z',
                 },
               ]);
             }
@@ -1771,6 +1772,12 @@ void main() {
               {'id': 1, numberField: 'QA-SALE-$requests'},
               if (kind == 'crm')
                 {'id': 2, numberField: 'Older lead title', 'version': 1},
+              if (kind == 'inventory')
+                {
+                  'id': 2,
+                  numberField: 'Older product title',
+                  'updated_at': '2026-11-28T09:00:00Z',
+                },
             ]);
           default:
             throw StateError('Unexpected request ${request.path}');

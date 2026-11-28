@@ -7,8 +7,8 @@ import 'models.dart';
 
 class SuiteReadCache {
   static bool hasNewerVersion(Json candidate, Json existing) {
-    final version = candidate['version'];
-    final prior = existing['version'];
+    final version = candidate['version'] ?? candidate['updated_at'];
+    final prior = existing['version'] ?? existing['updated_at'];
     if (version is int && prior is int) return version > prior;
     if (version is String && prior is String) {
       final timestamp = DateTime.tryParse(version);
