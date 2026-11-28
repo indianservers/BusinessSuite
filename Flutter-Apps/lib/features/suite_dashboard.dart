@@ -1882,6 +1882,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final savedSearchKey =
         (_inventory ||
                 _isCrm ||
+                _crmCustomers ||
+                _crmContacts ||
+                _crmDeals ||
                 path == GstInvoicePage.listEndpoint ||
                 path == '/srm/sales-orders') &&
             cacheKey != null

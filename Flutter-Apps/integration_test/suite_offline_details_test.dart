@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:business_suite_mobile/app_controller.dart';
 import 'package:business_suite_mobile/core/api_client.dart';
@@ -1662,11 +1663,15 @@ void main() {
     'invoice',
     'inventory',
     'crm',
+    'customer',
+    'contact',
+    'deal',
   });
   testWidgets('Android keeps business record search results offline', (
     tester,
   ) async {
     final kind = commercialSearch.currentValue!;
+    final crm = const {'crm', 'customer', 'contact', 'deal'}.contains(kind);
     final (endpoint, numberField, menu, offlineLabel) = switch (kind) {
       'invoice' => (
         '/srm/invoices',
@@ -1681,6 +1686,19 @@ void main() {
         'Search saved products',
       ),
       'crm' => (CrmLeadPage.endpoint, 'first_name', null, 'Search saved leads'),
+      'customer' => (
+        CrmCustomerPage.endpoint,
+        'name',
+        'Customers',
+        'Search saved customers',
+      ),
+      'contact' => (
+        CrmContactPage.endpoint,
+        'full_name',
+        'Contacts',
+        'Search saved contacts',
+      ),
+      'deal' => (CrmDealPage.endpoint, 'name', 'Deals', 'Search saved deals'),
       _ => ('/srm/sales-orders', 'order_number', null, 'Search saved orders'),
     };
     final id = DateTime.now().microsecondsSinceEpoch;
@@ -1694,15 +1712,20 @@ void main() {
             return response({
               'companyId': 7,
               'grants': {
-                (kind == 'crm' ? 'crm' : 'srm'): {'enabled': true},
+                (crm ? 'crm' : 'srm'): {'enabled': true},
               },
             });
           case '/notifications/unread-count':
             return response({'unread': 0});
           case '/srm/sales-orders' when menu != null:
+          case CrmLeadPage.endpoint when crm && menu != null:
             return response([]);
           case final path when path == endpoint:
-            if (request.queryParameters['search'] case final String term) {
+            final query = kind == 'customer'
+                ? (jsonDecode(request.queryParameters['state'] as String)
+                      as Json)['search']
+                : request.queryParameters['search'];
+            if (query case final String term when term.isNotEmpty) {
               searches.add(term);
               if (lostConnection) {
                 throw DioException(
@@ -1737,7 +1760,7 @@ void main() {
     await tester.pumpWidget(BusinessSuiteApp(controller: controller));
     await tester.pumpAndSettle();
     Future<void> openModule() async {
-      final module = find.text(kind == 'crm' ? 'VyaparaCRM' : 'Sales & POS');
+      final module = find.text(crm ? 'VyaparaCRM' : 'Sales & POS');
       await tester.ensureVisible(module);
       await tester.pumpAndSettle();
       await tester.tap(module);
