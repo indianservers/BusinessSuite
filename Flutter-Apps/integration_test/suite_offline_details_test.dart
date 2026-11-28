@@ -1705,6 +1705,7 @@ void main() {
     var requests = 0;
     final searches = <Object?>[];
     var lostConnection = false;
+    var denied = false;
     final dio = Dio()
       ..httpClientAdapter = FakeAdapter((request) async {
         switch (request.path) {
@@ -1721,6 +1722,7 @@ void main() {
           case CrmLeadPage.endpoint when crm && menu != null:
             return response([]);
           case final path when path == endpoint:
+            if (denied) return response({'detail': 'Access removed'}, 403);
             final query = kind == 'customer'
                 ? (jsonDecode(request.queryParameters['state'] as String)
                       as Json)['search']
@@ -1811,6 +1813,21 @@ void main() {
     expect(find.widgetWithText(ListTile, 'ARCHIVED-RECORD'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsNothing);
     expect(searches, ['archived', 'QA-SALE']);
+    if (kind == 'customer') {
+      denied = true;
+      await tester.tap(find.byTooltip('Refresh'));
+      await waitForOrder('Access removed');
+      await tester.pumpAndSettle();
+      final key = '["https://example.test/api/v1",$id,7]:$endpoint';
+      final purgeDeadline = DateTime.now().add(const Duration(seconds: 5));
+      while (await SuiteReadCache.read('$key:recent-search-results') != null &&
+          DateTime.now().isBefore(purgeDeadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(await SuiteReadCache.readPages(key), isNull);
+      expect(await SuiteReadCache.read('$key:recent-search-results'), isNull);
+      expect(find.text('ARCHIVED-RECORD'), findsNothing);
+    }
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: commercialSearch);
 

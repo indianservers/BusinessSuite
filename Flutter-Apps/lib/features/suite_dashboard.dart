@@ -1815,6 +1815,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
+  ApiFailure? _accessDenied;
   bool _usedSavedFallback = false;
   late final SalesOrderDrafts? _saleDrafts =
       widget.showInventory && widget.cachePrefix != null
@@ -1894,6 +1895,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final revision = api.sessionRevision;
     final loadRevision = ++_loadRevision;
     _usedSavedFallback = false;
+    _accessDenied = null;
     final page = _page;
     final searchTerm = _serverSearch;
     Future<void> loadSavedPages() async {
@@ -2034,6 +2036,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           setState(() {
             _cached = null;
             _customerCreateAllowed = false;
+            _accessDenied = error;
           });
         }
         try {
@@ -2051,6 +2054,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             await SuiteReadCache.clear(savedSearchKey);
           }
         } catch (_) {}
+        return [];
       } else if (error.connectionFailure ||
           error.status == 429 ||
           (error.status ?? 0) >= 500) {
@@ -3507,13 +3511,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         : FutureBuilder<List<Json>>(
             future: _records,
             builder: (context, snapshot) {
-              final error = snapshot.error;
+              final error = _accessDenied ?? snapshot.error;
               final temporary =
                   error is ApiFailure &&
                   (error.status == null ||
                       error.status == 429 ||
                       (error.status ?? 0) >= 500);
-              if (snapshot.hasError && (_cached == null || !temporary)) {
+              if (error != null && (_cached == null || !temporary)) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -3521,7 +3525,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          snapshot.error.toString(),
+                          error.toString(),
                           textAlign: TextAlign.center,
                         ),
                         TextButton(
