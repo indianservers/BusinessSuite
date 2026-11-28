@@ -307,14 +307,19 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<void> _chooseFolder() async {
-    final revision = widget.api.sessionRevision;
+  Future<Json?> _pickFolder(BuildContext context, {bool moving = false}) {
     final folders = _folders();
-    final folder = await showDialog<Json>(
+    folders.ignore();
+    return showDialog<Json>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Note folders'),
+        title: Text(moving ? 'Move to folder' : 'Note folders'),
         children: [
+          if (moving)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, <String, dynamic>{}),
+              child: const Text('Personal notes'),
+            ),
           FutureBuilder(
             future: folders,
             builder: (context, snapshot) {
@@ -353,6 +358,11 @@ class _NotesPageState extends State<NotesPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _chooseFolder() async {
+    final revision = widget.api.sessionRevision;
+    final folder = await _pickFolder(context);
     if (folder == null || !mounted || revision != widget.api.sessionRevision) {
       return;
     }
@@ -442,6 +452,7 @@ class _NotesPageState extends State<NotesPage> {
           api: widget.api,
           summary: summary,
           folder: summary == null ? _folder : null,
+          pickMoveFolder: (context) => _pickFolder(context, moving: true),
           cache: widget.cache,
           offline: _unreachable,
         ),
@@ -783,12 +794,14 @@ class _NoteEditor extends StatefulWidget {
     required this.api,
     this.summary,
     this.folder,
+    required this.pickMoveFolder,
     this.cache,
     required this.offline,
   });
   final ApiClient api;
   final Map<String, dynamic>? summary;
   final Json? folder;
+  final Future<Json?> Function(BuildContext) pickMoveFolder;
   final NotesOfflineCache? cache;
   final bool offline;
 
@@ -1108,6 +1121,50 @@ class _NoteEditorState extends State<_NoteEditor> {
     }
   }
 
+  Future<void> _move() async {
+    final note = _note;
+    if (note == null || _saving || _dirty || _pending != null) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final target = await widget.pickMoveFolder(context);
+    if (target == null || !mounted || revision != api.sessionRevision) return;
+    if (note['folder_id'] == target['id'] &&
+        note['project_id'] == target['project_id'] &&
+        note['task_id'] == target['task_id']) {
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await api.request(
+        'POST',
+        '/project-management/note-actions/bulk',
+        data: {
+          'action': 'move',
+          'items': [
+            {'id': note['id'], 'version': note['version']},
+          ],
+          'folder_id': target['id'],
+          'project_id': target['project_id'],
+          'task_id': target['task_id'],
+        },
+      );
+      if (!mounted || revision != api.sessionRevision) return;
+      await widget.cache?.forgetNote(note['id']);
+      if (mounted && revision == api.sessionRevision) {
+        Navigator.of(context).pop(_NoteChange.saved);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted && revision == api.sessionRevision) {
+        setState(() => _error = error.message);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _duplicate() async {
     final id = _note?['id'];
     if (id is! int || _saving || _dirty) return;
@@ -1211,6 +1268,17 @@ class _NoteEditorState extends State<_NoteEditor> {
             onPressed: _editable && _dirty && !_saving ? _save : null,
             child: Text(_saving ? 'Saving…' : 'Save'),
           ),
+          if (_note?['can_edit'] == true &&
+              _note?['version'] is int &&
+              _note?['deleted_at'] == null &&
+              !_offline &&
+              !_savedView &&
+              _pending == null)
+            IconButton(
+              tooltip: 'Move to folder',
+              onPressed: _loading || _saving || _dirty ? null : _move,
+              icon: const Icon(Icons.drive_file_move_outline),
+            ),
         ],
       ),
       body: ListView(

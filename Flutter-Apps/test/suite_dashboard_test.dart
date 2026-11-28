@@ -2717,6 +2717,57 @@ void main() {
     expect(find.text('Older saved note'), findsNothing);
   });
 
+  testWidgets('Notes moves a saved note through the shared folder action', (
+    tester,
+  ) async {
+    const path = '/project-management/notes';
+    Json? move;
+    final note = {
+      'id': 9,
+      'version': 3,
+      'title': 'Sprint notes',
+      'content': 'Plan the release',
+      'can_edit': true,
+    };
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/project-management/note-actions/bulk') {
+            move = request.data as Json;
+            return response({'updated': 1});
+          }
+          return switch (request.path) {
+            path => response([note]),
+            '$path/9' => response(note),
+            '/project-management/note-folders' => response([
+              {'id': 12, 'name': 'Release planning'},
+            ]),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sprint notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Move to folder'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Release planning'));
+    await tester.pumpAndSettle();
+    expect(move, {
+      'action': 'move',
+      'items': [
+        {'id': 9, 'version': 3},
+      ],
+      'folder_id': 12,
+      'project_id': null,
+      'task_id': null,
+    });
+    expect(find.text('Search notes'), findsOneWidget);
+  });
+
   testWidgets('Notes duplicates a saved note via the shared API', (
     tester,
   ) async {
