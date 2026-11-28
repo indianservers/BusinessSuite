@@ -17,6 +17,7 @@ import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_customer_page.dart';
 import 'package:business_suite_mobile/features/crm_task_page.dart';
 import 'package:business_suite_mobile/features/crm_deal_page.dart';
+import 'package:business_suite_mobile/features/crm_quotation_page.dart';
 import 'package:business_suite_mobile/features/crm_pipeline_page.dart';
 import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
@@ -1666,12 +1667,21 @@ void main() {
     'customer',
     'contact',
     'deal',
+    'task',
+    'quotation',
   });
   testWidgets('Android keeps business record search results offline', (
     tester,
   ) async {
     final kind = commercialSearch.currentValue!;
-    final crm = const {'crm', 'customer', 'contact', 'deal'}.contains(kind);
+    final crm = const {
+      'crm',
+      'customer',
+      'contact',
+      'deal',
+      'task',
+      'quotation',
+    }.contains(kind);
     final (endpoint, numberField, menu, offlineLabel) = switch (kind) {
       'invoice' => (
         '/srm/invoices',
@@ -1699,6 +1709,18 @@ void main() {
         'Search saved contacts',
       ),
       'deal' => (CrmDealPage.endpoint, 'name', 'Deals', 'Search saved deals'),
+      'task' => (
+        CrmTaskPage.endpoint,
+        'title',
+        'CRM tasks',
+        'Search saved tasks',
+      ),
+      'quotation' => (
+        CrmQuotationPage.endpoint,
+        'quote_number',
+        'Quotations',
+        'Search saved quotations',
+      ),
       _ => ('/srm/sales-orders', 'order_number', null, 'Search saved orders'),
     };
     final id = DateTime.now().microsecondsSinceEpoch;
@@ -1720,6 +1742,7 @@ void main() {
             return response({'unread': 0});
           case '/srm/sales-orders' when menu != null:
           case CrmLeadPage.endpoint when crm && menu != null:
+          case CrmDealPage.endpoint when kind == 'quotation':
             return response([]);
           case final path when path == endpoint:
             if (denied) return response({'detail': 'Access removed'}, 403);
@@ -1770,6 +1793,10 @@ void main() {
     }
 
     await openModule();
+    if (kind == 'quotation') {
+      await tester.tap(find.byTooltip('Deals'));
+      await tester.pumpAndSettle();
+    }
     if (menu != null) {
       await tester.tap(find.byTooltip(menu));
       await tester.pumpAndSettle();

@@ -1886,6 +1886,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 _crmCustomers ||
                 _crmContacts ||
                 _crmDeals ||
+                _crmTasks ||
+                _crmQuotations ||
                 path == GstInvoicePage.listEndpoint ||
                 path == '/srm/sales-orders') &&
             cacheKey != null
