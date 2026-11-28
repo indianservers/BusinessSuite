@@ -6,6 +6,7 @@ import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'gst_invoice_page.dart';
+import 'payment_requests_page.dart';
 import 'pms_project_overview_page.dart';
 import 'sales_billing_plan_page.dart';
 import 'sales_contract_page.dart';
@@ -338,6 +339,24 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             ),
             Text('${data['title'] ?? ''}'),
             if (_actionError != null) Text(_actionError!),
+            if (!pending &&
+                snapshot.data != null &&
+                widget.canManageBilling &&
+                widget.summary['id'] is int)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Request payment'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PaymentRequestsPage(
+                      api: widget.api,
+                      sourceType: 'srm_order',
+                      sourceId: widget.summary['id'] as int,
+                      scopeHeaders: widget.scopeHeaders,
+                    ),
+                  ),
+                ),
+              ),
             if (!pending && widget.canEdit && action != null)
               OutlinedButton(
                 onPressed: _saving

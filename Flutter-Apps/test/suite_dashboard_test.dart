@@ -5398,6 +5398,81 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Invoice 19'), findsOneWidget);
   });
+  testWidgets('Sales order requests a payment and retries with the same ID', (
+    tester,
+  ) async {
+    final attempts = <Json>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch ((request.method, request.path)) {
+            case ('GET', '/srm/sales-orders/84'):
+              return response({'id': 84, 'order_number': 'SO-084'});
+            case ('GET', '/payment-requests/context'):
+              expect(request.queryParameters, {
+                'source_type': 'srm_order',
+                'source_id': 84,
+              });
+              return response({
+                'reference': 'SO-084',
+                'currency': 'INR',
+                'available_amount': '400.00',
+                'payable': true,
+              });
+            case ('GET', '/payment-requests'):
+              return response({
+                'items': [
+                  if (attempts.length == 2)
+                    {
+                      ...attempts.last,
+                      'currency': 'INR',
+                      'status': 'awaiting_gateway',
+                    },
+                ],
+              });
+            case ('POST', '/payment-requests'):
+              attempts.add(request.data as Json);
+              return attempts.length == 1
+                  ? response({'detail': 'Try again'}, 503)
+                  : response({'id': 2}, 201);
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesOrderPage(
+          api: api,
+          summary: const {'id': 84},
+          scopeHeaders: const {'X-Suite-Branch': '6'},
+          offline: false,
+          canManageBilling: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Request payment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '125.50');
+    await tester.enterText(
+      find.byType(TextFormField).last,
+      'Use invoice reference',
+    );
+    for (var index = 0; index < 2; index++) {
+      await tester.tap(find.text('Save payment request'));
+      await tester.pumpAndSettle();
+    }
+    expect(attempts, hasLength(2));
+    expect(attempts.first, attempts.last);
+    expect(attempts.last['amount'], '125.50');
+    expect(find.text('INR 125.50'), findsOneWidget);
+    expect(find.text('Payment request saved.'), findsOneWidget);
+  });
+
   testWidgets('order summary remains visible after a temporary API failure', (
     tester,
   ) async {
