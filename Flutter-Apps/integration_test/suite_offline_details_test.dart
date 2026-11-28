@@ -41,6 +41,112 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
 
+  testWidgets('Android opens shared billing plans and saves details offline', (
+    tester,
+  ) async {
+    const base = 'https://example.test/api/v1';
+    final id = DateTime.now().microsecondsSinceEpoch;
+    var status = 'draft';
+    var detailReads = 0;
+    Json plan() => {
+      'id': 32,
+      'name': 'Support billing',
+      'status': status,
+      'total_amount': 1200,
+      'currency': 'INR',
+    };
+    final api = ApiClient(
+      baseUrl: base,
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case '/access/me':
+              return response({
+                'companyId': 7,
+                'grants': {
+                  'srm': {'enabled': true},
+                },
+              });
+            case '/access/launcher-preferences':
+              return response({'favorites': []});
+            case '/notifications/unread-count':
+              return response({'unread': 0});
+            case '/srm/sales-orders':
+            case '/srm/engagements':
+              return response([]);
+            case '/srm/billing-plans':
+              return response([plan()]);
+            case '/srm/billing-plans/32':
+              detailReads++;
+              return response({
+                ...plan(),
+                'milestones': [
+                  {
+                    'name': 'First delivery',
+                    'amount': 600,
+                    'status': 'approved',
+                  },
+                ],
+              });
+            case '/srm/billing-plans/32/activate':
+              expectSync(request.method, 'POST');
+              status = 'active';
+              return response(plan());
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson({
+        'id': id,
+        'email': 'qa@example.test',
+        'role': {
+          'permissions': [
+            {'name': 'srm_manage'},
+          ],
+        },
+      });
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    Future<void> openPlan() async {
+      for (final target in [
+        find.text('Sales & POS'),
+        find.byTooltip('Engagements'),
+        find.byTooltip('Billing plans'),
+        find.text('Support billing'),
+      ]) {
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+      }
+    }
+
+    await openPlan();
+    expect(find.text('First delivery'), findsOneWidget);
+    await tester.tap(find.text('Activate billing plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Activate'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pause billing plan'), findsOneWidget);
+    expect(detailReads, 2);
+    await flushCrmDetailWrite('["$base",$id,7]:/srm/billing-plans/32:');
+    for (var index = 0; index < 4; index++) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+    controller.offline = true;
+    await openPlan();
+    expect(find.text('Saved billing plan'), findsOneWidget);
+    expect(find.text('First delivery'), findsOneWidget);
+    expect(find.text('Pause billing plan'), findsNothing);
+    expect(detailReads, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'Android GST retries a saved invoice draft with its original request ID',
     (tester) async {
@@ -1674,7 +1780,11 @@ void main() {
     tester,
   ) async {
     final kind = commercialSearch.currentValue!;
-    final usesTimestamp = const {'sales', 'invoice', 'inventory'}.contains(kind);
+    final usesTimestamp = const {
+      'sales',
+      'invoice',
+      'inventory',
+    }.contains(kind);
     final crm = const {
       'crm',
       'customer',

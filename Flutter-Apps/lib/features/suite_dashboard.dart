@@ -34,6 +34,7 @@ import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_contract_page.dart';
 import 'sales_engagement_page.dart';
+import 'sales_billing_plan_page.dart';
 import 'sales_order_drafts_page.dart';
 import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
@@ -1852,9 +1853,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
           _ => null,
         }
-      : widget.path == SalesEngagementPage.endpoint &&
+      : (widget.path == SalesEngagementPage.endpoint ||
+                widget.path == SalesBillingPlanPage.endpoint) &&
             widget.cachePrefix != null
-      ? "${widget.cachePrefix}:${SalesEngagementPage.endpoint}:${widget.scopeHeaders['X-Suite-Branch'] ?? ''}"
+      ? "${widget.cachePrefix}:${widget.path}:${widget.scopeHeaders['X-Suite-Branch'] ?? ''}"
       : widget.path == GstInvoicePage.listEndpoint
       ? GstInvoicePage.cacheKey(
           widget.cachePrefix,
@@ -2169,6 +2171,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'order_number',
               if (path == SalesContractPage.endpoint) 'contract_number',
               if (path == SalesEngagementPage.endpoint) 'engagement_number',
+              if (path == SalesBillingPlanPage.endpoint)
+                ...SalesBillingPlanPage.fields,
               'currency',
               'subtotal',
               'discount_amount',
@@ -3427,6 +3431,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               );
             },
           ),
+        if (widget.path == SalesEngagementPage.endpoint)
+          IconButton(
+            tooltip: 'Billing plans',
+            icon: const Icon(LucideIcons.calendarDays),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Billing plans',
+                  controller: widget.controller,
+                  path: SalesBillingPlanPage.endpoint,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  canEditOrders: widget.canEditOrders,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
         if (widget.showInventory)
           IconButton(
             tooltip: 'Engagements',
@@ -4195,6 +4217,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path ==
                                           SalesEngagementPage.endpoint ||
                                       widget.path ==
+                                          SalesBillingPlanPage.endpoint ||
+                                      widget.path ==
                                           SalesContractPage.endpoint ||
                                       widget.path ==
                                           GstInvoicePage.listEndpoint ||
@@ -4311,6 +4335,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
+                                          )
+                                        : widget.path ==
+                                              SalesBillingPlanPage.endpoint
+                                        ? SalesBillingPlanPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            scopeHeaders: widget.scopeHeaders,
+                                            cacheScope: widget.cachePrefix,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            canEdit: widget.canEditOrders,
+                                            onChanged: _refresh,
                                           )
                                         : widget.path ==
                                               SalesEngagementPage.endpoint
