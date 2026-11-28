@@ -92,6 +92,19 @@ void main() {
               outstanding['balance_amount'] = 200;
               return response({'receipt_id': 43, 'invoice': outstanding}, 201);
             })(),
+            '/srm/collections/17/control' => (() {
+              expectSync(request.method, 'PUT');
+              final paused = request.data['hold'] as bool;
+              final reason = paused ? 'Customer dispute' : 'Review finished';
+              expectSync(request.data, {
+                'hold': paused,
+                'reason': reason,
+                'resume_at': null,
+              });
+              outstanding['collection_hold'] = paused;
+              outstanding['collection_hold_reason'] = reason;
+              return response(outstanding);
+            })(),
             _ => throw StateError('Unexpected request ${request.path}'),
           };
         }),
@@ -143,6 +156,20 @@ void main() {
           .join(' | '),
     );
     await tester.pumpAndSettle();
+    for (final (action, reason) in [
+      ('Resume', 'Review finished'),
+      ('Pause', 'Customer dispute'),
+    ]) {
+      await tester.tap(find.byTooltip('$action collections for GST-17'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        reason,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, action));
+      await tester.pumpAndSettle();
+    }
+    expect(find.textContaining('Customer dispute'), findsOneWidget);
     await tester.tap(find.text('Outstanding only'));
     await tester.pumpAndSettle();
     expect(find.text('GST-18'), findsOneWidget);
@@ -159,12 +186,13 @@ void main() {
     await open(offline: true);
     expect(find.text('Saved collections'), findsOneWidget);
     expect(find.byTooltip('Record payment for GST-17'), findsNothing);
+    expect(find.byTooltip('Resume collections for GST-17'), findsNothing);
     expect(find.textContaining('Collections on hold'), findsOneWidget);
     await tester.tap(find.text('GST-17'));
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
     expect(find.text('INR 200'), findsOneWidget);
-    expect(requests, 4);
+    expect(requests, 8);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
