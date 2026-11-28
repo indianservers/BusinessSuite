@@ -201,17 +201,21 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
     if modified_after: query = query.filter(PMSNote.updated_at >= datetime.combine(modified_after, datetime.min.time(), tzinfo=timezone.utc))
     if modified_before: query = query.filter(PMSNote.updated_at < datetime.combine(modified_before + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
     if modified_after and modified_before and modified_after > modified_before: raise HTTPException(422, "Choose an end date on or after the start date")
+    from .models import PMSNoteAttachment
+    has_live_attachments = db.query(PMSNoteAttachment.id).filter(
+        PMSNoteAttachment.note_id == PMSNote.id,
+        PMSNoteAttachment.deleted_at.is_(None),
+    ).exists()
     if has_attachments:
-        from .models import PMSNoteAttachment
-        query = query.filter(PMSNote.id.in_(db.query(PMSNoteAttachment.note_id).filter(PMSNoteAttachment.deleted_at.is_(None))))
+        query = query.filter(has_live_attachments)
     order = PMSNote.title.asc() if sort == "title" else PMSNote.created_at.desc() if sort == "created" else PMSNote.updated_at.desc()
-    rows = query.order_by(PMSNote.pinned.desc(), order, PMSNote.id.desc()).all()
-    if view == "shared":
-        rows = [row for row in rows if _may_read(db, row.id, user)]
+    rows = query.add_columns(has_live_attachments).order_by(PMSNote.pinned.desc(), order, PMSNote.id.desc()).all()
     output = []
-    for row in rows:
+    for row, attached in rows:
+        if view == "shared" and not _may_read(db, row.id, user): continue
         if tag and tag.strip().lower() not in row.tags: continue
         item = result(db, row, user, False)
+        item["has_attachments"] = attached
         if q.strip():
             plain = note_excerpt(row.content, None); position = plain.lower().find(q.strip().lower())
             if position >= 0: item["preview"] = ("…" if position > 60 else "") + plain[max(0,position-60):max(0,position-60)+160]

@@ -554,9 +554,13 @@ def test_note_search_filters_dates_attachments_and_match_context(db, notes_clien
     assert 'needle' in c.get('/notes',params={'q':'needle'}).json()[0]['preview']
     assert c.get('/notes',params={'modified_after':'2026-10-25','modified_before':'2026-10-20'}).status_code==422
     attachment=c.post(f'/notes/{first["id"]}/attachments',files={'file':('research.txt',b'Safe file','text/plain')}).json()
+    assert {n['id']: n['has_attachments'] for n in c.get('/notes').json()} == {
+        first['id']: True, second['id']: False,
+    }
     assert [n['id'] for n in c.get('/notes',params={'has_attachments':True}).json()]==[first['id']]
     assert c.delete(f'/notes/{first["id"]}/attachments/{attachment["id"]}').status_code==200
     assert c.get('/notes',params={'has_attachments':True}).json()==[]
+    assert not any(n['has_attachments'] for n in c.get('/notes').json())
 
 
 def test_backlinks_respect_both_target_and_source_permissions(notes_client):

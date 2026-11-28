@@ -123,6 +123,7 @@ class _NotesPageState extends State<NotesPage> {
   Json? _folder;
   String _sort = 'modified';
   String _tag = '';
+  bool _withAttachments = false;
   String? _error;
   bool _loading = true;
   bool _savedView = false;
@@ -154,6 +155,7 @@ class _NotesPageState extends State<NotesPage> {
     final folderId = _folder?['id'];
     final sort = _sort;
     final tag = _tag;
+    final withAttachments = _withAttachments;
     final canReadSaved = const {
       'all',
       'pinned',
@@ -211,7 +213,8 @@ class _NotesPageState extends State<NotesPage> {
             (edits?['favorite'] ?? note['favorite']) != true) {
           return false;
         }
-        return _matchesTag(edits?['tags'] ?? note['tags'], tag);
+        return (!withAttachments || note['has_attachments'] == true) &&
+            _matchesTag(edits?['tags'] ?? note['tags'], tag);
       }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
 
       void displayMatches(Map<int, String> bodies) {
@@ -262,6 +265,7 @@ class _NotesPageState extends State<NotesPage> {
                   if (sort != 'modified') 'sort': sort,
                   if (query.isNotEmpty) 'q': query,
                   if (tag.isNotEmpty) 'tag': tag,
+                  if (withAttachments) 'has_attachments': true,
                 },
               )
               as List;
@@ -274,7 +278,7 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = false;
         _loading = false;
       });
-      if (view == 'all' && query.isEmpty && tag.isEmpty) {
+      if (view == 'all' && query.isEmpty && tag.isEmpty && !withAttachments) {
         try {
           await widget.cache?.saveSummaries(notes);
         } catch (_) {
@@ -586,7 +590,9 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final term = _query.trim().toLowerCase();
-    final drafts = const {'all', 'quick', 'personal', 'folder'}.contains(_view)
+    final drafts =
+        !_withAttachments &&
+            const {'all', 'quick', 'personal', 'folder'}.contains(_view)
         ? _creations.where((draft) {
             final values = draft['values'];
             if (_view == 'folder' && values['folder_id'] != _folder?['id']) {
@@ -706,6 +712,16 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
           if (_loading) const LinearProgressIndicator(),
+          FilterChip(
+            label: const Text('Has attachments'),
+            avatar: const Icon(Icons.attach_file),
+            selected: _withAttachments,
+            onSelected: (selected) {
+              _withAttachments = selected;
+              _debounce?.cancel();
+              unawaited(_load());
+            },
+          ),
           if (_tag.isNotEmpty)
             InputChip(
               label: Text(_tag),

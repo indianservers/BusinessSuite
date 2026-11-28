@@ -2772,7 +2772,7 @@ void main() {
   });
 
   final tagConnections = ValueVariant({true, false});
-  testWidgets('Notes filters by the same tag online and offline', (
+  testWidgets('Notes filters by tag and attachments online and offline', (
     tester,
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
@@ -2790,16 +2790,18 @@ void main() {
         'id': 1,
         'title': 'Release checklist',
         'tags': ['launch'],
+        'has_attachments': false,
       },
       {
         ...private,
         'id': 2,
         'title': 'Planning meeting',
         'tags': ['planning'],
+        'has_attachments': true,
       },
     ];
     await cache.saveSummaries(notes);
-    final queries = <Object?>[];
+    final queries = <(Object?, Object?)>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -2807,8 +2809,14 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           expect(request.path, '/project-management/notes');
           final tag = request.queryParameters['tag'];
-          queries.add(tag);
-          return response(tag == 'launch' ? [notes.first] : notes);
+          final attachments = request.queryParameters['has_attachments'];
+          queries.add((tag, attachments));
+          return response([
+            for (final note in notes)
+              if ((tag == null || (note['tags'] as List).contains(tag)) &&
+                  (attachments != true || note['has_attachments'] == true))
+                note,
+          ]);
         }),
     );
     await tester.pumpWidget(
@@ -2828,7 +2836,17 @@ void main() {
     await tester.tap(find.byTooltip('Clear tag filter'));
     await tester.pumpAndSettle();
     expect(find.text('Planning meeting'), findsOneWidget);
-    expect(queries, online ? [null, 'launch', null] : isEmpty);
+    await tester.tap(find.text('Has attachments'));
+    await tester.pumpAndSettle();
+    expect(find.text('Release checklist'), findsNothing);
+    expect(find.text('Planning meeting'), findsOneWidget);
+    expect(await cache.summaries(), hasLength(2));
+    expect(
+      queries,
+      online
+          ? [(null, null), ('launch', null), (null, null), (null, true)]
+          : isEmpty,
+    );
   }, variant: tagConnections);
 
   testWidgets('Notes moves a saved note through the shared folder action', (
