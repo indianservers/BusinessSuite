@@ -1753,6 +1753,20 @@ void main() {
               {'id': 22, 'name': 'South', 'is_active': true},
             ],
           }),
+          InventoryStockReceipts.reorderEndpoint => response({
+            'items': [
+              {
+                'id': 4,
+                'item_name': switch (request.headers['X-Suite-Branch']) {
+                  '21' => 'North alert',
+                  '22' => 'South alert',
+                  _ => 'Company alert',
+                },
+                'current_quantity': 1,
+                'reorder_threshold': 3,
+              },
+            ],
+          }),
           '/srm/inventory/reports/stock-summary' => response({
             'items': [
               {
@@ -1823,6 +1837,17 @@ void main() {
       await tap(find.text('Favorites (1)'));
       await tap(find.text('Sales & POS'));
       await tap(find.byTooltip('Inventory'));
+      await tap(find.byTooltip('Low stock alerts'));
+      for (final (branch, other) in [('North', 'South'), ('South', 'North')]) {
+        await tap(find.byTooltip('Choose inventory branch'));
+        await tap(find.text(branch));
+        expect(find.text('$branch alert'), findsOneWidget);
+        expect(find.text('$other alert'), findsNothing);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tap(find.byTooltip('Stock Summary'));
       for (final (branch, other) in [('North', 'South'), ('South', 'North')]) {
         await tap(find.byTooltip('Choose inventory branch'));

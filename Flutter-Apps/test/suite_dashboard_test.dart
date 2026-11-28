@@ -7196,6 +7196,17 @@ void main() {
           expect(find.textContaining('On hand 0'), findsOneWidget);
           expect(find.textContaining('Minimum stock 3'), findsOneWidget);
           expect(find.text('Healthy product'), findsNothing);
+          await tester.tap(find.byTooltip('Choose inventory branch'));
+          await tester.pumpAndSettle();
+          await open('Main Branch');
+          expect(find.text('Low stock alerts · Main Branch'), findsOneWidget);
+          expect(
+            calls
+                .lastWhere((r) => r.path == '/srm/inventory/reports/reorder')
+                .headers['X-Suite-Branch'],
+            '6',
+          );
+          await back();
           await back();
           await tester.tap(find.byTooltip('Stock Summary'));
           await tester.pumpAndSettle();

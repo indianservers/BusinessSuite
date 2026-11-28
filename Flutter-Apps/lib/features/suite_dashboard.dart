@@ -2666,9 +2666,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _SuiteRecords(
-          title: 'Stock Summary · ${branch['name']}',
+          title:
+              "${_stockAlerts ? 'Low stock alerts' : 'Stock Summary'} · ${branch['name']}",
           controller: widget.controller,
-          path: _stockSummaryPath,
+          path: widget.path,
           scopeHeaders: {...headers, 'X-Suite-Branch': '${branch['id']}'},
           cachePrefix: widget.cachePrefix,
           canViewFinanceInventory: widget.canViewFinanceInventory,
@@ -3382,7 +3383,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
-        if (_stockSummary)
+        if (_stockSummary || _stockAlerts)
           IconButton(
             tooltip: 'Choose inventory branch',
             icon: const Icon(LucideIcons.gitBranch),
