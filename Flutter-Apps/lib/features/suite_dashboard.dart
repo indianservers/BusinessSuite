@@ -1879,6 +1879,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final path = widget.path;
     if (path == null) return [];
     final cacheKey = _cacheKey;
+    final savedSearchKey =
+        path == GstInvoicePage.listEndpoint && cacheKey != null
+        ? '$cacheKey:recent-search-results'
+        : null;
     final api = widget.controller.api;
     final revision = api.sessionRevision;
     final loadRevision = ++_loadRevision;
@@ -1886,6 +1890,26 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final page = _page;
     final searchTerm = _serverSearch;
     Future<void> loadSavedPages() async {
+      if (savedSearchKey != null) {
+        try {
+          final matches = await SuiteReadCache.read(savedSearchKey);
+          if (mounted &&
+              api.sessionRevision == revision &&
+              loadRevision == _loadRevision &&
+              matches != null) {
+            final saved = <int, Json>{
+              for (final row in _cached ?? const <Json>[])
+                if (row['id'] case final int id) id: row,
+            };
+            for (final row in matches) {
+              if (row['id'] case final int id) saved.putIfAbsent(id, () => row);
+            }
+            setState(() => _cached = saved.values.toList());
+          }
+        } catch (_) {
+          // Recent search results are optional when local storage is unavailable.
+        }
+      }
       if (!_cachePagedRecords || cacheKey == null) return;
       try {
         final saved = await SuiteReadCache.readPages(cacheKey);
@@ -2009,6 +2033,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             await SuiteReadCache.clearPages(cacheKey);
           } else {
             await SuiteReadCache.clear(cacheKey);
+            if (savedSearchKey != null) {
+              await SuiteReadCache.clear(savedSearchKey);
+            }
             if (_inventory && widget.cachePrefix != null) {
               await SuiteReadCache.clear(
                 SalesOrderDrafts.productPickerCacheKey(widget.cachePrefix!),
@@ -2088,7 +2115,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ? page < pages
           : total is int && pageSize is int && page * pageSize < total;
     }
-    if (cacheKey != null && searchTerm.isEmpty) {
+    if (cacheKey != null && (searchTerm.isEmpty || savedSearchKey != null)) {
       final projection = [
         for (final record in records)
           {
@@ -2182,7 +2209,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         } catch (_) {}
       }
 
-      if (refreshWithoutCache || path == GstInvoicePage.listEndpoint) {
+      if (searchTerm.isNotEmpty && savedSearchKey != null) {
+        if (projection.isNotEmpty) {
+          try {
+            await SuiteReadCache.write(
+              savedSearchKey,
+              projection,
+              retainRecent: 100,
+            );
+          } catch (_) {
+            // Search still works when local storage is unavailable.
+          }
+        }
+      } else if (refreshWithoutCache || path == GstInvoicePage.listEndpoint) {
         _cached = projection;
         unawaited(saveProjection());
       } else {
