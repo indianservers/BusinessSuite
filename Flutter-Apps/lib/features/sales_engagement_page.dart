@@ -219,17 +219,26 @@ class _EngagementHistory extends StatefulWidget {
 }
 
 class _EngagementHistoryState extends State<_EngagementHistory> {
+  Json? _saved;
+  int _request = 0;
   late var _history = _load(offline: widget.offline);
 
-  Future<({Json? record, bool live})> _load({bool offline = false}) =>
-      loadCrmDetail(
-        api: widget.api,
-        path: widget.path,
-        scope: widget.scope,
-        headers: widget.headers,
-        offline: offline,
-        project: (record) => {'events': _events(record)},
-      );
+  Future<({Json? record, bool live})> _load({bool offline = false}) {
+    final request = ++_request;
+    return loadCrmDetail(
+      api: widget.api,
+      path: widget.path,
+      scope: widget.scope,
+      headers: widget.headers,
+      offline: offline,
+      onCached: (record) {
+        if (mounted && request == _request) {
+          setState(() => _saved = record);
+        }
+      },
+      project: (record) => {'events': _events(record)},
+    );
+  }
 
   List<Json> _events(Json record) {
     final entries = (record['audit'] as List? ?? []).whereType<Json>();
@@ -255,7 +264,10 @@ class _EngagementHistoryState extends State<_EngagementHistory> {
       actions: [
         IconButton(
           tooltip: 'Refresh lifecycle history',
-          onPressed: () => setState(() => _history = _load()),
+          onPressed: () => setState(() {
+            _saved = null;
+            _history = _load();
+          }),
           icon: const Icon(Icons.refresh),
         ),
       ],
@@ -263,11 +275,12 @@ class _EngagementHistoryState extends State<_EngagementHistory> {
     body: FutureBuilder(
       future: _history,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        final loading = snapshot.connectionState != ConnectionState.done;
+        final record = loading ? _saved : snapshot.data?.record;
+        if (loading && record == null) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-        final record = snapshot.data?.record;
         if (record == null) {
           return const Center(
             child: Text('No lifecycle history saved on this device'),
@@ -278,7 +291,8 @@ class _EngagementHistoryState extends State<_EngagementHistory> {
             _events(record);
         return ListView(
           children: [
-            if (snapshot.data?.live != true)
+            if (loading) const LinearProgressIndicator(),
+            if (loading || snapshot.data?.live != true)
               const ListTile(title: Text('Saved lifecycle history')),
             if (events.isEmpty)
               const ListTile(title: Text('No lifecycle changes')),

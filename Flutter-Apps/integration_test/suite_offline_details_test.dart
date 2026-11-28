@@ -658,6 +658,7 @@ void main() {
     var status = 'draft';
     var engagementStatus = 'active';
     var activations = 0;
+    var historyRequests = 0;
     final transportErrors = <String>[];
     Json engagement() => {
       'id': 22,
@@ -694,6 +695,9 @@ void main() {
           ),
         )
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/engagements/22/timeline') {
+            historyRequests++;
+          }
           if (request.path == '/srm/engagements/22/lifecycle/close') {
             expectSync(request.method, 'POST');
             expectSync(request.data, {'reason': 'Work accepted'});
@@ -895,6 +899,25 @@ void main() {
     expect(find.text('Saved contract'), findsOneWidget);
     expect(find.text('Annual maintenance', findRichText: true), findsOneWidget);
     expect(find.text('Activate contract'), findsNothing);
+    final engagementTile = find.widgetWithText(ListTile, 'ENG-022');
+    await tester.scrollUntilVisible(
+      engagementTile,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(engagementTile);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Lifecycle history'), 200);
+    await tester.tap(find.text('Lifecycle history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved lifecycle history'), findsOneWidget);
+    expect(find.textContaining('Work accepted'), findsOneWidget);
+    expect(historyRequests, 1);
   });
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
