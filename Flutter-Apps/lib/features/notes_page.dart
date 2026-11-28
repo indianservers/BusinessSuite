@@ -178,11 +178,8 @@ class _NotesPageState extends State<NotesPage> {
         (value) => value,
         onError: (Object _) => (edits: <int, Json>{}, creations: <Json>[]),
       );
-      final (summaries, bodies, changes) = await (
+      final (summaries, changes) = await (
         canReadSaved ? cache.summaries() : Future.value(<Json>[]),
-        canReadSaved && query.isNotEmpty
-            ? cache.savedBodies()
-            : Future.value(<int, String>{}),
         pending,
       ).wait;
       if (!current()) return;
@@ -192,35 +189,57 @@ class _NotesPageState extends State<NotesPage> {
       });
       if (!showSavedResults || summaries.isEmpty) return;
       final term = query.toLowerCase();
-      setState(() {
-        _savedView = true;
-        _notes = summaries.where((note) {
-          final pending = _pendingFor(note);
-          final edits = pending != null && pending['error'] == null
-              ? pending['values']
-              : null;
-          final pendingFolder = edits is Json && edits.containsKey('folder_id')
-              ? edits['folder_id']
-              : note['folder_id'];
-          if (folderId != null && pendingFolder != folderId) return false;
-          if (view == 'quick' &&
-              (note['project_id'] != null || pendingFolder != null)) {
-            return false;
-          }
-          if (view == 'pinned' &&
-              (edits?['pinned'] ?? note['pinned']) != true) {
-            return false;
-          }
-          if (view == 'favorites' &&
-              (edits?['favorite'] ?? note['favorite']) != true) {
-            return false;
-          }
-          final body = edits?['content'] ?? bodies[note['id']] ?? '';
-          return '${_titleFor(note)} ${_previewFor(note)} $body ${edits?['tags'] ?? note['tags'] ?? ''}'
-              .toLowerCase()
-              .contains(term);
-        }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
-      });
+      final candidates = summaries.where((note) {
+        final pending = _pendingFor(note);
+        final edits = pending != null && pending['error'] == null
+            ? pending['values']
+            : null;
+        final pendingFolder = edits is Json && edits.containsKey('folder_id')
+            ? edits['folder_id']
+            : note['folder_id'];
+        if (folderId != null && pendingFolder != folderId) return false;
+        if (view == 'quick' &&
+            (note['project_id'] != null || pendingFolder != null)) {
+          return false;
+        }
+        if (view == 'pinned' && (edits?['pinned'] ?? note['pinned']) != true) {
+          return false;
+        }
+        if (view == 'favorites' &&
+            (edits?['favorite'] ?? note['favorite']) != true) {
+          return false;
+        }
+        return true;
+      }).toList()..sort((a, b) => _compareSavedNotes(a, b, sort));
+
+      void displayMatches(Map<int, String> bodies) {
+        setState(() {
+          _savedView = true;
+          _notes = term.isEmpty
+              ? candidates
+              : candidates.where((note) {
+                  final pending = _pendingFor(note);
+                  final edits = pending != null && pending['error'] == null
+                      ? pending['values']
+                      : null;
+                  final body = edits?['content'] ?? bodies[note['id']] ?? '';
+                  return '${_titleFor(note)} ${_previewFor(note)} $body ${edits?['tags'] ?? note['tags'] ?? ''}'
+                      .toLowerCase()
+                      .contains(term);
+                }).toList();
+        });
+      }
+
+      displayMatches(const {});
+      if (term.isEmpty ||
+          candidates.isEmpty ||
+          _notes.length == candidates.length) {
+        return;
+      }
+      final bodies = await cache.savedBodies();
+      if (current() && showSavedResults && bodies.isNotEmpty) {
+        displayMatches(bodies);
+      }
     }
 
     final local = loadSaved();

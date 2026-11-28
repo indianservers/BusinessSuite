@@ -69,6 +69,21 @@ class _DelayedNoteCache extends NotesOfflineCache {
   Future<Json?> detail(Object? id) => cachedDetail.future;
 }
 
+class _DelayedNoteBodies extends NotesOfflineCache {
+  _DelayedNoteBodies() : super('["https://example.test/api/v1",201,7]');
+
+  final bodies = Completer<Map<int, String>>();
+
+  @override
+  Future<List<Json>> summaries() async => [
+    {'id': 1, 'title': 'Release checklist'},
+    {'id': 2, 'title': 'Planning meeting'},
+  ];
+
+  @override
+  Future<Map<int, String>> savedBodies() => bodies.future;
+}
+
 void main() {
   testWidgets('First launch opens server setup directly from sign-in', (
     tester,
@@ -2724,6 +2739,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Fresh note from web'), findsOneWidget);
     expect(find.text('Older saved note'), findsNothing);
+  });
+
+  testWidgets('Notes shows saved title matches before reading saved bodies', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    final cache = _DelayedNoteBodies();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotesPage(
+          api: ApiClient(
+            baseUrl: 'https://example.test/api/v1',
+            store: MemoryStore(),
+          ),
+          cache: cache,
+          offline: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'release');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Release checklist'), findsOneWidget);
+    expect(find.text('Planning meeting'), findsNothing);
+    cache.bodies.complete({2: 'Review release approvals'});
+    await tester.pumpAndSettle();
+    expect(find.text('Release checklist'), findsOneWidget);
+    expect(find.text('Planning meeting'), findsOneWidget);
   });
 
   testWidgets('Notes moves a saved note through the shared folder action', (
