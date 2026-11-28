@@ -7333,13 +7333,29 @@ void main() {
           await tester.enterText(find.byType(TextField), 'Main warehouse');
           await tester.pumpAndSettle();
           expect(find.text('Sample product'), findsOneWidget);
+          await tester.tap(find.byTooltip('Choose inventory branch'));
+          await tester.pumpAndSettle();
+          await open('Main Branch');
+          expect(find.text('Warehouse Stock · Main Branch'), findsOneWidget);
+          expect(
+            calls.lastWhere((r) => r.path == '/srm/inventory/reports/warehouse-stock')
+                .headers['X-Suite-Branch'],
+            '6',
+          );
           await tester.tap(find.byTooltip('Inventory Valuation'));
           await tester.pumpAndSettle();
+          expect(find.text('Inventory Valuation · Main Branch'), findsOneWidget);
+          expect(
+            calls.lastWhere((r) => r.path == '/srm/inventory/reports/valuation')
+                .headers['X-Suite-Branch'],
+            '6',
+          );
           expect(find.textContaining('Stock value 60 INR'), findsOneWidget);
           await open('Inventory value by currency');
           expect(find.text('USD'), findsOneWidget);
           expect(find.text('50'), findsOneWidget);
           expect(find.text('1 items have no currency'), findsOneWidget);
+          await back();
           await back();
           await back();
           await back();

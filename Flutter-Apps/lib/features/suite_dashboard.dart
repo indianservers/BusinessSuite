@@ -2666,8 +2666,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _SuiteRecords(
-          title:
-              "${_stockAlerts ? 'Low stock alerts' : 'Stock Summary'} · ${branch['name']}",
+          title: "${widget.title.split(' · ').first} · ${branch['name']}",
           controller: widget.controller,
           path: widget.path,
           scopeHeaders: {...headers, 'X-Suite-Branch': '${branch['id']}'},
@@ -3383,7 +3382,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             ),
           ),
-        if (_stockSummary || _stockAlerts)
+        if (_stockSummary || _stockAlerts || _warehouseStock || _valuation)
           IconButton(
             tooltip: 'Choose inventory branch',
             icon: const Icon(LucideIcons.gitBranch),
@@ -3494,7 +3493,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => _SuiteRecords(
-                  title: 'Inventory Valuation',
+                  title: widget.title.replaceFirst(
+                    'Warehouse Stock',
+                    'Inventory Valuation',
+                  ),
                   controller: widget.controller,
                   path: _valuationPath,
                   scopeHeaders: widget.scopeHeaders,
