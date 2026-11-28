@@ -9,7 +9,9 @@ import '../core/suite_read_cache.dart';
 bool _accessDenied(ApiFailure error) =>
     const {401, 403, 404}.contains(error.status);
 
-Future<({Json record, bool live})> _readPaymentSnapshot({
+typedef _PaymentSnapshot = ({Json record, bool live, String? error});
+
+Future<_PaymentSnapshot> _readPaymentSnapshot({
   required ApiClient api,
   required String? key,
   required bool offline,
@@ -18,6 +20,8 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
   required void Function(Json) onCached,
 }) async {
   final revision = api.sessionRevision;
+  _PaymentSnapshot unavailable(String message) =>
+      (record: const {}, live: false, error: message);
   var waitingForLive = !offline;
   final saved = key == null
       ? Future<Json?>.value()
@@ -42,9 +46,9 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
         }
       }
       if (revision != api.sessionRevision) {
-        throw ApiFailure('Your session ended. Sign in again.', 401);
+        return unavailable('Your session ended. Sign in again.');
       }
-      return (record: record, live: true);
+      return (record: record, live: true, error: null);
     } on ApiFailure catch (error) {
       waitingForLive = false;
       if (_accessDenied(error) && key != null) {
@@ -54,18 +58,18 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
       }
       if (key == null ||
           (!error.connectionFailure && (error.status ?? 0) < 500)) {
-        rethrow;
+        return unavailable(error.message);
       }
     }
   }
   final record = await saved;
   if (revision != api.sessionRevision) {
-    throw ApiFailure('Your session ended. Sign in again.', 401);
+    return unavailable('Your session ended. Sign in again.');
   }
   if (record == null) {
-    throw ApiFailure('No payment information saved on this device.');
+    return unavailable('No payment information saved on this device.');
   }
-  return (record: record, live: false);
+  return (record: record, live: false, error: null);
 }
 
 String? _paymentCacheKey(
@@ -119,7 +123,7 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
   int _loadRevision = 0;
   late var _records = _load(offline: widget.offline);
 
-  Future<({Json record, bool live})> _load({bool offline = false}) {
+  Future<_PaymentSnapshot> _load({bool offline = false}) {
     final source = _source;
     final revision = ++_loadRevision;
     return _readPaymentSnapshot(
@@ -231,9 +235,10 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
               if (loading && _cached == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (!loading && snapshot.hasError) {
+              final error = snapshot.error ?? snapshot.data?.error;
+              if (!loading && error != null) {
                 return ListTile(
-                  title: Text('${snapshot.error}'),
+                  title: Text('$error'),
                   trailing: TextButton(
                     onPressed: _refresh,
                     child: const Text('Retry'),
@@ -241,7 +246,7 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                 );
               }
               final data = loading
-                  ? (record: _cached!, live: false)
+                  ? (record: _cached!, live: false, error: null)
                   : snapshot.data!;
               final saved = !data.live;
               final query = _search.text.trim().toLowerCase();
@@ -371,7 +376,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
   int _loadRevision = 0;
   late var _records = _load(offline: widget.offline);
 
-  Future<({Json record, bool live})> _load({bool offline = false}) {
+  Future<_PaymentSnapshot> _load({bool offline = false}) {
     final revision = ++_loadRevision;
     return _readPaymentSnapshot(
       api: widget.api,
@@ -651,10 +656,13 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
         if (loading && _cached == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (!loading && snapshot.hasError) {
-          return Center(child: Text('${snapshot.error}'));
+        final error = snapshot.error ?? snapshot.data?.error;
+        if (!loading && error != null) {
+          return Center(child: Text('$error'));
         }
-        final data = loading ? (record: _cached!, live: false) : snapshot.data!;
+        final data = loading
+            ? (record: _cached!, live: false, error: null)
+            : snapshot.data!;
         final source = data.record['context'] as Json;
         final items = (data.record['items'] as List).cast<Json>();
         final gateway = source['gateway'] as Json?;
