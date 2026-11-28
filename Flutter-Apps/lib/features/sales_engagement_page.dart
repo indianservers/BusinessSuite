@@ -167,6 +167,21 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
                   ),
                 ),
               ),
+            ListTile(
+              title: const Text('Lifecycle history'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => _EngagementHistory(
+                    api: widget.api,
+                    path: '$_path/timeline',
+                    scope: widget.cacheScope,
+                    headers: widget.scopeHeaders,
+                    offline: !live,
+                  ),
+                ),
+              ),
+            ),
             if (live &&
                 widget.canEdit &&
                 status is String &&
@@ -177,6 +192,111 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
                   onPressed: _saving ? null : () => _change(action),
                   child: Text(_lifecycleLabel(action)),
                 ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _EngagementHistory extends StatefulWidget {
+  const _EngagementHistory({
+    required this.api,
+    required this.path,
+    required this.scope,
+    required this.headers,
+    required this.offline,
+  });
+
+  final ApiClient api;
+  final String path;
+  final String? scope;
+  final Map<String, String> headers;
+  final bool offline;
+
+  @override
+  State<_EngagementHistory> createState() => _EngagementHistoryState();
+}
+
+class _EngagementHistoryState extends State<_EngagementHistory> {
+  late var _history = _load(offline: widget.offline);
+
+  Future<({Json? record, bool live})> _load({bool offline = false}) =>
+      loadCrmDetail(
+        api: widget.api,
+        path: widget.path,
+        scope: widget.scope,
+        headers: widget.headers,
+        offline: offline,
+        project: (record) => {'events': _events(record)},
+      );
+
+  List<Json> _events(Json record) {
+    final entries = (record['audit'] as List? ?? []).whereType<Json>();
+    return [
+      for (final entry in entries)
+        if (entry['entity_type'] == 'engagement' &&
+            const {'close', 'cancel', 'reopen'}.contains(entry['action']))
+          {
+            'action': entry['action'],
+            'date': entry['created_at'],
+            'actor': entry['user_id'] ?? entry['actor_user_id'],
+            'reason':
+                ((entry['after_json'] ?? entry['after_data'])
+                    as Json?)?['reason'],
+          },
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Lifecycle history'),
+      actions: [
+        IconButton(
+          tooltip: 'Refresh lifecycle history',
+          onPressed: () => setState(() => _history = _load()),
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    ),
+    body: FutureBuilder(
+      future: _history,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
+        final record = snapshot.data?.record;
+        if (record == null) {
+          return const Center(
+            child: Text('No lifecycle history saved on this device'),
+          );
+        }
+        final events =
+            (record['events'] as List?)?.whereType<Json>().toList() ??
+            _events(record);
+        return ListView(
+          children: [
+            if (snapshot.data?.live != true)
+              const ListTile(title: Text('Saved lifecycle history')),
+            if (events.isEmpty)
+              const ListTile(title: Text('No lifecycle changes')),
+            for (final event in events.reversed)
+              ListTile(
+                title: Text(switch (event['action']) {
+                  'close' => 'Engagement closed',
+                  'cancel' => 'Engagement cancelled',
+                  _ => 'Engagement reopened',
+                }),
+                subtitle: Text(
+                  [
+                    if (event['date'] case final String date) date,
+                    if (event['actor'] case final int actor) 'Actor $actor',
+                    if (event['reason'] case final String reason) reason,
+                  ].join('\n'),
+                ),
+              ),
           ],
         );
       },

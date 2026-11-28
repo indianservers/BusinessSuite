@@ -728,6 +728,21 @@ void main() {
             '/srm/contracts/4' => response(contract()),
             '/srm/engagements' => response([engagement()]),
             '/srm/engagements/22' => response(engagement()),
+            '/srm/engagements/22/timeline' => response({
+              'audit': [
+                {
+                  'entity_type': 'sales_order',
+                  'action': 'close',
+                  'after_json': {'reason': 'Order-only event'},
+                },
+                {
+                  'entity_type': 'engagement',
+                  'action': 'close',
+                  'actor_user_id': 7,
+                  'after_json': {'reason': 'Work accepted'},
+                },
+              ],
+            }),
             '/master-data/companies/18' => response({
               'id': 18,
               'name': 'Shared contract customer',
@@ -852,6 +867,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(engagementStatus, 'closed', reason: '$transportErrors');
     await tester.scrollUntilVisible(find.text('Reopen engagement'), 200);
+    await tester.ensureVisible(find.text('Lifecycle history'));
+    await tester.tap(find.text('Lifecycle history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Engagement closed'), findsOneWidget);
+    expect(find.textContaining('Work accepted'), findsOneWidget);
+    expect(find.textContaining('Order-only event'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('ENG-022 · closed'), findsOneWidget);
