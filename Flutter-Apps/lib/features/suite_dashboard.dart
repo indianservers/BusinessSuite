@@ -46,6 +46,7 @@ import 'branch_settings_panel.dart';
 import 'lead_sources_panel.dart';
 import 'starter_values_panel.dart';
 import 'gst_invoice_page.dart';
+import 'gst_collections_page.dart';
 import 'appointment_booking_page.dart';
 import 'my_attendance_page.dart';
 import 'my_leave_page.dart';
@@ -714,6 +715,26 @@ class _SuiteDashboardState extends State<SuiteDashboard> {
         canCreateOrderInvoices:
             app.title == 'Sales & POS' && _canCreateInvoice(access),
         canExportSalesDocuments: allowsSalesAction('export'),
+        canViewCollections:
+            app.title == 'Sales & POS' &&
+            (controller.user?.isSuperuser == true ||
+                (grant?['permissions'] as List?)?.any(
+                      const {
+                        'srm_collection_view',
+                        'srm_collection_create',
+                        'srm_admin',
+                      }.contains,
+                    ) ==
+                    true ||
+                (access['managed'] != true &&
+                    controller.user?.permissions.any(
+                          const {
+                            'srm_collection_view',
+                            'srm_collection_create',
+                            'srm_admin',
+                          }.contains,
+                        ) ==
+                        true)),
         canIssueInvoices:
             allowsSalesAction('approve') &&
             (controller.user?.isSuperuser == true ||
@@ -1617,6 +1638,7 @@ class _SuiteRecords extends StatefulWidget {
     this.canReverseVoucher = false,
     this.canExportSalesDocuments = false,
     this.canIssueInvoices = false,
+    this.canViewCollections = false,
     this.canEditOrders = false,
     this.canEditInventoryProducts = false,
     this.canArchiveOrders = false,
@@ -1658,6 +1680,7 @@ class _SuiteRecords extends StatefulWidget {
   final bool canCancelVoucher, canReverseVoucher;
   final bool canExportSalesDocuments;
   final bool canIssueInvoices;
+  final bool canViewCollections;
   final bool canEditOrders;
   final bool canEditInventoryProducts;
   final bool canArchiveOrders;
@@ -3424,6 +3447,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             },
           ),
         if (widget.path == GstInvoicePage.listEndpoint &&
+            widget.canViewCollections)
+          IconButton(
+            tooltip: 'Collections',
+            icon: const Icon(LucideIcons.banknote),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => GstCollectionsPage(
+                  api: widget.controller.api,
+                  scopeHeaders: widget.scopeHeaders,
+                  cacheScope: widget.cachePrefix,
+                  offline: _offlineOnly || _usedSavedFallback,
+                  canExport: widget.canExportSalesDocuments,
+                ),
+              ),
+            ),
+          ),
+        if (widget.path == GstInvoicePage.listEndpoint &&
             widget.cachePrefix != null)
           IconButton(
             tooltip: 'Saved GST drafts',
@@ -3551,6 +3591,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   scopeHeaders: widget.scopeHeaders,
                   query: const {'summary_only': true},
                   cachePrefix: widget.cachePrefix,
+                  canViewCollections: widget.canViewCollections,
                   canExportSalesDocuments: widget.canExportSalesDocuments,
                   canIssueInvoices: widget.canIssueInvoices,
                   canCreateOrderInvoices: widget.canCreateOrderInvoices,

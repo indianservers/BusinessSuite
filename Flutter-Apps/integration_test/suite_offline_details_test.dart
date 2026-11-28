@@ -22,6 +22,7 @@ import 'package:business_suite_mobile/features/crm_quotation_page.dart';
 import 'package:business_suite_mobile/features/crm_pipeline_page.dart';
 import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
 import 'package:business_suite_mobile/features/gst_invoice_page.dart';
+import 'package:business_suite_mobile/features/gst_collections_page.dart';
 import 'package:business_suite_mobile/features/inventory_drafts_page.dart';
 import 'package:business_suite_mobile/features/inventory_stock_movement_page.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
@@ -42,6 +43,91 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android reopens outstanding collections offline', (
+    tester,
+  ) async {
+    final scope = 'collections-${DateTime.now().microsecondsSinceEpoch}';
+    const headers = {'X-Suite-Branch': '4'};
+    const outstanding = {
+      'id': 17,
+      'invoice_number': 'GST-17',
+      'document_status': 'issued',
+      'currency': 'INR',
+      'balance_amount': 240,
+      'collection_hold': true,
+    };
+    var requests = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests++;
+          expectSync(request.headers['X-Suite-Branch'], '4');
+          return switch (request.path) {
+            GstCollectionsPage.endpoint => response({
+              'items': [
+                outstanding,
+                {
+                  ...outstanding,
+                  'id': 18,
+                  'invoice_number': 'GST-18',
+                  'balance_amount': 0,
+                },
+                {
+                  ...outstanding,
+                  'id': 19,
+                  'invoice_number': 'GST-19',
+                  'document_status': 'draft',
+                },
+              ],
+            }),
+            '/srm/invoices/17' => response(outstanding),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    Future<void> open({required bool offline}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GstCollectionsPage(
+            api: api,
+            scopeHeaders: headers,
+            cacheScope: scope,
+            offline: offline,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await open(offline: false);
+    expect(find.text('GST-17'), findsOneWidget);
+    expect(find.text('GST-18'), findsNothing);
+    await tester.tap(find.text('Outstanding only'));
+    await tester.pumpAndSettle();
+    expect(find.text('GST-18'), findsOneWidget);
+    expect(find.text('GST-19'), findsNothing);
+    await tester.enterText(find.byType(TextField), 'GST-17');
+    await tester.pumpAndSettle();
+    expect(find.text('GST-18'), findsNothing);
+    await tester.tap(find.widgetWithText(ListTile, 'GST-17'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GstInvoicePage), findsOneWidget);
+    await flushCrmDetailWrite('$scope:${GstCollectionsPage.endpoint}:4');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await open(offline: true);
+    expect(find.text('Saved collections'), findsOneWidget);
+    expect(find.textContaining('Collections on hold'), findsOneWidget);
+    await tester.tap(find.text('GST-17'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GstInvoicePage), findsOneWidget);
+    expect(find.text('INR 240'), findsOneWidget);
+    expect(requests, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('Android reads saved payment requests offline without actions', (
     tester,
