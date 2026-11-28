@@ -170,7 +170,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     _order = _load(reconnect: true);
   });
 
-  Future<void> _createInvoice() async {
+  Future<void> _createInvoice(Json order) async {
     if (_saving || _invoice != null) return;
     final revision = widget.api.sessionRevision;
     setState(() {
@@ -191,11 +191,39 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           'The backend did not return the invoice ID. Check the invoice list.',
         );
       }
-      setState(() => _invoice = invoice);
       final scope = widget.cacheScope;
+      final invoices = (order['invoices'] as List? ?? []).whereType<Json>();
+      final updated = {
+        ...order,
+        'invoices': [
+          invoice,
+          for (final linked in invoices)
+            if (linked['id'] != invoice['id']) linked,
+        ],
+      };
+      if (invoice['lines'] is List) {
+        await GstInvoicePage.saveSnapshot(
+          GstInvoicePage.cacheKey(
+            scope,
+            '${GstInvoicePage.listEndpoint}/${invoice['id']}',
+            widget.scopeHeaders,
+          ),
+          invoice,
+        );
+      }
+      if (revision != widget.api.sessionRevision) return;
+      await _cacheDetails(updated);
+      if (mounted && revision == widget.api.sessionRevision) {
+        setState(() => _invoice = invoice);
+      }
       if (scope != null) {
         try {
-          await SuiteReadCache.invalidate('$scope:/srm/invoices');
+          final key = GstInvoicePage.cacheKey(
+            scope,
+            GstInvoicePage.listEndpoint,
+            widget.scopeHeaders,
+          );
+          if (key != null) await SuiteReadCache.invalidate(key);
         } catch (_) {}
       }
     } on ApiFailure catch (error) {
@@ -326,7 +354,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     : () {
                         final invoice = _invoice;
                         if (invoice == null) {
-                          _createInvoice();
+                          _createInvoice(data);
                           return;
                         }
                         Navigator.of(context).push(

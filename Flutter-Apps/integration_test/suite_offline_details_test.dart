@@ -41,6 +41,61 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
 
+  testWidgets('Android reopens a new order invoice offline before viewing it', (
+    tester,
+  ) async {
+    final scope = 'order-invoice-${DateTime.now().microsecondsSinceEpoch}';
+    var requests = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests++;
+          return switch ((request.method, request.path)) {
+            ('GET', '/srm/sales-orders/84') => response({
+              'id': 84,
+              'order_number': 'SO-084',
+              'status': 'confirmed',
+            }),
+            ('POST', '/srm/invoices/draft-from-sales-order/84') => response({
+              'id': 85,
+              'invoice_number': 'GST-085',
+              'status': 'draft',
+              'lines': [
+                {'description': 'Saved consulting line', 'quantity': 1},
+              ],
+            }, 201),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    Widget app({required bool offline}) => MaterialApp(
+      home: SalesOrderPage(
+        api: api,
+        summary: const {'id': 84},
+        cacheScope: scope,
+        offline: offline,
+        invoiceBuilder: (_) => const SizedBox.shrink(),
+      ),
+    );
+    await tester.pumpWidget(app(offline: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create invoice draft'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open invoice'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(app(offline: true));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GST-085'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved consulting line'), findsOneWidget);
+    expect(requests, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('Android opens shared billing plans and saves details offline', (
     tester,
   ) async {

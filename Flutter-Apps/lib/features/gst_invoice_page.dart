@@ -475,6 +475,32 @@ class GstInvoicePage extends StatefulWidget {
     'balance_amount',
   ];
 
+  static Future<void> saveSnapshot(String? key, Json invoice) async {
+    if (key == null) return;
+    try {
+      final lines = (invoice['lines'] as List? ?? []).whereType<Json>();
+      await SuiteReadCache.write(key, [
+        {
+          for (final field in summaryFields) field: invoice[field],
+          'lines': [
+            for (final line in lines)
+              {
+                for (final field in const [
+                  'description',
+                  'item_name',
+                  'quantity',
+                  'line_total',
+                ])
+                  field: line[field],
+              },
+          ],
+        },
+      ]);
+    } catch (_) {
+      // A failed cache write leaves the online invoice available.
+    }
+  }
+
   @override
   State<GstInvoicePage> createState() => _GstInvoicePageState();
 }
@@ -496,33 +522,8 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     return {...widget.scopeHeaders, 'X-Suite-Branch': '$branch'};
   }
 
-  Future<void> _saveSnapshot(Json invoice) async {
-    final key = _key;
-    if (key == null) return;
-    try {
-      final lines = (invoice['lines'] as List? ?? []).whereType<Json>();
-      await SuiteReadCache.write(key, [
-        {
-          for (final field in GstInvoicePage.summaryFields)
-            field: invoice[field],
-          'lines': [
-            for (final line in lines)
-              {
-                for (final field in const [
-                  'description',
-                  'item_name',
-                  'quantity',
-                  'line_total',
-                ])
-                  field: line[field],
-              },
-          ],
-        },
-      ]);
-    } catch (_) {
-      // A failed cache write leaves the online invoice available.
-    }
-  }
+  Future<void> _saveSnapshot(Json invoice) =>
+      GstInvoicePage.saveSnapshot(_key, invoice);
 
   Future<(Json, bool)> _load({bool reconnect = false}) async {
     final api = widget.api;
@@ -664,7 +665,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       if (!mounted || confirmed != true || api.sessionRevision != revision) {
         return;
       }
-      await api.request('POST', '$_path/approve', scopeHeaders: _invoiceHeaders);
+      await api.request(
+        'POST',
+        '$_path/approve',
+        scopeHeaders: _invoiceHeaders,
+      );
       if (mounted && api.sessionRevision == revision) {
         setState(() {
           _invoice = _load();
