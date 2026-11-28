@@ -14,6 +14,9 @@ class SalesBillingPlanPage extends StatefulWidget {
     required this.cacheScope,
     required this.offline,
     required this.canEdit,
+    this.canApprove = false,
+    this.canCreateInvoice = false,
+    this.canExportInvoice = false,
     this.onChanged,
   });
 
@@ -34,6 +37,9 @@ class SalesBillingPlanPage extends StatefulWidget {
   final String? cacheScope;
   final bool offline;
   final bool canEdit;
+  final bool canApprove;
+  final bool canCreateInvoice;
+  final bool canExportInvoice;
   final VoidCallback? onChanged;
 
   @override
@@ -216,23 +222,24 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     }
   }
 
-  Future<void> _mutate(String method, String path, {Json? data}) async {
-    if (_saving) return;
+  Future<Json?> _mutate(String method, String path, {Json? data}) async {
+    if (_saving) return null;
     setState(() {
       _saving = true;
       _error = null;
     });
     final revision = widget.api.sessionRevision;
     try {
-      await widget.api.request(
+      final result = await widget.api.request(
         method,
         path,
         data: data,
         scopeHeaders: widget.scopeHeaders,
       );
-      if (!mounted || revision != widget.api.sessionRevision) return;
+      if (!mounted || revision != widget.api.sessionRevision) return null;
       _refresh();
       widget.onChanged?.call();
+      return result as Json?;
     } catch (error) {
       if (mounted && revision == widget.api.sessionRevision) {
         setState(() => _error = '$error');
@@ -240,6 +247,69 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+    return null;
+  }
+
+  void _openInvoice(Json invoice, int id, {required bool live}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GstInvoicePage(
+          api: widget.api,
+          id: id,
+          scopeHeaders: widget.scopeHeaders,
+          cacheScope: widget.cacheScope,
+          summary: invoice,
+          offline: !live,
+          canEdit: widget.canCreateInvoice,
+          canIssue: widget.canApprove,
+          canExport: widget.canExportInvoice,
+          onChanged: _refresh,
+        ),
+      ),
+    );
+  }
+
+  Widget? _milestoneActions(Json milestone, bool live) {
+    final id = milestone['id'];
+    final status = milestone['status'];
+    if (!live ||
+        id is! int ||
+        milestone['invoice_draft_id'] != null ||
+        status == 'invoiced') {
+      return null;
+    }
+    final ready = const {'approved', 'ready', 'completed'}.contains(status);
+    final actions = [
+      if (widget.canEdit) ('amend', 'Amend milestone'),
+      if (widget.canApprove && !ready) ('approve', 'Approve milestone'),
+      if (widget.canCreateInvoice && ready) ('draft', 'Generate invoice draft'),
+    ];
+    if (actions.isEmpty) return null;
+    return PopupMenuButton<String>(
+      tooltip: 'Actions for ${milestone['name']}',
+      enabled: !_saving,
+      itemBuilder: (_) => [
+        for (final (action, label) in actions)
+          PopupMenuItem(value: action, child: Text(label)),
+      ],
+      onSelected: (action) async {
+        switch (action) {
+          case 'amend':
+            await _amend(milestone, id);
+          case 'approve':
+            await _mutate('POST', '/srm/billing-milestones/$id/approve');
+          case 'draft':
+            final invoice = await _mutate(
+              'POST',
+              '/srm/invoices/draft-from-billing-milestone/$id',
+            );
+            if (!mounted) return;
+            if (invoice?['id'] case final int invoiceId) {
+              _openInvoice(invoice!, invoiceId, live: true);
+            }
+        }
+      },
+    );
   }
 
   @override
@@ -340,20 +410,7 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
                       milestone['due_date'],
                     ].whereType<Object>().join(' · '),
                   ),
-                  trailing:
-                      live &&
-                          widget.canEdit &&
-                          milestone['invoice_draft_id'] == null &&
-                          milestone['status'] != 'invoiced' &&
-                          milestone['id'] is int
-                      ? IconButton(
-                          tooltip: 'Amend ${milestone['name']}',
-                          onPressed: _saving
-                              ? null
-                              : () => _amend(milestone, milestone['id'] as int),
-                          icon: const Icon(Icons.edit_outlined),
-                        )
-                      : null,
+                  trailing: _milestoneActions(milestone, live),
                 ),
               const ListTile(title: Text('Invoices')),
               if (invoices.isEmpty) const ListTile(title: Text('No invoices')),
@@ -366,18 +423,7 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
                           .trim(),
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => GstInvoicePage(
-                          api: widget.api,
-                          id: id,
-                          scopeHeaders: widget.scopeHeaders,
-                          cacheScope: widget.cacheScope,
-                          summary: invoice,
-                          offline: !live,
-                        ),
-                      ),
-                    ),
+                    onTap: () => _openInvoice(invoice, id, live: live),
                   ),
             ],
           ],

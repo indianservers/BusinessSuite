@@ -3444,6 +3444,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   canEditOrders: widget.canEditOrders,
+                  canIssueInvoices: widget.canIssueInvoices,
+                  canCreateOrderInvoices: widget.canCreateOrderInvoices,
+                  canExportSalesDocuments: widget.canExportSalesDocuments,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
                 ),
               ),
@@ -3462,6 +3465,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   cachePrefix: widget.cachePrefix,
                   scopeHeaders: widget.scopeHeaders,
                   canEditOrders: widget.canEditWarehouses,
+                  canIssueInvoices: widget.canIssueInvoices,
+                  canCreateOrderInvoices: widget.canCreateOrderInvoices,
+                  canExportSalesDocuments: widget.canExportSalesDocuments,
                   offlineOnly: _offlineOnly || _usedSavedFallback,
                 ),
               ),
@@ -4347,6 +4353,11 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             canEdit: widget.canEditOrders,
+                                            canApprove: widget.canIssueInvoices,
+                                            canCreateInvoice:
+                                                widget.canCreateOrderInvoices,
+                                            canExportInvoice:
+                                                widget.canExportSalesDocuments,
                                             onChanged: _refresh,
                                           )
                                         : widget.path ==

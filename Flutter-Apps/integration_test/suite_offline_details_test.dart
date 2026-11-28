@@ -49,8 +49,16 @@ void main() {
     var status = 'draft';
     var detailReads = 0;
     var eligibilityReads = 0;
-    var milestoneAmount = 600;
+    num milestoneAmount = 600;
+    var milestoneStatus = 'approved';
     String? milestoneDue = '2026-12-15';
+    const invoice = {
+      'id': 61,
+      'invoice_number': 'MS-061',
+      'status': 'draft',
+      'currency': 'INR',
+      'total_amount': 725.5,
+    };
     Json plan() => {
       'id': 32,
       'name': 'Support billing',
@@ -90,9 +98,11 @@ void main() {
                     'name': 'First delivery',
                     'amount': milestoneAmount,
                     'due_date': milestoneDue,
-                    'status': milestoneAmount == 600 ? 'approved' : 'pending',
+                    'status': milestoneStatus,
+                    if (milestoneStatus == 'invoiced') 'invoice_draft_id': 72,
                   },
                 ],
+                'invoices': [if (milestoneStatus == 'invoiced') invoice],
               });
             case '/srm/billing-plans/32/activate':
               expectSync(request.method, 'POST');
@@ -107,9 +117,22 @@ void main() {
                 'expected_amount': '600',
                 'expected_due_date': '2026-12-15',
               });
-              milestoneAmount = 725;
+              milestoneAmount = 725.5;
+              milestoneStatus = 'pending';
               milestoneDue = null;
               return response({'id': 45});
+            case '/srm/billing-milestones/45/approve':
+              expectSync(request.method, 'POST');
+              expectSync(milestoneStatus, 'pending');
+              milestoneStatus = 'approved';
+              return response({'id': 45});
+            case '/srm/invoices/draft-from-billing-milestone/45':
+              expectSync(request.method, 'POST');
+              expectSync(milestoneStatus, 'approved');
+              milestoneStatus = 'invoiced';
+              return response(invoice, 201);
+            case '/srm/invoices/61':
+              return response(invoice);
             case '/srm/billing-plans/32/eligibility':
               eligibilityReads++;
               expectSync(request.method, 'GET');
@@ -141,6 +164,8 @@ void main() {
         'role': {
           'permissions': [
             {'name': 'srm_manage'},
+            {'name': 'srm_invoice_approve'},
+            {'name': 'srm_invoice_create'},
           ],
         },
       });
@@ -178,17 +203,32 @@ void main() {
     expect(eligibilityReads, 1);
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
-    final amend = find.byTooltip('Amend First delivery');
-    await tester.ensureVisible(amend);
-    await tester.tap(amend);
-    await tester.pumpAndSettle();
+    final milestoneActions = find.byTooltip('Actions for First delivery');
+    Future<void> selectAction(String label) async {
+      await tester.ensureVisible(milestoneActions);
+      await tester.tap(milestoneActions);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    await selectAction('Amend milestone');
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.first, '725.50');
     await tester.tap(find.byTooltip('Clear due date'));
     await tester.enterText(fields.last, 'Updated delivery scope');
     await tester.tap(find.text('Save amendment'));
     await tester.pumpAndSettle();
-    expect(find.text('pending · 725'), findsOneWidget);
+    expect(find.text('pending · 725.5'), findsOneWidget);
+    await selectAction('Approve milestone');
+    expect(find.text('approved · 725.5'), findsOneWidget);
+    await selectAction('Generate invoice draft');
+    expect(find.byType(GstInvoicePage), findsOneWidget);
+    expect(find.text('MS-061'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('invoiced · 725.5'), findsOneWidget);
+    expect(milestoneActions, findsNothing);
     await flushCrmDetailWrite('["$base",$id,7]:/srm/billing-plans/32:');
     for (var index = 0; index < 4; index++) {
       await tester.pageBack();
@@ -200,9 +240,9 @@ void main() {
     expect(find.text('First delivery'), findsOneWidget);
     expect(find.text('Pause billing plan'), findsNothing);
     expect(checkEligibility, findsNothing);
-    expect(amend, findsNothing);
-    expect(find.text('pending · 725'), findsOneWidget);
-    expect(detailReads, 3);
+    expect(milestoneActions, findsNothing);
+    expect(find.text('invoiced · 725.5'), findsOneWidget);
+    expect(detailReads, 5);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
