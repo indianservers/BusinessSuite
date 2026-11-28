@@ -49,6 +49,8 @@ void main() {
     var status = 'draft';
     var detailReads = 0;
     var eligibilityReads = 0;
+    var milestoneAmount = 600;
+    String? milestoneDue = '2026-12-15';
     Json plan() => {
       'id': 32,
       'name': 'Support billing',
@@ -84,9 +86,11 @@ void main() {
                 ...plan(),
                 'milestones': [
                   {
+                    'id': 45,
                     'name': 'First delivery',
-                    'amount': 600,
-                    'status': 'approved',
+                    'amount': milestoneAmount,
+                    'due_date': milestoneDue,
+                    'status': milestoneAmount == 600 ? 'approved' : 'pending',
                   },
                 ],
               });
@@ -94,6 +98,18 @@ void main() {
               expectSync(request.method, 'POST');
               status = 'active';
               return response(plan());
+            case '/srm/billing-milestones/45':
+              expectSync(request.method, 'PATCH');
+              expectSync(request.data, {
+                'amount': '725.50',
+                'due_date': null,
+                'reason': 'Updated delivery scope',
+                'expected_amount': '600',
+                'expected_due_date': '2026-12-15',
+              });
+              milestoneAmount = 725;
+              milestoneDue = null;
+              return response({'id': 45});
             case '/srm/billing-plans/32/eligibility':
               eligibilityReads++;
               expectSync(request.method, 'GET');
@@ -162,6 +178,17 @@ void main() {
     expect(eligibilityReads, 1);
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
+    final amend = find.byTooltip('Amend First delivery');
+    await tester.ensureVisible(amend);
+    await tester.tap(amend);
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.first, '725.50');
+    await tester.tap(find.byTooltip('Clear due date'));
+    await tester.enterText(fields.last, 'Updated delivery scope');
+    await tester.tap(find.text('Save amendment'));
+    await tester.pumpAndSettle();
+    expect(find.text('pending · 725'), findsOneWidget);
     await flushCrmDetailWrite('["$base",$id,7]:/srm/billing-plans/32:');
     for (var index = 0; index < 4; index++) {
       await tester.pageBack();
@@ -173,7 +200,9 @@ void main() {
     expect(find.text('First delivery'), findsOneWidget);
     expect(find.text('Pause billing plan'), findsNothing);
     expect(checkEligibility, findsNothing);
-    expect(detailReads, 2);
+    expect(amend, findsNothing);
+    expect(find.text('pending · 725'), findsOneWidget);
+    expect(detailReads, 3);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

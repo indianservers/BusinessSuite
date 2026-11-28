@@ -181,36 +181,53 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
 
   Future<void> _change(String action, String label) async {
     if (_saving) return;
+    final revision = widget.api.sessionRevision;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$label billing plan?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true &&
+        mounted &&
+        revision == widget.api.sessionRevision) {
+      await _mutate('POST', '$_path/$action');
+    }
+  }
+
+  Future<void> _amend(Json milestone, int id) async {
+    final revision = widget.api.sessionRevision;
+    final data = await showDialog<Json>(
+      context: context,
+      builder: (_) => _MilestoneAmendment(milestone: milestone),
+    );
+    if (data != null && mounted && revision == widget.api.sessionRevision) {
+      await _mutate('PATCH', '/srm/billing-milestones/$id', data: data);
+    }
+  }
+
+  Future<void> _mutate(String method, String path, {Json? data}) async {
+    if (_saving) return;
     setState(() {
       _saving = true;
       _error = null;
     });
     final revision = widget.api.sessionRevision;
     try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('$label billing plan?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(label),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true ||
-          !mounted ||
-          revision != widget.api.sessionRevision) {
-        return;
-      }
       await widget.api.request(
-        'POST',
-        '$_path/$action',
+        method,
+        path,
+        data: data,
         scopeHeaders: widget.scopeHeaders,
       );
       if (!mounted || revision != widget.api.sessionRevision) return;
@@ -323,6 +340,20 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
                       milestone['due_date'],
                     ].whereType<Object>().join(' · '),
                   ),
+                  trailing:
+                      live &&
+                          widget.canEdit &&
+                          milestone['invoice_draft_id'] == null &&
+                          milestone['status'] != 'invoiced' &&
+                          milestone['id'] is int
+                      ? IconButton(
+                          tooltip: 'Amend ${milestone['name']}',
+                          onPressed: _saving
+                              ? null
+                              : () => _amend(milestone, milestone['id'] as int),
+                          icon: const Icon(Icons.edit_outlined),
+                        )
+                      : null,
                 ),
               const ListTile(title: Text('Invoices')),
               if (invoices.isEmpty) const ListTile(title: Text('No invoices')),
@@ -353,5 +384,103 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
         );
       },
     ),
+  );
+}
+
+class _MilestoneAmendment extends StatefulWidget {
+  const _MilestoneAmendment({required this.milestone});
+
+  final Json milestone;
+
+  @override
+  State<_MilestoneAmendment> createState() => _MilestoneAmendmentState();
+}
+
+class _MilestoneAmendmentState extends State<_MilestoneAmendment> {
+  final _form = GlobalKey<FormState>();
+  late String _amount = '${widget.milestone['amount']}';
+  late DateTime? _due = DateTime.tryParse('${widget.milestone['due_date']}');
+  String _reason = '';
+
+  Future<void> _pickDueDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _due ?? DateTime.now(),
+      firstDate: DateTime(1),
+      lastDate: DateTime(9999, 12, 31),
+    );
+    if (mounted && date != null) setState(() => _due = date);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('Amend ${widget.milestone['name']}'),
+    scrollable: true,
+    content: Form(
+      key: _form,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            initialValue: _amount,
+            decoration: const InputDecoration(labelText: 'Milestone amount'),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => _amount = value.trim(),
+            validator: (_) =>
+                RegExp(r'^\d{1,12}(\.\d{1,2})?$').hasMatch(_amount)
+                ? null
+                : 'Enter a non-negative amount with up to 2 decimals.',
+          ),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(
+                onPressed: _pickDueDate,
+                child: Text(
+                  _due == null
+                      ? 'Set due date'
+                      : MaterialLocalizations.of(
+                          context,
+                        ).formatCompactDate(_due!),
+                ),
+              ),
+              if (_due != null)
+                IconButton(
+                  tooltip: 'Clear due date',
+                  onPressed: () => setState(() => _due = null),
+                  icon: const Icon(Icons.clear),
+                ),
+            ],
+          ),
+          TextFormField(
+            decoration: const InputDecoration(labelText: 'Amendment reason'),
+            maxLength: 1000,
+            maxLines: 2,
+            onChanged: (value) => _reason = value.trim(),
+            validator: (_) => _reason.isEmpty ? 'Enter a reason.' : null,
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (!_form.currentState!.validate()) return;
+          Navigator.pop(context, {
+            'amount': _amount,
+            'due_date': _due?.toIso8601String().split('T').first,
+            'reason': _reason,
+            'expected_amount': '${widget.milestone['amount']}',
+            'expected_due_date': widget.milestone['due_date'],
+          });
+        },
+        child: const Text('Save amendment'),
+      ),
+    ],
   );
 }
