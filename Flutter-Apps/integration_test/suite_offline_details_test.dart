@@ -86,6 +86,22 @@ void main() {
               ],
             }),
             '/srm/invoices/17' => response(outstanding),
+            '/srm/business/invoices/17' => response({
+              'invoice_number': 'GST-17',
+              'currency': 'INR',
+              'payments': [
+                {
+                  'receipt_id': 43,
+                  'amount': 40,
+                  'allocated_at': '2026-11-28T10:00:00Z',
+                },
+                {
+                  'receipt_id': 42,
+                  'amount': 10,
+                  'reversed_at': '2026-11-27T10:00:00Z',
+                },
+              ],
+            }),
             '/srm/business/invoices/17/payments' => (() {
               expectSync(request.method, 'POST');
               expectSync(request.data['amount'], '40');
@@ -180,6 +196,13 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'GST-17'));
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
+    await tester.tap(find.text('Payment history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Receipt #43'), findsOneWidget);
+    expect(find.textContaining('Reversed'), findsOneWidget);
+    await flushCrmDetailWrite(
+      '$scope:/srm/business/invoices/17:4:payment-history',
+    );
     await flushCrmDetailWrite('$scope:${GstCollectionsPage.endpoint}:4');
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -192,7 +215,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
     expect(find.text('INR 200'), findsOneWidget);
-    expect(requests, 8);
+    await tester.tap(find.text('Payment history'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved payment history'), findsOneWidget);
+    expect(find.text('Receipt #42'), findsOneWidget);
+    expect(find.textContaining('Reversed'), findsOneWidget);
+    expect(requests, 9);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
