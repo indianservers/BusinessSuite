@@ -3048,6 +3048,17 @@ void main() {
       {'id': 42, 'name': 'Planning'},
       {'id': 43, 'name': 'Uncached folder'},
     ]);
+    await cache.saveDetail({
+      'id': 1,
+      'version': 5,
+      'title': 'Top note',
+      'content': 'Keep this content',
+      'folder_id': 42,
+      'pinned': true,
+      'can_edit': true,
+      'visibility_scope': 'private',
+      'visibility': 'private',
+    });
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -3116,6 +3127,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Folder draft'), findsOneWidget);
     expect((await cache.creations()).single['values']['folder_id'], 42);
+    await tester.tap(find.text('Top note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Move to folder'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Personal notes'));
+    await tester.pumpAndSettle();
+    final move = (await cache.pending(1))?['values'] as Json?;
+    expect(move?['version'], 5);
+    expect(move, containsPair('folder_id', null));
+    expect(move?['content'], 'Keep this content');
+    expect(move?['pinned'], true);
+    expect(find.text('Top note'), findsNothing);
   });
 
   testWidgets('offline metadata edits preserve formatted Notes content', (

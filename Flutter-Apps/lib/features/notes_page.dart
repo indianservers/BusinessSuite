@@ -195,10 +195,16 @@ class _NotesPageState extends State<NotesPage> {
       setState(() {
         _savedView = true;
         _notes = summaries.where((note) {
-          if (folderId != null && note['folder_id'] != folderId) return false;
-          final edits = _pendingFor(note)?['values'];
+          final pending = _pendingFor(note);
+          final edits = pending != null && pending['error'] == null
+              ? pending['values']
+              : null;
+          final pendingFolder = edits is Json && edits.containsKey('folder_id')
+              ? edits['folder_id']
+              : note['folder_id'];
+          if (folderId != null && pendingFolder != folderId) return false;
           if (view == 'quick' &&
-              (note['project_id'] != null || note['folder_id'] != null)) {
+              (note['project_id'] != null || pendingFolder != null)) {
             return false;
           }
           if (view == 'pinned' &&
@@ -288,9 +294,9 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<List<Json>> _folders() async {
+  Future<List<Json>> _folders({bool offline = false}) async {
     final revision = widget.api.sessionRevision;
-    if (_unreachable) return await widget.cache?.folders() ?? [];
+    if (_unreachable || offline) return await widget.cache?.folders() ?? [];
     try {
       final rows =
           await widget.api.request('GET', '/project-management/note-folders')
@@ -307,8 +313,12 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<Json?> _pickFolder(BuildContext context, {bool moving = false}) {
-    final folders = _folders();
+  Future<Json?> _pickFolder(
+    BuildContext context, {
+    bool moving = false,
+    bool offline = false,
+  }) {
+    final folders = _folders(offline: offline);
     folders.ignore();
     return showDialog<Json>(
       context: context,
@@ -452,7 +462,8 @@ class _NotesPageState extends State<NotesPage> {
           api: widget.api,
           summary: summary,
           folder: summary == null ? _folder : null,
-          pickMoveFolder: (context) => _pickFolder(context, moving: true),
+          pickMoveFolder: (context, offline) =>
+              _pickFolder(context, moving: true, offline: offline),
           cache: widget.cache,
           offline: _unreachable,
         ),
@@ -801,7 +812,7 @@ class _NoteEditor extends StatefulWidget {
   final ApiClient api;
   final Map<String, dynamic>? summary;
   final Json? folder;
-  final Future<Json?> Function(BuildContext) pickMoveFolder;
+  final Future<Json?> Function(BuildContext, bool) pickMoveFolder;
   final NotesOfflineCache? cache;
   final bool offline;
 
@@ -1126,7 +1137,8 @@ class _NoteEditorState extends State<_NoteEditor> {
     if (note == null || _saving || _dirty || _pending != null) return;
     final api = widget.api;
     final revision = api.sessionRevision;
-    final target = await widget.pickMoveFolder(context);
+    final offline = _offline || _savedView;
+    final target = await widget.pickMoveFolder(context, offline);
     if (target == null || !mounted || revision != api.sessionRevision) return;
     if (note['folder_id'] == target['id'] &&
         note['project_id'] == target['project_id'] &&
@@ -1138,6 +1150,23 @@ class _NoteEditorState extends State<_NoteEditor> {
       _error = null;
     });
     try {
+      if (offline) {
+        await widget.cache!.enqueue(note, {
+          'title': note['title'],
+          'content': note['content'],
+          'tags': note['tags'] ?? [],
+          'pinned': note['pinned'] == true,
+          'favorite': note['favorite'] == true,
+          'archived': note['archived'] == true,
+          'folder_id': target['id'],
+          'project_id': target['project_id'],
+          'task_id': target['task_id'],
+        });
+        if (mounted && revision == api.sessionRevision) {
+          Navigator.of(context).pop(_NoteChange.saved);
+        }
+        return;
+      }
       await api.request(
         'POST',
         '/project-management/note-actions/bulk',
@@ -1156,9 +1185,9 @@ class _NoteEditorState extends State<_NoteEditor> {
       if (mounted && revision == api.sessionRevision) {
         Navigator.of(context).pop(_NoteChange.saved);
       }
-    } on ApiFailure catch (error) {
+    } catch (error) {
       if (mounted && revision == api.sessionRevision) {
-        setState(() => _error = error.message);
+        setState(() => _error = '$error');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -1271,9 +1300,10 @@ class _NoteEditorState extends State<_NoteEditor> {
           if (_note?['can_edit'] == true &&
               _note?['version'] is int &&
               _note?['deleted_at'] == null &&
-              !_offline &&
-              !_savedView &&
-              _pending == null)
+              _pending == null &&
+              ((!_offline && !_savedView) ||
+                  (widget.cache?.canQueueEdit(_note!) == true &&
+                      _note!['content'] is String)))
             IconButton(
               tooltip: 'Move to folder',
               onPressed: _loading || _saving || _dirty ? null : _move,
