@@ -1402,11 +1402,13 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(save);
-    await waitFor(find.byTooltip('Sales order actions'));
+    await tester.pumpAndSettle();
+    final orderActions = find.byTooltip('Sales order actions').hitTestable();
+    await waitFor(orderActions);
     final saved = (await drafts.entries()).single;
     expect(saved['payload']['lines'][0]['product_id'], 8);
     expect(submitted, isEmpty);
-    await tester.tap(find.byTooltip('Sales order actions'));
+    await tester.tap(orderActions);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Order drafts'));
     await waitFor(find.text('Awaiting sync'));
