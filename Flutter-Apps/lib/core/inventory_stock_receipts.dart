@@ -22,6 +22,15 @@ class InventoryStockReceipts {
 
   static String reorderCache(String scope, [String branch = '']) =>
       '$scope:$branch:/srm/inventory/reports:reorder';
+
+  static String reportCache(String scope, String path, String branch) {
+    if (path == reorderEndpoint) return reorderCache(scope, branch);
+    if (branch.isEmpty) {
+      return '$scope:${path == stockSummaryEndpoint ? stockSummaryCache : path}';
+    }
+    final report = path.split('/').last;
+    return '$scope:$branch:/srm/inventory/reports:$report';
+  }
   static const activityReports = {
     '/srm/inventory/reports/stock-aging': 'Stock Aging',
     '/srm/inventory/reports/dead-stock': 'Dead Stock',

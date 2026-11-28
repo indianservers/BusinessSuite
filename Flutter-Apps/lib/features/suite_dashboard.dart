@@ -1746,8 +1746,6 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
 
   static const _reorderPath = InventoryStockReceipts.reorderEndpoint;
   static const _stockSummaryPath = InventoryStockReceipts.stockSummaryEndpoint;
-  static const _stockSummaryCachePath =
-      InventoryStockReceipts.stockSummaryCache;
   bool get _stockSummary => widget.path == _stockSummaryPath;
   static const _warehousesPath = InventoryWarehouseForm.endpoint;
   static const _warehouseStockPath =
@@ -1889,14 +1887,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         )
       : widget.cachePrefix == null
       ? null
-      : _stockAlerts
-      ? InventoryStockReceipts.reorderCache(
+      : _stockAlerts || _stockSummary || _warehouseStock || _valuation ||
+            _activityReport
+      ? InventoryStockReceipts.reportCache(
           widget.cachePrefix!,
+          widget.path!,
           widget.scopeHeaders['X-Suite-Branch'] ?? '',
         )
-      : '${widget.cachePrefix}:${_stockSummary
-            ? _stockSummaryCachePath
-            : widget.path}';
+      : '${widget.cachePrefix}:${widget.path}';
 
   Future<List<Json>> _startLoad({bool reconnect = false}) {
     final result = _load(reconnect: reconnect);

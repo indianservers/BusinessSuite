@@ -212,6 +212,13 @@ class InventoryOfflineCreates {
             await invalidate?.call(
               '$_scope:${InventoryStockReceipts.stockSummaryCache}',
             );
+            await invalidate?.call(
+              InventoryStockReceipts.reportCache(
+                _scope,
+                InventoryStockReceipts.stockSummaryEndpoint,
+                '$branch',
+              ),
+            );
             await invalidate?.call(InventoryStockReceipts.reorderCache(_scope));
             await invalidate?.call(
               InventoryStockReceipts.reorderCache(_scope, '$branch'),
