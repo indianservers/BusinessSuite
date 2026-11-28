@@ -890,21 +890,26 @@ class _NoteEditorState extends State<_NoteEditor> {
   Future<void> _load({bool reconnect = false}) async {
     if (_loading || _saving || _dirty) return;
     final revision = widget.api.sessionRevision;
+    bool current() => mounted && revision == widget.api.sessionRevision;
     setState(() {
       _loading = true;
       _error = null;
     });
-    try {
-      if (_note == null) {
-        Map<String, dynamic>? cached;
-        try {
-          cached = await widget.cache?.detail(widget.summary!['id']);
-        } catch (_) {
-          // The live read can proceed if local storage is unavailable.
+    var acceptCached = true;
+    Future<void> showCached() async {
+      if (_note != null) return;
+      try {
+        final cached = await widget.cache?.detail(widget.summary!['id']);
+        if (cached != null && acceptCached && current()) {
+          _show(cached, saved: true);
         }
-        if (!mounted || revision != widget.api.sessionRevision) return;
-        if (cached != null) _show(cached, saved: true);
+      } catch (_) {
+        // The live read can proceed if local storage is unavailable.
       }
+    }
+
+    final local = showCached();
+    try {
       if (_offline && !reconnect) {
         throw ApiFailure('Connect to refresh this note.');
       }
@@ -914,7 +919,8 @@ class _NoteEditorState extends State<_NoteEditor> {
                 '$_notesPath/${widget.summary!['id']}',
               )
               as Map<String, dynamic>;
-      if (!mounted || revision != widget.api.sessionRevision) return;
+      acceptCached = false;
+      if (!current()) return;
       _offline = false;
       _show(note, saved: false);
       try {
@@ -923,9 +929,14 @@ class _NoteEditorState extends State<_NoteEditor> {
         // The server copy is already visible.
       }
     } catch (error) {
-      if (mounted && revision == widget.api.sessionRevision) {
-        final denied =
-            error is ApiFailure && const {401, 403, 404}.contains(error.status);
+      final denied =
+          error is ApiFailure && const {401, 403, 404}.contains(error.status);
+      if (denied) {
+        acceptCached = false;
+      } else {
+        await local;
+      }
+      if (current()) {
         setState(() {
           _error = '$error';
           if (denied) {

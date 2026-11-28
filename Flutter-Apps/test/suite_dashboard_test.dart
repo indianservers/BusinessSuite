@@ -60,6 +60,15 @@ void mockUnavailableSqlite(WidgetTester tester) {
   });
 }
 
+class _DelayedNoteCache extends NotesOfflineCache {
+  _DelayedNoteCache() : super('["https://example.test/api/v1",200,7]');
+
+  final cachedDetail = Completer<Json?>();
+
+  @override
+  Future<Json?> detail(Object? id) => cachedDetail.future;
+}
+
 void main() {
   testWidgets('First launch opens server setup directly from sign-in', (
     tester,
@@ -3576,6 +3585,9 @@ void main() {
   testWidgets(
     'Notes previews open immediately and only saves refresh the list',
     (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+      final cache = _DelayedNoteCache();
       var listRequests = 0;
       var saves = 0;
       final firstDetail = Completer<ResponseBody>();
@@ -3606,6 +3618,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: NotesPage(
+            cache: cache,
             api: ApiClient(
               baseUrl: 'https://example.test/api/v1',
               store: MemoryStore(),
@@ -3627,6 +3640,11 @@ void main() {
         }),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Full note'), findsOneWidget);
+      cache.cachedDetail.complete({'id': 1, 'content': 'Stale cached copy'});
+      await tester.pumpAndSettle();
+      expect(find.text('Full note'), findsOneWidget);
+      expect(find.text('Stale cached copy'), findsNothing);
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(listRequests, 1);
