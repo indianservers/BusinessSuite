@@ -5,6 +5,171 @@ import 'package:uuid/uuid.dart';
 import '../core/api_client.dart';
 import '../core/models.dart';
 
+enum _PaymentSource {
+  invoice('srm_invoice', 'Issued invoice', '/srm/business/collection-invoices'),
+  order('srm_order', 'Sales / POS order', '/srm/sales-orders'),
+  deal('crm_deal', 'CRM deal', '/crm/deals'),
+  quotation('crm_quotation', 'CRM quotation', '/crm/quotations');
+
+  const _PaymentSource(this.key, this.label, this.endpoint);
+  final String key;
+  final String label;
+  final String endpoint;
+}
+
+class PaymentSourceDirectory extends StatefulWidget {
+  const PaymentSourceDirectory({
+    super.key,
+    required this.api,
+    required this.scopeHeaders,
+    this.crm = false,
+  });
+
+  final ApiClient api;
+  final Map<String, String> scopeHeaders;
+  final bool crm;
+
+  @override
+  State<PaymentSourceDirectory> createState() => _PaymentSourceDirectoryState();
+}
+
+class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
+  late final _sources = widget.crm
+      ? const [_PaymentSource.deal, _PaymentSource.quotation]
+      : const [_PaymentSource.invoice, _PaymentSource.order];
+  late var _source = _sources.first;
+  final _search = TextEditingController();
+  late var _records = _load();
+
+  Future<List<Json>> _load() async {
+    final revision = widget.api.sessionRevision;
+    final source = _source;
+    final result = await widget.api.request(
+      'GET',
+      source.endpoint,
+      query: {
+        'per_page': 100,
+        if (source == _PaymentSource.order) 'summary_only': true,
+      },
+      scopeHeaders: widget.scopeHeaders,
+    );
+    if (revision != widget.api.sessionRevision) {
+      throw ApiFailure('Your session ended. Sign in again.', 401);
+    }
+    final rows = (result is List ? result : result['items']) as List;
+    return [
+      for (final row in rows.cast<Json>())
+        if (source != _PaymentSource.invoice ||
+            row['document_status'] == 'issued')
+          row,
+    ];
+  }
+
+  void _refresh() => setState(() {
+    _records = _load();
+  });
+
+  String _label(Json row) =>
+      '${row['invoice_number'] ?? row['order_number'] ?? row['quote_number'] ?? row['name'] ?? row['title'] ?? "Record #${row['id']}"}';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Payment requests')),
+    body: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              DropdownButtonFormField<_PaymentSource>(
+                initialValue: _source,
+                decoration: const InputDecoration(labelText: 'Payment source'),
+                items: [
+                  for (final source in _sources)
+                    DropdownMenuItem(value: source, child: Text(source.label)),
+                ],
+                onChanged: (source) {
+                  if (source == null || _source == source) return;
+                  _source = source;
+                  _search.clear();
+                  _refresh();
+                },
+              ),
+              TextField(
+                controller: _search,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  labelText: 'Find payment source',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder(
+            future: _records,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return ListTile(
+                  title: Text('${snapshot.error}'),
+                  trailing: TextButton(
+                    onPressed: _refresh,
+                    child: const Text('Retry'),
+                  ),
+                );
+              }
+              final query = _search.text.trim().toLowerCase();
+              final matches = snapshot.data!
+                  .where(
+                    (row) =>
+                        row['id'] is int &&
+                        '${_label(row)} ${row['title'] ?? ''} ${row['name'] ?? ''}'
+                            .toLowerCase()
+                            .contains(query),
+                  )
+                  .toList();
+              if (matches.isEmpty) {
+                return const Center(child: Text('No matching records'));
+              }
+              final source = _source;
+              return ListView.builder(
+                itemCount: matches.length,
+                itemBuilder: (context, index) {
+                  final row = matches[index];
+                  return ListTile(
+                    title: Text(_label(row)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => PaymentRequestsPage(
+                          api: widget.api,
+                          sourceType: source.key,
+                          sourceId: row['id'] as int,
+                          scopeHeaders: widget.scopeHeaders,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class PaymentRequestButton extends StatelessWidget {
   const PaymentRequestButton({
     super.key,

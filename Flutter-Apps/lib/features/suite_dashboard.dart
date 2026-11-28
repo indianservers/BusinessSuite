@@ -34,6 +34,7 @@ import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_contract_page.dart';
 import 'sales_engagement_page.dart';
+import 'payment_requests_page.dart';
 import 'sales_billing_plan_page.dart';
 import 'sales_order_drafts_page.dart';
 import 'inventory_drafts_page.dart';
@@ -2669,10 +2670,22 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               );
             },
           ),
-        if (widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null))
+        if ((widget.canCreateOrder && (!_offlineOnly || _saleDrafts != null)) ||
+            (widget.showInventory && !_offlineOnly && !_usedSavedFallback))
           PopupMenuButton<String>(
             tooltip: 'Sales order actions',
             onSelected: (action) async {
+              if (action == 'payments') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PaymentSourceDirectory(
+                      api: widget.controller.api,
+                      scopeHeaders: widget.scopeHeaders,
+                    ),
+                  ),
+                );
+                return;
+              }
               if (action == 'drafts') {
                 await Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -2704,13 +2717,39 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'new', child: Text('New sales order')),
-              if (_saleDrafts != null)
+              if (widget.canCreateOrder)
+                const PopupMenuItem(
+                  value: 'new',
+                  child: Text('New sales order'),
+                ),
+              if (widget.showInventory && !_offlineOnly && !_usedSavedFallback)
+                const PopupMenuItem(
+                  value: 'payments',
+                  child: Text('Payment requests'),
+                ),
+              if (widget.canCreateOrder && _saleDrafts != null)
                 const PopupMenuItem(
                   value: 'drafts',
                   child: Text('Order drafts'),
                 ),
             ],
+          ),
+        if (_crmDeals &&
+            (widget.canMoveDeals || widget.canManageQuotes) &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'Payment requests',
+            icon: const Icon(LucideIcons.banknote),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PaymentSourceDirectory(
+                  api: widget.controller.api,
+                  scopeHeaders: widget.scopeHeaders,
+                  crm: true,
+                ),
+              ),
+            ),
           ),
         if (_isCrm)
           IconButton(

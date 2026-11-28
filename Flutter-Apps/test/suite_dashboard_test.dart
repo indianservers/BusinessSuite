@@ -33,6 +33,7 @@ import 'package:business_suite_mobile/features/notes_page.dart';
 import 'package:business_suite_mobile/features/finance_party_page.dart';
 import 'package:business_suite_mobile/features/business_defaults_panel.dart';
 import 'package:business_suite_mobile/features/sales_order_page.dart';
+import 'package:business_suite_mobile/features/payment_requests_page.dart';
 import 'package:business_suite_mobile/features/sales_order_drafts_page.dart';
 import 'package:business_suite_mobile/features/suite_dashboard.dart';
 import 'package:business_suite_mobile/main.dart';
@@ -5398,6 +5399,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Invoice 19'), findsOneWidget);
   });
+  final paymentDirectoryModules = ValueVariant({false, true});
+  testWidgets('Payment Requests directory finds and opens a source record', (
+    tester,
+  ) async {
+    final crm = paymentDirectoryModules.currentValue!;
+    const branch = {'X-Suite-Branch': '6'};
+    final source = crm ? 'crm_quotation' : 'srm_order';
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch (request.path) {
+            case '/srm/business/collection-invoices':
+              return response({
+                'items': [
+                  {
+                    'id': 70,
+                    'invoice_number': 'GST-70',
+                    'document_status': 'issued',
+                  },
+                  {
+                    'id': 71,
+                    'invoice_number': 'GST-71',
+                    'document_status': 'draft',
+                  },
+                ],
+              });
+            case '/crm/deals':
+              return response({
+                'items': [
+                  {'id': 72, 'name': 'Initial deal'},
+                ],
+              });
+            case '/srm/sales-orders':
+            case '/crm/quotations':
+              return response([
+                {'id': 73, 'title': 'Keep this record'},
+                {'id': 74, 'title': 'Other record'},
+              ]);
+            case '/payment-requests/context':
+            case '/payment-requests':
+              expect(request.queryParameters, {
+                'source_type': source,
+                'source_id': 73,
+              });
+              return response(
+                request.path.endsWith('/context')
+                    ? {
+                        'reference': 'Keep this record',
+                        'currency': 'INR',
+                        'available_amount': '100',
+                        'payable': true,
+                      }
+                    : {'items': []},
+              );
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PaymentSourceDirectory(api: api, scopeHeaders: branch, crm: crm),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(crm ? 'Initial deal' : 'GST-70'), findsOneWidget);
+    expect(find.text('GST-71'), findsNothing);
+    await tester.tap(find.text(crm ? 'CRM deal' : 'Issued invoice'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text(crm ? 'CRM quotation' : 'Sales / POS order').last,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'keep this');
+    await tester.pumpAndSettle();
+    expect(find.text('Other record'), findsNothing);
+    await tester.tap(find.text('Keep this record'));
+    await tester.pumpAndSettle();
+    expect(find.text('Available to request · INR 100'), findsOneWidget);
+  }, variant: paymentDirectoryModules);
+
   final crmCollectionAccess = ValueVariant({
     ('crm_deal', true),
     ('crm_deal', false),
