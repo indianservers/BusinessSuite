@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import 'api_client.dart';
+import 'inventory_stock_receipts.dart';
 import 'models.dart';
 
 class InventoryOfflineCreates {
@@ -208,6 +209,13 @@ class InventoryOfflineCreates {
           );
           try {
             await invalidate?.call('$_scope:$itemsEndpoint');
+            await invalidate?.call(
+              '$_scope:${InventoryStockReceipts.stockSummaryCache}',
+            );
+            await invalidate?.call(InventoryStockReceipts.reorderCache(_scope));
+            await invalidate?.call(
+              InventoryStockReceipts.reorderCache(_scope, '$branch'),
+            );
             if (productId != null) {
               await invalidate?.call('$_scope:$itemsEndpoint/$productId:');
               await invalidate?.call(

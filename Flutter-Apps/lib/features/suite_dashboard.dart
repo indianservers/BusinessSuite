@@ -1744,7 +1744,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     });
   }
 
-  static const _reorderPath = '/srm/inventory/reports/reorder';
+  static const _reorderPath = InventoryStockReceipts.reorderEndpoint;
   static const _stockSummaryPath = InventoryStockReceipts.stockSummaryEndpoint;
   static const _stockSummaryCachePath =
       InventoryStockReceipts.stockSummaryCache;
@@ -1889,10 +1889,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
         )
       : widget.cachePrefix == null
       ? null
+      : _stockAlerts
+      ? InventoryStockReceipts.reorderCache(
+          widget.cachePrefix!,
+          widget.scopeHeaders['X-Suite-Branch'] ?? '',
+        )
       : '${widget.cachePrefix}:${_stockSummary
             ? _stockSummaryCachePath
-            : _stockAlerts
-            ? _stockSummaryPath
             : widget.path}';
 
   Future<List<Json>> _startLoad({bool reconnect = false}) {
@@ -1986,6 +1989,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _warehouses ||
                   _warehouseStock ||
                   _stockSummary ||
+                  _stockAlerts ||
                   _valuation ||
                   _activityReport ||
                   path == '/srm/sales-orders' ||
@@ -2214,6 +2218,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'current_quantity',
               'reorder_level',
               'reorder_threshold',
+              if (_stockAlerts) 'min_stock',
               'unit_code',
               if (_warehouses) ...[
                 'warehouse_name',
@@ -3278,8 +3283,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Low stock alerts',
                   controller: widget.controller,
                   path: _reorderPath,
+                  scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
-                  offlineOnly: _offlineOnly,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
                 ),
               ),
             ),
@@ -3665,6 +3671,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               }
               if (rows.isEmpty &&
                   !_appointments &&
+                  !_stockAlerts &&
                   !_searchOnServer &&
                   !_usedSavedFallback) {
                 return const Center(child: Text('No records found'));
@@ -3841,7 +3848,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                             : '${candidates.length} items need attention',
                       ),
                       subtitle: const Text(
-                        'Stock at or below the reorder threshold',
+                        'Compares warehouse stock on hand with the reorder '
+                        'level, or minimum stock when no reorder level is set.',
                       ),
                     ),
                   if (_valuation && rows.isNotEmpty)
@@ -4103,8 +4111,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           ],
                           item['sku'],
                           item['status'],
-                          if (_stockAlerts)
+                          if (_stockAlerts) ...[
+                            'On hand ${item['current_quantity']}',
+                            if (item['reorder_level'] != null)
+                              'Reorder level ${item['reorder_level']}',
+                            if (item['min_stock'] != null)
+                              'Minimum stock ${item['min_stock']}',
                             'Reorder at ${item['reorder_threshold']}',
+                          ],
                         ].whereType<String>().join(' · ');
                         final procurement = _procurement;
                         if (procurement != null && item['id'] is int) {

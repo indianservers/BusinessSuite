@@ -6776,6 +6776,8 @@ void main() {
                   'id': 12,
                   'item_name': 'Sample product',
                   'current_quantity': 0,
+                  'reorder_level': 0,
+                  'min_stock': 3,
                   'reorder_threshold': 3,
                 },
               ],
@@ -7191,6 +7193,8 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.text('1 item needs attention'), findsOneWidget);
           expect(find.text('Out of stock'), findsOneWidget);
+          expect(find.textContaining('On hand 0'), findsOneWidget);
+          expect(find.textContaining('Minimum stock 3'), findsOneWidget);
           expect(find.text('Healthy product'), findsNothing);
           await back();
           await tester.tap(find.byTooltip('Stock Summary'));

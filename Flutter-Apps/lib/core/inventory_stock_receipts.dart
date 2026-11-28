@@ -18,6 +18,10 @@ class InventoryStockReceipts {
   static const stockSummaryEndpoint = '/srm/inventory/reports/stock-summary';
   // The previous key stored the low-stock subset.
   static const stockSummaryCache = '$stockSummaryEndpoint:full';
+  static const reorderEndpoint = '/srm/inventory/reports/reorder';
+
+  static String reorderCache(String scope, [String branch = '']) =>
+      '$scope:$branch:/srm/inventory/reports:reorder';
   static const activityReports = {
     '/srm/inventory/reports/stock-aging': 'Stock Aging',
     '/srm/inventory/reports/dead-stock': 'Dead Stock',
