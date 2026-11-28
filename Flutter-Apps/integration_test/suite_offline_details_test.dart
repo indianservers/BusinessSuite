@@ -1840,6 +1840,17 @@ void main() {
     expect(find.widgetWithText(ListTile, 'ARCHIVED-RECORD'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsNothing);
     expect(searches, ['archived', 'QA-SALE']);
+    if (kind == 'crm') {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      controller.offline = true;
+      await openModule();
+      await tester.enterText(find.byType(TextField), 'archived');
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ListTile, 'ARCHIVED-RECORD'), findsOneWidget);
+      expect(searches, ['archived', 'QA-SALE']);
+      expect(requests, 2);
+    }
     if (kind == 'customer') {
       denied = true;
       await tester.tap(find.byTooltip('Refresh'));
