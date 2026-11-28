@@ -356,6 +356,22 @@ class _NotesPageState extends State<NotesPage> {
     if (folder == null || !mounted || revision != widget.api.sessionRevision) {
       return;
     }
+    await _selectFolder(folder);
+  }
+
+  Future<void> _createFolder() async {
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final folder = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _CreateNotesFolder(api: api, parent: _folder),
+    );
+    if (folder == null || !mounted || revision != api.sessionRevision) return;
+    await _selectFolder(folder);
+  }
+
+  Future<void> _selectFolder(Json folder) async {
     _folder = folder;
     _view = 'folder';
     _notes = [];
@@ -500,6 +516,10 @@ class _NotesPageState extends State<NotesPage> {
             tooltip: 'Filter notes',
             initialValue: _view,
             onSelected: (view) {
+              if (view == 'new-folder') {
+                unawaited(_createFolder());
+                return;
+              }
               if (view == 'folder') {
                 unawaited(_chooseFolder());
                 return;
@@ -511,17 +531,24 @@ class _NotesPageState extends State<NotesPage> {
               _savedView = false;
               _load();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'all', child: Text('My notes')),
-              PopupMenuItem(value: 'personal', child: Text('Personal notes')),
-              PopupMenuItem(value: 'quick', child: Text('Quick notes')),
-              PopupMenuItem(value: 'recent', child: Text('Recent')),
-              PopupMenuItem(value: 'folder', child: Text('Note folders')),
-              PopupMenuItem(value: 'pinned', child: Text('Pinned')),
-              PopupMenuItem(value: 'favorites', child: Text('Favorites')),
-              PopupMenuItem(value: 'shared', child: Text('Shared with me')),
-              PopupMenuItem(value: 'archive', child: Text('Archived')),
-              PopupMenuItem(value: 'trash', child: Text('Trash')),
+            itemBuilder: (_) => [
+              ...const [
+                PopupMenuItem(value: 'all', child: Text('My notes')),
+                PopupMenuItem(value: 'personal', child: Text('Personal notes')),
+                PopupMenuItem(value: 'quick', child: Text('Quick notes')),
+                PopupMenuItem(value: 'recent', child: Text('Recent')),
+                PopupMenuItem(value: 'folder', child: Text('Note folders')),
+                PopupMenuItem(value: 'pinned', child: Text('Pinned')),
+                PopupMenuItem(value: 'favorites', child: Text('Favorites')),
+                PopupMenuItem(value: 'shared', child: Text('Shared with me')),
+                PopupMenuItem(value: 'archive', child: Text('Archived')),
+                PopupMenuItem(value: 'trash', child: Text('Trash')),
+              ],
+              if (!_unreachable)
+                PopupMenuItem(
+                  value: 'new-folder',
+                  child: Text(_folder == null ? 'New folder' : 'New subfolder'),
+                ),
             ],
           ),
           IconButton(
@@ -634,6 +661,78 @@ class _NotesPageState extends State<NotesPage> {
       ),
     );
   }
+}
+
+class _CreateNotesFolder extends StatefulWidget {
+  const _CreateNotesFolder({required this.api, this.parent});
+
+  final ApiClient api;
+  final Json? parent;
+
+  @override
+  State<_CreateNotesFolder> createState() => _CreateNotesFolderState();
+}
+
+class _CreateNotesFolderState extends State<_CreateNotesFolder> {
+  String _name = '';
+  String? _error;
+  bool _saving = false;
+
+  Future<void> _create() async {
+    if (_saving || _name.isEmpty) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    final parent = widget.parent;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final folder =
+          await api.request(
+                'POST',
+                '/project-management/note-folders',
+                data: {
+                  'name': _name,
+                  'parent_id': ?parent?['id'],
+                  'project_id': ?parent?['project_id'],
+                  'task_id': ?parent?['task_id'],
+                },
+              )
+              as Json;
+      if (mounted && revision == api.sessionRevision) {
+        Navigator.of(context).pop(folder);
+      }
+    } on ApiFailure catch (error) {
+      if (mounted && revision == api.sessionRevision) {
+        setState(() => _error = error.message);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.parent == null ? 'New folder' : 'New subfolder'),
+    content: TextField(
+      autofocus: true,
+      maxLength: 120,
+      enabled: !_saving,
+      decoration: InputDecoration(labelText: 'Folder name', errorText: _error),
+      onChanged: (value) => setState(() => _name = value.trim()),
+    ),
+    actions: [
+      TextButton(
+        onPressed: _saving ? null : () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _saving || _name.isEmpty ? null : _create,
+        child: const Text('Create folder'),
+      ),
+    ],
+  );
 }
 
 class _NoteEditor extends StatefulWidget {

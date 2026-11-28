@@ -2883,12 +2883,17 @@ void main() {
     tester,
   ) async {
     final queries = <Json>[];
+    Json? createdFolder;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.path == '/project-management/note-folders') {
+            if (request.method == 'POST') {
+              createdFolder = request.data as Json;
+              return response({'id': 64, 'name': createdFolder!['name']}, 201);
+            }
             return response([
               {'id': 42, 'name': 'Planning'},
             ]);
@@ -2916,6 +2921,20 @@ void main() {
     await tester.tap(find.text('Planning'));
     await tester.pumpAndSettle();
     expect(queries.last, {'view': 'all', 'folder_id': 42});
+    await tester.tap(find.byTooltip('Filter notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New subfolder'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Folder name'),
+      ' Release ',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create folder'));
+    await tester.pumpAndSettle();
+    expect(createdFolder, {'name': 'Release', 'parent_id': 42});
+    expect(queries.last, {'view': 'all', 'folder_id': 64});
+    expect(find.text('Release'), findsOneWidget);
   });
 
   testWidgets('Notes filters saved personal notes offline', (tester) async {
