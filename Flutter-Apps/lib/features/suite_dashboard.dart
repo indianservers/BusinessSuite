@@ -1880,7 +1880,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     if (path == null) return [];
     final cacheKey = _cacheKey;
     final savedSearchKey =
-        path == GstInvoicePage.listEndpoint && cacheKey != null
+        (path == GstInvoicePage.listEndpoint || path == '/srm/sales-orders') &&
+            cacheKey != null
         ? '$cacheKey:recent-search-results'
         : null;
     final api = widget.controller.api;

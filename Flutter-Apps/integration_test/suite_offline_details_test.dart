@@ -1766,12 +1766,10 @@ void main() {
     await tester.enterText(search, 'QA-SALE-2');
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsOneWidget);
-    if (invoice) {
-      await tester.enterText(search, 'archived');
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.widgetWithText(ListTile, 'ARCHIVED-RECORD'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsNothing);
-    }
+    await tester.enterText(search, 'archived');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.widgetWithText(ListTile, 'ARCHIVED-RECORD'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsNothing);
     expect(searches, ['archived', 'QA-SALE']);
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: invoiceSearch);
