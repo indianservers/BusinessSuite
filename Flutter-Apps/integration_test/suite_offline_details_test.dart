@@ -2464,6 +2464,17 @@ void main() {
               ],
               'total': 1,
             }),
+            '/fam/inventory/audit' => response({
+              'items': [
+                {
+                  'action': 'STOCK_OUT',
+                  'record_type': 'inventory_movement',
+                  'record_id': 44,
+                  'performed_at': '2026-11-28T10:00:00Z',
+                },
+              ],
+              'total': 1,
+            }),
             _ => throw StateError('Unexpected request ${request.path}'),
           };
         });
@@ -2511,9 +2522,27 @@ void main() {
         await tester.pumpAndSettle();
       }
 
+      Future<void> checkAudit() async {
+        await tester.tap(find.byTooltip('Inventory financial reports'));
+        await tester.pumpAndSettle();
+        final audit = find.text('Stock Movement Audit');
+        await tester.ensureVisible(audit);
+        await tester.tap(audit);
+        await tester.pumpAndSettle();
+        expect(find.text('STOCK_OUT'), findsOneWidget);
+        expect(find.textContaining('Record ID: 44'), findsOneWidget);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
+
       final supplier = find.text('Saved Android Supplier');
       await openFinance(false);
       expect(supplier, findsOneWidget);
+      await checkAudit();
+      expect(
+        requests.where((path) => path == '/fam/inventory/audit'),
+        hasLength(1),
+      );
       expect(requests.where((path) => path == '/fam/parties'), hasLength(1));
       expect(api.offlineSuite?['access']['grants']['fam']['enabled'], isTrue);
       final onlineRequests = requests.length;
@@ -2521,6 +2550,7 @@ void main() {
       await tester.pumpAndSettle();
       connected = false;
       await openFinance(true);
+      await checkAudit();
       await tester.tap(supplier);
       await tester.pumpAndSettle();
       expect(find.text('Saved party summary'), findsOneWidget);
