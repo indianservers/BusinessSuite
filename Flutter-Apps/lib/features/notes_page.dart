@@ -120,6 +120,7 @@ class _NotesPageState extends State<NotesPage> {
   Map<int, Map<String, dynamic>> _pendingEdits = {};
   String _query = '';
   String _view = 'all';
+  Json? _folder;
   String _sort = 'modified';
   String? _error;
   bool _loading = true;
@@ -149,6 +150,7 @@ class _NotesPageState extends State<NotesPage> {
     final request = ++_request;
     final query = _query.trim();
     final view = _view;
+    final folderId = _folder?['id'];
     final sort = _sort;
     final canReadSaved = const {
       'all',
@@ -157,6 +159,7 @@ class _NotesPageState extends State<NotesPage> {
       'quick',
       'personal',
       'recent',
+      'folder',
     }.contains(view);
     final revision = widget.api.sessionRevision;
     bool current() =>
@@ -192,6 +195,7 @@ class _NotesPageState extends State<NotesPage> {
       setState(() {
         _savedView = true;
         _notes = summaries.where((note) {
+          if (folderId != null && note['folder_id'] != folderId) return false;
           final edits = _pendingFor(note)?['values'];
           if (view == 'quick' &&
               (note['project_id'] != null || note['folder_id'] != null)) {
@@ -223,8 +227,11 @@ class _NotesPageState extends State<NotesPage> {
                 'GET',
                 _notesPath,
                 query: {
-                  'view': view == 'personal' ? 'all' : view,
+                  'view': const {'personal', 'folder'}.contains(view)
+                      ? 'all'
+                      : view,
                   if (view == 'personal') 'personal': true,
+                  'folder_id': ?folderId,
                   if (sort != 'modified') 'sort': sort,
                   if (query.isNotEmpty) 'q': query,
                 },
@@ -281,6 +288,81 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
+  Future<List<Json>> _folders() async {
+    final revision = widget.api.sessionRevision;
+    if (_unreachable) return await widget.cache?.folders() ?? [];
+    try {
+      final rows =
+          await widget.api.request('GET', '/project-management/note-folders')
+              as List;
+      if (revision != widget.api.sessionRevision) return [];
+      final folders = rows.whereType<Json>().toList();
+      await widget.cache?.saveFolders(folders);
+      return folders;
+    } on ApiFailure catch (error) {
+      if (error.connectionFailure || (error.status ?? 0) >= 500) {
+        return await widget.cache?.folders() ?? [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _chooseFolder() async {
+    final revision = widget.api.sessionRevision;
+    final folders = _folders();
+    final folder = await showDialog<Json>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Note folders'),
+        children: [
+          FutureBuilder(
+            future: folders,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const LinearProgressIndicator();
+              }
+              final rows = snapshot.data ?? const <Json>[];
+              if (rows.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    snapshot.error?.toString() ?? 'No folders available',
+                  ),
+                );
+              }
+              final byId = {for (final row in rows) row['id']: row};
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final row in rows)
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, row),
+                      child: Text(
+                        [
+                          if (byId[row['parent_id']]?['name']
+                              case final String name)
+                            name,
+                          row['name'] ?? 'Folder',
+                        ].join(' / '),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+    if (folder == null || !mounted || revision != widget.api.sessionRevision) {
+      return;
+    }
+    _folder = folder;
+    _view = 'folder';
+    _notes = [];
+    _savedView = false;
+    await _load();
+  }
+
   Future<void> _syncPending() async {
     try {
       await widget.cache?.sync(widget.api);
@@ -330,6 +412,7 @@ class _NotesPageState extends State<NotesPage> {
         builder: (_) => _NoteEditor(
           api: widget.api,
           summary: summary,
+          folder: summary == null ? _folder : null,
           cache: widget.cache,
           offline: _unreachable,
         ),
@@ -390,9 +473,19 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final term = _query.trim().toLowerCase();
-    final drafts = const {'all', 'quick', 'personal'}.contains(_view)
+    final drafts = const {'all', 'quick', 'personal', 'folder'}.contains(_view)
         ? _creations.where((draft) {
             final values = draft['values'];
+            if (_view == 'folder' && values['folder_id'] != _folder?['id']) {
+              return false;
+            }
+            if (_view == 'quick' &&
+                (values['folder_id'] != null || values['project_id'] != null)) {
+              return false;
+            }
+            if (_view == 'personal' && values['project_id'] != null) {
+              return false;
+            }
             return term.isEmpty ||
                 '${values['title']} ${values['content']} ${values['tags'] ?? ''}'
                     .toLowerCase()
@@ -407,7 +500,12 @@ class _NotesPageState extends State<NotesPage> {
             tooltip: 'Filter notes',
             initialValue: _view,
             onSelected: (view) {
+              if (view == 'folder') {
+                unawaited(_chooseFolder());
+                return;
+              }
               if (view == _view) return;
+              _folder = null;
               _view = view;
               _notes = [];
               _savedView = false;
@@ -418,6 +516,7 @@ class _NotesPageState extends State<NotesPage> {
               PopupMenuItem(value: 'personal', child: Text('Personal notes')),
               PopupMenuItem(value: 'quick', child: Text('Quick notes')),
               PopupMenuItem(value: 'recent', child: Text('Recent')),
+              PopupMenuItem(value: 'folder', child: Text('Note folders')),
               PopupMenuItem(value: 'pinned', child: Text('Pinned')),
               PopupMenuItem(value: 'favorites', child: Text('Favorites')),
               PopupMenuItem(value: 'shared', child: Text('Shared with me')),
@@ -472,6 +571,8 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
           if (_loading) const LinearProgressIndicator(),
+          if (_folder?['name'] case final String name)
+            Text(name, style: Theme.of(context).textTheme.titleMedium),
           if (_savedView) const Text('Saved private notes'),
           if (_error != null)
             Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
@@ -539,11 +640,13 @@ class _NoteEditor extends StatefulWidget {
   const _NoteEditor({
     required this.api,
     this.summary,
+    this.folder,
     this.cache,
     required this.offline,
   });
   final ApiClient api;
   final Map<String, dynamic>? summary;
+  final Json? folder;
   final NotesOfflineCache? cache;
   final bool offline;
 
@@ -730,6 +833,9 @@ class _NoteEditorState extends State<_NoteEditor> {
         'title': _title.text,
         'content': _rich ? _restoredContent ?? note!['content'] : _body.text,
         'tags': ?tags,
+        if (widget.folder case final Json folder when note == null)
+          for (final key in ['project_id', 'task_id', 'folder_id'])
+            key: folder[key == 'folder_id' ? 'id' : key],
         if (note != null)
           for (final key in [
             'version',

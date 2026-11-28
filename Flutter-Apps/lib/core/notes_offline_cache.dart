@@ -58,6 +58,22 @@ class NotesOfflineCache {
 
   Future<List<Json>> summaries() => _read('summaries');
 
+  Future<List<Json>> folders() async {
+    final ids = (await summaries()).map((note) => note['folder_id']).toSet();
+    return (await _read(
+      'folders',
+    )).where((folder) => ids.contains(folder['id'])).toList();
+  }
+
+  Future<void> saveFolders(List<Json> folders) async {
+    final ids = (await summaries()).map((note) => note['folder_id']).toSet();
+    await _write('folders', [
+      for (final folder in folders)
+        if (folder['project_id'] == null && ids.contains(folder['id']))
+          {'id': folder['id'], 'name': folder['name']},
+    ]);
+  }
+
   Future<void> saveSummaries(List<Json> notes) async {
     final owned = notes.where(_eligible).take(100).toList();
     await _write('summaries', owned);
@@ -97,7 +113,7 @@ class NotesOfflineCache {
   }
 
   Future<void> clear() async {
-    for (final suffix in ['summaries', 'details']) {
+    for (final suffix in ['summaries', 'details', 'folders']) {
       try {
         await _storage.delete(key: '$_key:$suffix');
       } catch (_) {}

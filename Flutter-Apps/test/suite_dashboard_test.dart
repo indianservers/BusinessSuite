@@ -2888,6 +2888,11 @@ void main() {
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/project-management/note-folders') {
+            return response([
+              {'id': 42, 'name': 'Planning'},
+            ]);
+          }
           queries.add({...request.queryParameters});
           return response([]);
         }),
@@ -2904,6 +2909,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(queries.last, query);
     }
+    await tester.tap(find.byTooltip('Filter notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Note folders'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Planning'));
+    await tester.pumpAndSettle();
+    expect(queries.last, {'view': 'all', 'folder_id': 42});
   });
 
   testWidgets('Notes filters saved personal notes offline', (tester) async {
@@ -2933,6 +2945,10 @@ void main() {
       'visibility_scope': 'private',
       'visibility': 'private',
     });
+    await cache.saveFolders([
+      {'id': 42, 'name': 'Planning'},
+      {'id': 43, 'name': 'Uncached folder'},
+    ]);
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -2979,6 +2995,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Starred note'), findsOneWidget);
     expect(find.text('Alpha note'), findsNothing);
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filter notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Note folders'));
+    await tester.pumpAndSettle();
+    expect(find.text('Uncached folder'), findsNothing);
+    await tester.tap(find.text('Planning'));
+    await tester.pumpAndSettle();
+    expect(find.text('Top note'), findsOneWidget);
+    expect(find.text('Starred note'), findsNothing);
+    await tester.tap(find.text('New note'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Title'),
+      'Folder draft',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Folder draft'), findsOneWidget);
+    expect((await cache.creations()).single['values']['folder_id'], 42);
   });
 
   testWidgets('offline metadata edits preserve formatted Notes content', (
