@@ -3730,6 +3730,7 @@ void main() {
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.method == 'POST') {
             expect(request.path, '/srm/invoices/7/approve');
+            expect(request.headers['X-Suite-Branch'], '3');
             expect(issued, isFalse);
             issued = true;
             return response({'status': 'approved'});
@@ -3737,6 +3738,7 @@ void main() {
           expect(request.path, '/srm/invoices/7');
           return response({
             'invoice_number': 'GST-7',
+            'branch_id': 3,
             'status': issued ? 'approved' : 'draft',
             'document_status': issued ? 'issued' : 'draft',
           });

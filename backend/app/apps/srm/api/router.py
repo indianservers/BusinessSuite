@@ -319,7 +319,10 @@ def _invoice_statuses(invoice: SRMInvoice, delivery: str | None) -> dict:
 
 
 def _invoice_payload(invoice: SRMInvoice, db: Session | None = None, related: dict | None = None) -> dict:
+    from app.branches.presentation import record_branch_id
+
     payload = _serialize(invoice)
+    payload["branch_id"] = record_branch_id(invoice)
     if invoice.invoice_draft_id:
         from sqlalchemy.orm import object_session
         session = db or object_session(invoice)
@@ -4289,10 +4292,12 @@ def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depe
 def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
     from sqlalchemy.orm import selectinload
     from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
+    from app.branches.presentation import prefetch_branch_names, record_branch_id
     query = authorized_invoice_query(db, current_user).order_by(SRMInvoice.id.desc()).limit(200)
     items = (query if summary_only else query.options(selectinload(SRMInvoice.lines))).all()
     if not items:
         return []
+    prefetch_branch_names(db, items)
     selected = db.info.get('business_pack_scope') is not None
     if selected and not summary_only:
         return [_invoice_payload(item,db) for item in items]
@@ -4302,10 +4307,8 @@ def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), cur
         for row in db.query(InvoiceDelivery).filter(InvoiceDelivery.invoice_id.in_(identities)).order_by(InvoiceDelivery.id.desc()):
             deliveries.setdefault(row.invoice_id, row)
     if summary_only:
-        from app.branches.presentation import prefetch_branch_names, record_branch_id
         from app.business_packs.financial_projections import delivery_status
 
-        prefetch_branch_names(db, items)
         fields = ("id", "invoice_number", "status", "currency", "issue_date", "due_date",
                   "subtotal", "tax_amount", "total_amount", "paid_amount", "balance_amount")
         summaries = []

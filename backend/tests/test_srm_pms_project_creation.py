@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from app.apps.project_management.models import PMSMilestone, PMSProject, PMSTask
 from app.apps.srm.models import SRMInvoice, SRMInvoiceLine, SRMProduct
+from test_identity_utils import own_workflow_records
 
 from tests.srm_test_utils import create_engagement_via_confirm, create_sales_order
 
@@ -95,6 +96,7 @@ def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superu
         lines=[SRMInvoiceLine(description="Invoice line")],
     )
     db.add(invoice)
+    own_workflow_records(db, invoice, *invoice.lines)
     db.commit()
     path = "/api/v1/srm/invoices"
     full = client.get(path, headers=superuser_headers)
@@ -105,6 +107,10 @@ def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superu
     detailed = next(row for row in full.json() if row["id"] == invoice.id)
     assert detailed["lines"]
     assert header == {field: detailed[field] for field in header}
+    detail = client.get(f"{path}/{invoice.id}", headers=superuser_headers)
+    assert detail.status_code == 200, detail.text
+    assert header["branch_id"] is not None
+    assert detail.json()["branch_id"] == header["branch_id"]
     assert "lines" not in header
     assert header["payment_status"] == "partially_paid"
 

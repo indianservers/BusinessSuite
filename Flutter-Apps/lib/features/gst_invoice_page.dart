@@ -482,6 +482,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   late Future<(Json, bool)> _invoice = _load();
   late bool _offline = widget.offline;
   Json? _saved;
+  int? _liveBranch;
   int _loadGeneration = 0;
   bool _exporting = false;
   bool _issuing = false;
@@ -489,7 +490,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
   String? get _key =>
       GstInvoicePage.cacheKey(widget.cacheScope, _path, widget.scopeHeaders);
   Map<String, String> get _writeHeaders {
-    final branch = widget.summary?['branch_id'];
+    final branch = _liveBranch ?? widget.summary?['branch_id'];
     if (branch is! int || branch <= 0) return widget.scopeHeaders;
     return {...widget.scopeHeaders, 'X-Suite-Branch': '$branch'};
   }
@@ -589,6 +590,9 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
       checkSession();
       if (current()) {
         unawaited(_saveSnapshot(invoice));
+        _liveBranch = invoice['branch_id'] is int
+            ? invoice['branch_id'] as int
+            : null;
         _offline = false;
       }
       return (invoice, false);
