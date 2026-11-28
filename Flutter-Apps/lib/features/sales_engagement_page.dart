@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import 'crm_customer_page.dart';
 import 'sales_order_page.dart';
 
 class SalesEngagementPage extends StatefulWidget {
@@ -61,6 +62,7 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
             'name',
             'currency',
             'sales_order_id',
+            'customer_id',
             ..._fields.keys,
           ])
             key: record[key],
@@ -151,6 +153,23 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
                         : '${record[field.key]}',
                   ),
                 ),
+            if (record['customer_id'] case final int id)
+              ListTile(
+                title: const Text('Open customer'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CrmCustomerPage(
+                      api: widget.api,
+                      summary: {'id': id, 'name': 'Customer #$id'},
+                      scopeHeaders: widget.scopeHeaders,
+                      cacheScope: widget.cacheScope,
+                      offline: !live,
+                      salesContext: true,
+                    ),
+                  ),
+                ),
+              ),
             if (record['sales_order_id'] case final int id)
               ListTile(
                 title: const Text('Open sales order'),

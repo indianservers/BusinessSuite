@@ -664,6 +664,7 @@ void main() {
       'id': 22,
       'name': 'Site deployment',
       'engagement_number': 'ENG-022',
+      'customer_id': 18,
       'status': engagementStatus,
       'billing_type': 'fixed_fee',
     };
@@ -860,6 +861,13 @@ void main() {
     await tester.tap(find.byTooltip('Engagements'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Site deployment'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Open customer'), 200);
+    await tester.tap(find.text('Open customer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Shared contract customer'), findsOneWidget);
+    expect(find.text('Edit customer'), findsNothing);
+    await tester.pageBack();
     await tester.pumpAndSettle();
     final close = find.text('Close engagement');
     await tester.scrollUntilVisible(close, 200);
