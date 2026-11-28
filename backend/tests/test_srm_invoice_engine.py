@@ -14,7 +14,9 @@ def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuse
     assert draft.status_code == 201, draft.text
     invoice = draft.json()
     path = f"/api/v1/srm/invoices/{invoice['id']}"
-    assert client.get(path, headers=superuser_headers).json()["can_request_payment"] is False
+    draft_payload = client.get(path, headers=superuser_headers).json()
+    assert draft_payload["can_request_payment"] is False
+    assert draft_payload["can_record_payment"] is False
 
     duplicate = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
     assert duplicate.status_code == 409
@@ -29,7 +31,13 @@ def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuse
 
     approved = client.post(f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=superuser_headers)
     assert approved.status_code == 200, approved.text
-    assert client.get(path, headers=superuser_headers).json()["can_request_payment"] is True
+    issued_payload = client.get(path, headers=superuser_headers).json()
+    assert issued_payload["can_request_payment"] is True
+    assert issued_payload["can_record_payment"] is True
+    collections = client.get("/api/v1/srm/business/collection-invoices", headers=superuser_headers)
+    assert collections.status_code == 200, collections.text
+    row = next(row for row in collections.json()["items"] if row["id"] == invoice["id"])
+    assert row["branch_id"] == issued_payload["branch_id"]
     sent = client.post(f"/api/v1/srm/invoices/{invoice['id']}/send", headers=superuser_headers)
     assert sent.status_code == 200, sent.text
     assert sent.json()["status"] == "sent"

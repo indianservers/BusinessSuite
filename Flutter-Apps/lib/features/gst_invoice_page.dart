@@ -961,7 +961,7 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 cacheScope: widget.cacheScope,
                 scopeHeaders: _invoiceHeaders,
               ),
-            if (!saved && invoice['can_request_payment'] == true)
+            if (!saved && invoice['can_record_payment'] == true)
               if (widget.cacheScope case final String scope)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.receipt_long_outlined),

@@ -49,13 +49,14 @@ void main() {
   ) async {
     final scope = 'collections-${DateTime.now().microsecondsSinceEpoch}';
     const headers = {'X-Suite-Branch': '4'};
-    const outstanding = {
+    final outstanding = <String, dynamic>{
       'id': 17,
       'invoice_number': 'GST-17',
       'document_status': 'issued',
       'currency': 'INR',
       'balance_amount': 240,
       'collection_hold': true,
+      'branch_id': 4,
     };
     var requests = 0;
     final api = ApiClient(
@@ -67,6 +68,7 @@ void main() {
           expectSync(request.headers['X-Suite-Branch'], '4');
           return switch (request.path) {
             GstCollectionsPage.endpoint => response({
+              'can_record': true,
               'items': [
                 outstanding,
                 {
@@ -84,6 +86,12 @@ void main() {
               ],
             }),
             '/srm/invoices/17' => response(outstanding),
+            '/srm/business/invoices/17/payments' => (() {
+              expectSync(request.method, 'POST');
+              expectSync(request.data['amount'], '40');
+              outstanding['balance_amount'] = 200;
+              return response({'receipt_id': 43, 'invoice': outstanding}, 201);
+            })(),
             _ => throw StateError('Unexpected request ${request.path}'),
           };
         }),
@@ -105,6 +113,36 @@ void main() {
     await open(offline: false);
     expect(find.text('GST-17'), findsOneWidget);
     expect(find.text('GST-18'), findsNothing);
+    await tester.tap(find.byTooltip('Record payment for GST-17'));
+    await tester.pumpAndSettle();
+    final submit = find.widgetWithText(FilledButton, 'Record received payment');
+    final readyBy = DateTime.now().add(const Duration(seconds: 10));
+    while (tester.widget<FilledButton>(submit).onPressed == null &&
+        DateTime.now().isBefore(readyBy)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Received amount'),
+      '40',
+    );
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    final updatedBalance = find.textContaining('INR 200');
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    while (updatedBalance.evaluate().isEmpty &&
+        DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(
+      updatedBalance,
+      findsOneWidget,
+      reason: tester
+          .widgetList<Text>(find.byType(Text))
+          .map((text) => text.data)
+          .join(' | '),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Outstanding only'));
     await tester.pumpAndSettle();
     expect(find.text('GST-18'), findsOneWidget);
@@ -120,12 +158,13 @@ void main() {
     await tester.pumpAndSettle();
     await open(offline: true);
     expect(find.text('Saved collections'), findsOneWidget);
+    expect(find.byTooltip('Record payment for GST-17'), findsNothing);
     expect(find.textContaining('Collections on hold'), findsOneWidget);
     await tester.tap(find.text('GST-17'));
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
-    expect(find.text('INR 240'), findsOneWidget);
-    expect(requests, 2);
+    expect(find.text('INR 200'), findsOneWidget);
+    expect(requests, 4);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

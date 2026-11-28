@@ -93,6 +93,8 @@ def collection_control(invoice_id: int, data: CollectionControlInput, db: Sessio
 
 @router.get("/business/collection-invoices")
 def collection_invoices(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.branches.presentation import prefetch_branch_names, record_branch_id
+
     require(user, "srm_collection_view", "srm_collection_create", "srm_admin")
     rows = invoice_query(db, user).order_by(SRMInvoice.id.desc()).limit(200).all()
     selected = db.info.get('business_pack_scope')
@@ -106,7 +108,13 @@ def collection_invoices(db: Session = Depends(get_db), user: User = Depends(get_
             if selected.pack_key == 'construction' and assert_invoice_source(db, row):
                 measurement_ids[row.id] = db.query(SRMInvoiceLine.source_id).filter_by(invoice_id=row.id).scalar()
     contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_([r.id for r in rows])).all()} if rows else {}
-    return {"items": [summary(db, r, contexts) | ({'construction_measurement_id': measurement_ids[r.id]} if r.id in measurement_ids else {}) for r in rows], "can_record": can_record(db, user)}
+    prefetch_branch_names(db, rows)
+    return {"items": [
+        summary(db, row, contexts)
+        | {"branch_id": record_branch_id(row)}
+        | ({"construction_measurement_id": measurement_ids[row.id]} if row.id in measurement_ids else {})
+        for row in rows
+    ], "can_record": can_record(db, user)}
 
 
 class PaymentInput(BaseModel):

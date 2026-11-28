@@ -5573,7 +5573,7 @@ void main() {
               'invoice_number': 'GST-085',
               'document_status': 'issued',
               'branch_id': 6,
-              'can_request_payment': true,
+              'can_record_payment': true,
               'currency': 'INR',
               'balance_amount': '400',
             });

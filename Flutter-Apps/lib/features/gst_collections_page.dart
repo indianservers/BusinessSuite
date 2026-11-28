@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'gst_invoice_page.dart';
+import 'invoice_receipt_dialog.dart';
 
 class GstCollectionsPage extends StatefulWidget {
   const GstCollectionsPage({
@@ -69,6 +70,38 @@ class _GstCollectionsPageState extends State<GstCollectionsPage> {
     _records = _load();
   });
 
+  Future<void> _recordReceipt(Json invoice, String scope) async {
+    final revision = widget.api.sessionRevision;
+    final branch = invoice['branch_id'];
+    final result = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => InvoiceReceiptDialog(
+        api: widget.api,
+        invoiceId: invoice['id'] as int,
+        invoice: invoice,
+        scope: scope,
+        headers: {
+          ...widget.scopeHeaders,
+          if (branch is int && branch > 0) 'X-Suite-Branch': '$branch',
+        },
+      ),
+    );
+    if (!mounted || result == null || revision != widget.api.sessionRevision) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result['reversed'] == true
+              ? 'Receipt #${result['receipt_id']} was reversed.'
+              : 'Recorded receipt #${result['receipt_id']}',
+        ),
+      ),
+    );
+    _refresh();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -116,6 +149,7 @@ class _GstCollectionsPageState extends State<GstCollectionsPage> {
                 );
               }
               final live = !loading && snapshot.data?.live == true;
+              final canRecord = live && record['can_record'] == true;
               final rows = _rows(record).where((invoice) {
                 if (invoice['id'] is! int ||
                     invoice['document_status'] != 'issued') {
@@ -152,7 +186,19 @@ class _GstCollectionsPageState extends State<GstCollectionsPage> {
                                   'Collections on hold',
                               ].join('\n'),
                             ),
-                            trailing: const Icon(Icons.chevron_right),
+                            trailing: canRecord && widget.cacheScope != null
+                                ? IconButton(
+                                    tooltip:
+                                        'Record payment for ${invoice['invoice_number']}',
+                                    icon: const Icon(
+                                      Icons.receipt_long_outlined,
+                                    ),
+                                    onPressed: () => _recordReceipt(
+                                      invoice,
+                                      widget.cacheScope!,
+                                    ),
+                                  )
+                                : const Icon(Icons.chevron_right),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => GstInvoicePage(
