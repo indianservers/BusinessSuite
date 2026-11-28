@@ -1114,6 +1114,8 @@ void main() {
     await tester.pumpAndSettle();
     final edit = find.text('Edit quotation');
     await tester.ensureVisible(edit);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(edit);
     await tester.tap(edit);
     await tester.pumpAndSettle();
     await tester.enterText(
