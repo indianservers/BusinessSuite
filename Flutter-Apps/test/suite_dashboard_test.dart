@@ -3139,6 +3139,30 @@ void main() {
     expect(move?['content'], 'Keep this content');
     expect(move?['pinned'], true);
     expect(find.text('Top note'), findsNothing);
+    await cache.discard((await cache.creations()).single['key']);
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    api.dio.httpClientAdapter = FakeAdapter((request) async {
+      if (request.method != 'PUT') return response({'detail': 'Offline'}, 503);
+      expect(request.path, '/project-management/notes/1');
+      expect(request.data, move);
+      return response({
+        ...move!,
+        'id': 1,
+        'version': 6,
+        'can_edit': true,
+        'visibility': 'private',
+        'visibility_scope': 'private',
+      });
+    });
+    await tester.runAsync(() => cache.sync(api));
+    expect(await cache.pending(1), isNull);
+    final saved = (await cache.summaries()).singleWhere(
+      (row) => row['id'] == 1,
+    );
+    expect(saved, containsPair('folder_id', null));
+    expect(saved['version'], 6);
+    expect(saved.containsKey('content'), isFalse);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('offline metadata edits preserve formatted Notes content', (
