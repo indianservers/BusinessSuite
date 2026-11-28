@@ -359,16 +359,29 @@ class _NotesPageState extends State<NotesPage> {
     await _selectFolder(folder);
   }
 
-  Future<void> _createFolder() async {
+  Future<void> _editFolder({bool rename = false}) async {
     final api = widget.api;
     final revision = api.sessionRevision;
     final folder = await showDialog<Json>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _CreateNotesFolder(api: api, parent: _folder),
+      builder: (_) => _NotesFolderForm(
+        api: api,
+        parent: rename ? null : _folder,
+        folder: rename ? _folder : null,
+      ),
     );
     if (folder == null || !mounted || revision != api.sessionRevision) return;
     await _selectFolder(folder);
+    if (widget.cache case final cache?) {
+      final saved = await cache.folders();
+      if (mounted && revision == api.sessionRevision) {
+        await cache.saveFolders([
+          ...saved.where((row) => row['id'] != folder['id']),
+          folder,
+        ]);
+      }
+    }
   }
 
   Future<void> _selectFolder(Json folder) async {
@@ -516,8 +529,8 @@ class _NotesPageState extends State<NotesPage> {
             tooltip: 'Filter notes',
             initialValue: _view,
             onSelected: (view) {
-              if (view == 'new-folder') {
-                unawaited(_createFolder());
+              if (view == 'new-folder' || view == 'rename-folder') {
+                unawaited(_editFolder(rename: view == 'rename-folder'));
                 return;
               }
               if (view == 'folder') {
@@ -548,6 +561,11 @@ class _NotesPageState extends State<NotesPage> {
                 PopupMenuItem(
                   value: 'new-folder',
                   child: Text(_folder == null ? 'New folder' : 'New subfolder'),
+                ),
+              if (!_unreachable && _folder?['version'] is int)
+                const PopupMenuItem(
+                  value: 'rename-folder',
+                  child: Text('Rename folder'),
                 ),
             ],
           ),
@@ -663,26 +681,28 @@ class _NotesPageState extends State<NotesPage> {
   }
 }
 
-class _CreateNotesFolder extends StatefulWidget {
-  const _CreateNotesFolder({required this.api, this.parent});
+class _NotesFolderForm extends StatefulWidget {
+  const _NotesFolderForm({required this.api, this.parent, this.folder});
 
   final ApiClient api;
   final Json? parent;
+  final Json? folder;
 
   @override
-  State<_CreateNotesFolder> createState() => _CreateNotesFolderState();
+  State<_NotesFolderForm> createState() => _NotesFolderFormState();
 }
 
-class _CreateNotesFolderState extends State<_CreateNotesFolder> {
-  String _name = '';
+class _NotesFolderFormState extends State<_NotesFolderForm> {
+  late String _name = widget.folder?['name'] as String? ?? '';
   String? _error;
   bool _saving = false;
 
-  Future<void> _create() async {
+  Future<void> _save() async {
     if (_saving || _name.isEmpty) return;
     final api = widget.api;
     final revision = api.sessionRevision;
     final parent = widget.parent;
+    final current = widget.folder;
     setState(() {
       _saving = true;
       _error = null;
@@ -690,13 +710,27 @@ class _CreateNotesFolderState extends State<_CreateNotesFolder> {
     try {
       final folder =
           await api.request(
-                'POST',
-                '/project-management/note-folders',
+                current == null ? 'POST' : 'PUT',
+                current == null
+                    ? '/project-management/note-folders'
+                    : "/project-management/note-folders/${current['id']}",
                 data: {
                   'name': _name,
-                  'parent_id': ?parent?['id'],
-                  'project_id': ?parent?['project_id'],
-                  'task_id': ?parent?['task_id'],
+                  if (current == null) ...{
+                    'parent_id': ?parent?['id'],
+                    'project_id': ?parent?['project_id'],
+                    'task_id': ?parent?['task_id'],
+                  } else
+                    for (final key in [
+                      'parent_id',
+                      'project_id',
+                      'task_id',
+                      'color',
+                      'icon',
+                      'position',
+                      'version',
+                    ])
+                      key: ?current[key],
                 },
               )
               as Json;
@@ -714,8 +748,15 @@ class _CreateNotesFolderState extends State<_CreateNotesFolder> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.parent == null ? 'New folder' : 'New subfolder'),
-    content: TextField(
+    title: Text(
+      widget.folder != null
+          ? 'Rename folder'
+          : widget.parent == null
+          ? 'New folder'
+          : 'New subfolder',
+    ),
+    content: TextFormField(
+      initialValue: _name,
       autofocus: true,
       maxLength: 120,
       enabled: !_saving,
@@ -728,8 +769,10 @@ class _CreateNotesFolderState extends State<_CreateNotesFolder> {
         child: const Text('Cancel'),
       ),
       FilledButton(
-        onPressed: _saving || _name.isEmpty ? null : _create,
-        child: const Text('Create folder'),
+        onPressed: _saving || _name.isEmpty || _name == widget.folder?['name']
+            ? null
+            : _save,
+        child: Text(widget.folder == null ? 'Create folder' : 'Save name'),
       ),
     ],
   );

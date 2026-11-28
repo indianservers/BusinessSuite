@@ -2884,6 +2884,7 @@ void main() {
   ) async {
     final queries = <Json>[];
     Json? createdFolder;
+    Json? renamedFolder;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -2892,11 +2893,21 @@ void main() {
           if (request.path == '/project-management/note-folders') {
             if (request.method == 'POST') {
               createdFolder = request.data as Json;
-              return response({'id': 64, 'name': createdFolder!['name']}, 201);
+              return response({
+                'id': 64,
+                'name': createdFolder!['name'],
+                'parent_id': 42,
+                'version': 1,
+                'color': '#8b5cf6',
+              }, 201);
             }
             return response([
               {'id': 42, 'name': 'Planning'},
             ]);
+          }
+          if (request.path == '/project-management/note-folders/64') {
+            renamedFolder = request.data as Json;
+            return response({'id': 64, ...renamedFolder!, 'version': 2});
           }
           queries.add({...request.queryParameters});
           return response([]);
@@ -2935,6 +2946,24 @@ void main() {
     expect(createdFolder, {'name': 'Release', 'parent_id': 42});
     expect(queries.last, {'view': 'all', 'folder_id': 64});
     expect(find.text('Release'), findsOneWidget);
+    await tester.tap(find.byTooltip('Filter notes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rename folder'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Folder name'),
+      'Launch',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save name'));
+    await tester.pumpAndSettle();
+    expect(renamedFolder, {
+      'name': 'Launch',
+      'parent_id': 42,
+      'version': 1,
+      'color': '#8b5cf6',
+    });
+    expect(find.text('Launch'), findsOneWidget);
   });
 
   testWidgets('Notes filters saved personal notes offline', (tester) async {
