@@ -5,6 +5,37 @@ import 'package:uuid/uuid.dart';
 import '../core/api_client.dart';
 import '../core/models.dart';
 
+class PaymentRequestButton extends StatelessWidget {
+  const PaymentRequestButton({
+    super.key,
+    required this.api,
+    required this.sourceType,
+    required this.sourceId,
+    required this.scopeHeaders,
+  });
+
+  final ApiClient api;
+  final String sourceType;
+  final int sourceId;
+  final Map<String, String> scopeHeaders;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton.icon(
+    icon: const Icon(Icons.payments_outlined),
+    label: const Text('Request payment'),
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PaymentRequestsPage(
+          api: api,
+          sourceType: sourceType,
+          sourceId: sourceId,
+          scopeHeaders: scopeHeaders,
+        ),
+      ),
+    ),
+  );
+}
+
 class PaymentRequestsPage extends StatefulWidget {
   const PaymentRequestsPage({
     super.key,

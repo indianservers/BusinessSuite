@@ -5398,6 +5398,78 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Invoice 19'), findsOneWidget);
   });
+  final crmCollectionAccess = ValueVariant({
+    ('crm_deal', true),
+    ('crm_deal', false),
+    ('crm_quotation', true),
+    ('crm_quotation', false),
+  });
+  testWidgets('CRM opens Payment Requests for a managed deal or quotation', (
+    tester,
+  ) async {
+    final (source, allowed) = crmCollectionAccess.currentValue!;
+    const headers = {'X-Suite-Branch': '6'};
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          expect(request.headers['X-Suite-Branch'], '6');
+          switch (request.path) {
+            case '/crm/deal-workspace/85/record':
+              return response({'id': 85, 'name': 'Support deal'});
+            case '${CrmQuotationPage.endpoint}/85':
+              return response({'id': 85, 'quote_number': 'QT-85'});
+            case '/payment-requests/context':
+            case '/payment-requests':
+              expect(request.queryParameters, {
+                'source_type': source,
+                'source_id': 85,
+              });
+              return response(
+                request.path.endsWith('/context')
+                    ? {
+                        'reference': 'CRM-085',
+                        'currency': 'INR',
+                        'available_amount': '400',
+                        'payable': true,
+                      }
+                    : {'items': []},
+              );
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: source == 'crm_deal'
+            ? CrmDealPage(
+                api: api,
+                summary: const {'id': 85},
+                scopeHeaders: headers,
+                offline: false,
+                canMove: allowed,
+              )
+            : CrmQuotationPage(
+                api: api,
+                summary: const {'id': 85},
+                scopeHeaders: headers,
+                offline: false,
+                canManage: allowed,
+              ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final action = find.text('Request payment');
+    expect(action, allowed ? findsOneWidget : findsNothing);
+    if (allowed) {
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(find.text('Available to request · INR 400'), findsOneWidget);
+    }
+  }, variant: crmCollectionAccess);
+
   final invoiceCollectionAccess = ValueVariant({true, false});
   testWidgets('GST invoice opens Payment Requests with its seller branch', (
     tester,

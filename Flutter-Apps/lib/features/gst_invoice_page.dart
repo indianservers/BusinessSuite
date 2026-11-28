@@ -918,19 +918,11 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 label: Text(_exporting ? 'Preparing PDF…' : 'Save invoice PDF'),
               ),
             if (!saved && invoice['can_request_payment'] == true)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Request payment'),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PaymentRequestsPage(
-                      api: widget.api,
-                      sourceType: 'srm_invoice',
-                      sourceId: widget.id,
-                      scopeHeaders: _invoiceHeaders,
-                    ),
-                  ),
-                ),
+              PaymentRequestButton(
+                api: widget.api,
+                sourceType: 'srm_invoice',
+                sourceId: widget.id,
+                scopeHeaders: _invoiceHeaders,
               ),
             for (final field in const {
               'issue_date': 'Issue date',

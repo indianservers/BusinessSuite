@@ -343,19 +343,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 snapshot.data != null &&
                 widget.canManageBilling &&
                 widget.summary['id'] is int)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Request payment'),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PaymentRequestsPage(
-                      api: widget.api,
-                      sourceType: 'srm_order',
-                      sourceId: widget.summary['id'] as int,
-                      scopeHeaders: widget.scopeHeaders,
-                    ),
-                  ),
-                ),
+              PaymentRequestButton(
+                api: widget.api,
+                sourceType: 'srm_order',
+                sourceId: widget.summary['id'] as int,
+                scopeHeaders: widget.scopeHeaders,
               ),
             if (!pending && widget.canEdit && action != null)
               OutlinedButton(

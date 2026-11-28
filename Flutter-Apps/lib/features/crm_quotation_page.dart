@@ -9,6 +9,7 @@ import '../core/suite_pdf.dart';
 import 'crm_quotation_line_page.dart';
 import 'crm_quotation_draft_page.dart';
 import 'commercial_document_history_page.dart';
+import 'payment_requests_page.dart';
 import 'sales_order_page.dart';
 
 class CrmQuotationPage extends StatefulWidget {
@@ -499,6 +500,14 @@ class _CrmQuotationPageState extends State<CrmQuotationPage> {
                     '${record['quote_number'] ?? 'Quotation'}',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  if (live && widget.canManage)
+                    if (widget.summary['id'] case final int id)
+                      PaymentRequestButton(
+                        api: widget.api,
+                        sourceType: 'crm_quotation',
+                        sourceId: id,
+                        scopeHeaders: widget.scopeHeaders,
+                      ),
                   if (live)
                     OutlinedButton.icon(
                       onPressed: _savingPdf ? null : () => _savePdf(record),

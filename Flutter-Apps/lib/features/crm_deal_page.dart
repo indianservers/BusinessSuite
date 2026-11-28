@@ -5,6 +5,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_deal_stage_page.dart';
 import 'crm_quotation_draft_page.dart';
+import 'payment_requests_page.dart';
 
 class CrmDealPage extends StatefulWidget {
   const CrmDealPage({
@@ -190,6 +191,16 @@ class _CrmDealPageState extends State<CrmDealPage> {
               '${data['name'] ?? 'Deal'}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (widget.canMove &&
+                snapshot.connectionState == ConnectionState.done &&
+                snapshot.data?.live == true)
+              if (widget.summary['id'] case final int id)
+                PaymentRequestButton(
+                  api: widget.api,
+                  sourceType: 'crm_deal',
+                  sourceId: id,
+                  scopeHeaders: widget.scopeHeaders,
+                ),
             if (widget.canMove &&
                 snapshot.connectionState == ConnectionState.done &&
                 snapshot.data?.live == true)
