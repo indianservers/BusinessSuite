@@ -2879,6 +2879,33 @@ void main() {
     controller.dispose();
   }, variant: TargetPlatformVariant({TargetPlatform.android}));
 
+  testWidgets('Notes uses the shared personal and recent filters online', (
+    tester,
+  ) async {
+    final queries = <Json>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          queries.add({...request.queryParameters});
+          return response([]);
+        }),
+    );
+    await tester.pumpWidget(MaterialApp(home: NotesPage(api: api)));
+    await tester.pumpAndSettle();
+    for (final (label, query) in [
+      ('Personal notes', {'view': 'all', 'personal': true}),
+      ('Recent', {'view': 'recent'}),
+    ]) {
+      await tester.tap(find.byTooltip('Filter notes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(queries.last, query);
+    }
+  });
+
   testWidgets('Notes filters saved personal notes offline', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     final cache = NotesOfflineCache('["https://example.test/api/v1",19,7]');
@@ -2920,6 +2947,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    for (final view in ['Personal notes', 'Recent']) {
+      await tester.tap(find.byTooltip('Filter notes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(view));
+      await tester.pumpAndSettle();
+      expect(find.text('Top note'), findsOneWidget);
+      expect(find.text('Starred note'), findsOneWidget);
+    }
     for (final (view, visible, hidden) in [
       ('Pinned', 'Top note', 'Starred note'),
       ('Favorites', 'Starred note', 'Top note'),

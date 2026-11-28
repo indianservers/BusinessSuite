@@ -155,6 +155,8 @@ class _NotesPageState extends State<NotesPage> {
       'pinned',
       'favorites',
       'quick',
+      'personal',
+      'recent',
     }.contains(view);
     final revision = widget.api.sessionRevision;
     bool current() =>
@@ -221,7 +223,8 @@ class _NotesPageState extends State<NotesPage> {
                 'GET',
                 _notesPath,
                 query: {
-                  'view': view,
+                  'view': view == 'personal' ? 'all' : view,
+                  if (view == 'personal') 'personal': true,
                   if (sort != 'modified') 'sort': sort,
                   if (query.isNotEmpty) 'q': query,
                 },
@@ -387,7 +390,7 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final term = _query.trim().toLowerCase();
-    final drafts = _view == 'all' || _view == 'quick'
+    final drafts = const {'all', 'quick', 'personal'}.contains(_view)
         ? _creations.where((draft) {
             final values = draft['values'];
             return term.isEmpty ||
@@ -412,7 +415,9 @@ class _NotesPageState extends State<NotesPage> {
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'all', child: Text('My notes')),
+              PopupMenuItem(value: 'personal', child: Text('Personal notes')),
               PopupMenuItem(value: 'quick', child: Text('Quick notes')),
+              PopupMenuItem(value: 'recent', child: Text('Recent')),
               PopupMenuItem(value: 'pinned', child: Text('Pinned')),
               PopupMenuItem(value: 'favorites', child: Text('Favorites')),
               PopupMenuItem(value: 'shared', child: Text('Shared with me')),
