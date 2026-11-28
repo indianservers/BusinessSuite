@@ -11,6 +11,7 @@ import 'package:business_suite_mobile/core/notes_offline_cache.dart';
 import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
+import 'package:business_suite_mobile/features/sales_contract_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_customer_page.dart';
 import 'package:business_suite_mobile/features/crm_task_page.dart';
@@ -650,6 +651,112 @@ void main() {
     );
     expect(find.text(customerName), findsOneWidget);
   }, variant: customerConflict);
+
+  testWidgets('Android opens and activates a contract from Sales & POS', (
+    tester,
+  ) async {
+    var status = 'draft';
+    var activations = 0;
+    Json contract() => {
+      'id': 4,
+      'title': 'Support renewal',
+      'contract_number': 'CTR-004',
+      'status': status,
+      'terms': 'Annual maintenance',
+    };
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/contracts/4/activate') {
+            expect(request.method, 'POST');
+            activations++;
+            status = 'active';
+            return response(contract());
+          }
+          return switch (request.path) {
+            '/access/me' => response({
+              'companyId': 7,
+              'grants': {
+                'srm': {
+                  'enabled': true,
+                  'actions': ['view', 'edit'],
+                },
+              },
+            }),
+            '/notifications/unread-count' => response({'unread': 0}),
+            '/access/launcher-preferences' => response({
+              'favorites': ['srm'],
+            }),
+            '/srm/sales-orders' => response({'items': []}),
+            '/srm/contracts' => response([contract()]),
+            '/srm/contracts/4' => response(contract()),
+            _ => throw StateError('Unexpected request ${request.path}'),
+          };
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    final controller = AppController(api, suiteLogin: true)
+      ..loading = false
+      ..user = SessionUser.fromJson({
+        'id': DateTime.now().microsecondsSinceEpoch,
+        'email': 'qa@example.test',
+        'role': {
+          'permissions': [
+            {'name': 'srm_manage'},
+          ],
+        },
+      });
+    await tester.pumpWidget(BusinessSuiteApp(controller: controller));
+    await tester.pumpAndSettle();
+    for (final target in [
+      find.text('Favorites (1)'),
+      find.text('Sales & POS'),
+      find.byTooltip('Contracts'),
+      find.text('Support renewal'),
+    ]) {
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      while (target.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Annual maintenance', findRichText: true), findsOneWidget);
+    await tester.tap(find.text('Activate contract'));
+    await tester.pumpAndSettle();
+    expect(activations, 1);
+    expect(find.text('active', findRichText: true), findsOneWidget);
+    expect(find.text('Activate contract'), findsNothing);
+    final live = tester.widget<SalesContractPage>(
+      find.byType(SalesContractPage),
+    );
+    await flushCrmDetailWrite(
+      "${live.cacheScope}:/srm/contracts/4:${live.scopeHeaders['X-Suite-Branch'] ?? ''}",
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('CTR-004 · active'), findsOneWidget);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SalesContractPage(
+          api: api,
+          summary: const {'id': 4},
+          scopeHeaders: live.scopeHeaders,
+          cacheScope: live.cacheScope,
+          offline: true,
+          canEdit: true,
+          onChanged: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Saved contract'), findsOneWidget);
+    expect(find.text('Annual maintenance', findRichText: true), findsOneWidget);
+    expect(find.text('Activate contract'), findsNothing);
+  });
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {
     var connected = true;

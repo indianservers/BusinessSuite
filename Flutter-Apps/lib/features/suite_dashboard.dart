@@ -32,6 +32,7 @@ import 'crm_deal_page.dart';
 import 'crm_follow_ups_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
+import 'sales_contract_page.dart';
 import 'sales_order_drafts_page.dart';
 import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
@@ -1838,7 +1839,15 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     }
   }
 
-  String? get _cacheKey => widget.path == GstInvoicePage.listEndpoint
+  String? get _cacheKey => widget.path == SalesContractPage.endpoint
+      ? switch (widget.cachePrefix) {
+          final String scope => SalesContractPage.listCacheKey(
+            scope,
+            widget.scopeHeaders,
+          ),
+          _ => null,
+        }
+      : widget.path == GstInvoicePage.listEndpoint
       ? GstInvoicePage.cacheKey(
           widget.cachePrefix,
           GstInvoicePage.listEndpoint,
@@ -2103,6 +2112,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ],
               if (_archivedOrders) 'number',
               'order_number',
+              if (path == SalesContractPage.endpoint) 'contract_number',
               'currency',
               'subtotal',
               'discount_amount',
@@ -3351,6 +3361,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (widget.showInventory)
           IconButton(
+            tooltip: 'Contracts',
+            icon: const Icon(LucideIcons.fileText),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Contracts',
+                  controller: widget.controller,
+                  path: SalesContractPage.endpoint,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  canEditOrders: widget.canEditWarehouses,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (widget.showInventory)
+          IconButton(
             tooltip: 'GST Billing',
             icon: const Icon(LucideIcons.receipt),
             onPressed: () => Navigator.of(context).push(
@@ -3802,6 +3830,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (widget.path == SalesContractPage.endpoint)
+                            item['contract_number'],
                           if (_procurement != null) ...[
                             item['vendor_name'],
                             if (item['expected_date'] != null)
@@ -4073,6 +4103,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path == '/employees/' ||
                                       widget.path == '/srm/sales-orders' ||
                                       widget.path ==
+                                          SalesContractPage.endpoint ||
+                                      widget.path ==
                                           GstInvoicePage.listEndpoint ||
                                       widget.path == CrmLeadPage.endpoint ||
                                       _crmContacts ||
@@ -4187,6 +4219,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
+                                          )
+                                        : widget.path ==
+                                              SalesContractPage.endpoint
+                                        ? SalesContractPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            scopeHeaders: widget.scopeHeaders,
+                                            cacheScope: widget.cachePrefix,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            canEdit: widget.canEditOrders,
+                                            onChanged: _refresh,
                                           )
                                         : widget.path == '/srm/sales-orders'
                                         ? SalesOrderPage(
