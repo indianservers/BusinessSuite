@@ -1747,9 +1747,26 @@ void main() {
           '/access/launcher-preferences' => response({
             'favorites': ['srm'],
           }),
-          '/srm/sales-orders' ||
-          '/srm/inventory/items' ||
+          '/branches/context' => response({
+            'branches': [
+              {'id': 21, 'name': 'North', 'is_active': true},
+              {'id': 22, 'name': 'South', 'is_active': true},
+            ],
+          }),
           '/srm/inventory/reports/stock-summary' => response({
+            'items': [
+              {
+                'id': 4,
+                'item_name': switch (request.headers['X-Suite-Branch']) {
+                  '21' => 'North stock',
+                  '22' => 'South stock',
+                  _ => 'Sample inventory item',
+                },
+              },
+            ],
+          }),
+          '/srm/sales-orders' ||
+          '/srm/inventory/items' => response({
             'items': [
               {'id': 4, 'item_name': 'Sample inventory item'},
             ],
@@ -1807,6 +1824,14 @@ void main() {
       await tap(find.text('Sales & POS'));
       await tap(find.byTooltip('Inventory'));
       await tap(find.byTooltip('Stock Summary'));
+      for (final (branch, other) in [('North', 'South'), ('South', 'North')]) {
+        await tap(find.byTooltip('Choose inventory branch'));
+        await tap(find.text(branch));
+        expect(find.text('$branch stock'), findsOneWidget);
+        expect(find.text('$other stock'), findsNothing);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
       for (final report in InventoryStockReceipts.activityReports.values) {
         await tap(find.byTooltip('Stock activity reports'));
         await tap(find.text(report));
