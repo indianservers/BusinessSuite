@@ -656,6 +656,7 @@ void main() {
     tester,
   ) async {
     var status = 'draft';
+    var engagementStatus = 'active';
     var activations = 0;
     final transportErrors = <String>[];
     Json contract() => {
@@ -669,6 +670,13 @@ void main() {
       'invoices': [
         {'id': 12, 'invoice_number': 'INV-012'},
       ],
+    };
+    Json engagement() => {
+      'id': 22,
+      'name': 'Site deployment',
+      'engagement_number': 'ENG-022',
+      'status': engagementStatus,
+      'billing_type': 'fixed_fee',
     };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -685,6 +693,12 @@ void main() {
           ),
         )
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/engagements/22/lifecycle/close') {
+            expectSync(request.method, 'POST');
+            expectSync(request.data, {'reason': 'Work accepted'});
+            engagementStatus = 'closed';
+            return response(engagement());
+          }
           if (request.path == '/srm/contracts/4/activate') {
             expectSync(request.method, 'POST');
             activations++;
@@ -711,6 +725,8 @@ void main() {
             '/srm/sales-orders' => response({'items': []}),
             '/srm/contracts' => response([contract()]),
             '/srm/contracts/4' => response(contract()),
+            '/srm/engagements' => response([engagement()]),
+            '/srm/engagements/22' => response(engagement()),
             '/master-data/companies/18' => response({
               'id': 18,
               'name': 'Shared contract customer',
@@ -808,6 +824,25 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('CTR-004 · active'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Engagements'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Site deployment'));
+    await tester.pumpAndSettle();
+    final close = find.text('Close engagement');
+    await tester.scrollUntilVisible(close, 200);
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Work accepted');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    expect(engagementStatus, 'closed', reason: '$transportErrors');
+    await tester.scrollUntilVisible(find.text('Reopen engagement'), 200);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('ENG-022 · closed'), findsOneWidget);
     await tester.pumpWidget(
       MaterialApp(
         home: SalesContractPage(

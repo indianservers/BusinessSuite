@@ -33,6 +33,7 @@ import 'crm_follow_ups_page.dart';
 import 'crm_new_lead_page.dart';
 import 'sales_order_page.dart';
 import 'sales_contract_page.dart';
+import 'sales_engagement_page.dart';
 import 'sales_order_drafts_page.dart';
 import 'inventory_drafts_page.dart';
 import 'suite_notifications_page.dart';
@@ -1847,6 +1848,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
           _ => null,
         }
+      : widget.path == SalesEngagementPage.endpoint &&
+            widget.cachePrefix != null
+      ? "${widget.cachePrefix}:${SalesEngagementPage.endpoint}:${widget.scopeHeaders['X-Suite-Branch'] ?? ''}"
       : widget.path == GstInvoicePage.listEndpoint
       ? GstInvoicePage.cacheKey(
           widget.cachePrefix,
@@ -2113,6 +2117,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               if (_archivedOrders) 'number',
               'order_number',
               if (path == SalesContractPage.endpoint) 'contract_number',
+              if (path == SalesEngagementPage.endpoint) 'engagement_number',
               'currency',
               'subtotal',
               'discount_amount',
@@ -3361,6 +3366,24 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (widget.showInventory)
           IconButton(
+            tooltip: 'Engagements',
+            icon: const Icon(LucideIcons.briefcase),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Engagements',
+                  controller: widget.controller,
+                  path: SalesEngagementPage.endpoint,
+                  cachePrefix: widget.cachePrefix,
+                  scopeHeaders: widget.scopeHeaders,
+                  canEditOrders: widget.canEditWarehouses,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (widget.showInventory)
+          IconButton(
             tooltip: 'Contracts',
             icon: const Icon(LucideIcons.fileText),
             onPressed: () => Navigator.of(context).push(
@@ -3832,6 +3855,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                         final subtitle = [
                           if (widget.path == SalesContractPage.endpoint)
                             item['contract_number'],
+                          if (widget.path == SalesEngagementPage.endpoint)
+                            item['engagement_number'],
                           if (_procurement != null) ...[
                             item['vendor_name'],
                             if (item['expected_date'] != null)
@@ -4103,6 +4128,8 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                       widget.path == '/employees/' ||
                                       widget.path == '/srm/sales-orders' ||
                                       widget.path ==
+                                          SalesEngagementPage.endpoint ||
+                                      widget.path ==
                                           SalesContractPage.endpoint ||
                                       widget.path ==
                                           GstInvoicePage.listEndpoint ||
@@ -4219,6 +4246,19 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             offline:
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
+                                          )
+                                        : widget.path ==
+                                              SalesEngagementPage.endpoint
+                                        ? SalesEngagementPage(
+                                            api: widget.controller.api,
+                                            summary: item,
+                                            scopeHeaders: widget.scopeHeaders,
+                                            cacheScope: widget.cachePrefix,
+                                            offline:
+                                                _offlineOnly ||
+                                                _usedSavedFallback,
+                                            canEdit: widget.canEditOrders,
+                                            onChanged: _refresh,
                                           )
                                         : widget.path ==
                                               SalesContractPage.endpoint
