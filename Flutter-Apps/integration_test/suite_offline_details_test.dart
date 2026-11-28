@@ -1759,12 +1759,18 @@ void main() {
                 );
               }
               return response([
-                {'id': 2, numberField: 'ARCHIVED-RECORD'},
+                {
+                  'id': 2,
+                  numberField: 'ARCHIVED-RECORD',
+                  if (kind == 'crm') 'version': 2,
+                },
               ]);
             }
             requests++;
             return response([
               {'id': 1, numberField: 'QA-SALE-$requests'},
+              if (kind == 'crm')
+                {'id': 2, numberField: 'Older lead title', 'version': 1},
             ]);
           default:
             throw StateError('Unexpected request ${request.path}');
@@ -1822,7 +1828,10 @@ void main() {
     final snapshots = await SuiteReadCache.read(
       '["https://example.test/api/v1",$id,7]:$endpoint',
     );
-    expect(snapshots?.single[numberField], 'QA-SALE-2');
+    expect(
+      snapshots?.singleWhere((row) => row['id'] == 1)[numberField],
+      'QA-SALE-2',
+    );
     lostConnection = true;
     await tester.enterText(search, 'QA-SALE');
     final savedSearch = find.text(offlineLabel);

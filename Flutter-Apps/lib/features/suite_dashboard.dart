@@ -1924,7 +1924,13 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                 if (row['id'] case final int id) id: row,
             };
             for (final row in matches) {
-              if (row['id'] case final int id) saved.putIfAbsent(id, () => row);
+              if (row['id'] case final int id) {
+                final existing = saved[id];
+                if (existing == null ||
+                    SuiteReadCache.hasNewerVersion(row, existing)) {
+                  saved[id] = row;
+                }
+              }
             }
             setState(() => _cached = saved.values.toList());
           }
@@ -3526,10 +3532,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          error.toString(),
-                          textAlign: TextAlign.center,
-                        ),
+                        Text(error.toString(), textAlign: TextAlign.center),
                         TextButton(
                           onPressed: _refresh,
                           child: const Text('Retry'),

@@ -6,6 +6,20 @@ import 'package:sqflite/sqflite.dart';
 import 'models.dart';
 
 class SuiteReadCache {
+  static bool hasNewerVersion(Json candidate, Json existing) {
+    final version = candidate['version'];
+    final prior = existing['version'];
+    if (version is int && prior is int) return version > prior;
+    if (version is String && prior is String) {
+      final timestamp = DateTime.tryParse(version);
+      final previous = DateTime.tryParse(prior);
+      return timestamp != null &&
+          previous != null &&
+          timestamp.isAfter(previous);
+    }
+    return false;
+  }
+
   static const reuseWindow = Duration(seconds: 15);
   static const _retention = Duration(days: 1);
   static const _pruneInterval = Duration(hours: 1);
@@ -97,7 +111,12 @@ class SuiteReadCache {
             : (jsonDecode(older.single['rows'] as String) as List).cast<Json>();
         final unique = <int, Json>{};
         for (final row in [...rows, ...previous]) {
-          if (row['id'] case final int id) unique.putIfAbsent(id, () => row);
+          if (row['id'] case final int id) {
+            final existing = unique[id];
+            if (existing == null || hasNewerVersion(row, existing)) {
+              unique[id] = row;
+            }
+          }
         }
         await save(tx, unique.values.take(retainRecent).toList());
       });
@@ -234,12 +253,7 @@ class SuiteReadCache {
           in (jsonDecode(entry['rows'] as String) as List).cast<Json>()) {
         if (row['id'] case final int id) {
           final existing = unique[id];
-          final version = row['version'];
-          final existingVersion = existing?['version'];
-          if (existing == null ||
-              (version is int &&
-                  existingVersion is int &&
-                  version > existingVersion)) {
+          if (existing == null || hasNewerVersion(row, existing)) {
             unique[id] = row;
           }
         }
