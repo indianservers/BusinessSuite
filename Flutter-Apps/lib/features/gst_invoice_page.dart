@@ -9,6 +9,7 @@ import '../core/models.dart';
 import '../core/sales_order_drafts.dart';
 import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
+import 'invoice_receipt_dialog.dart';
 import 'payment_requests_page.dart';
 import 'sales_order_drafts_page.dart';
 
@@ -865,6 +866,41 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
     }
   }
 
+  Future<void> _recordReceipt(Json invoice, String scope) async {
+    final revision = widget.api.sessionRevision;
+    final result = await showDialog<Json>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => InvoiceReceiptDialog(
+        api: widget.api,
+        invoiceId: widget.id,
+        invoice: invoice,
+        scope: scope,
+        headers: _invoiceHeaders,
+      ),
+    );
+    if (!mounted || result == null || revision != widget.api.sessionRevision) {
+      return;
+    }
+    final updated = {...invoice, ...result['invoice'] as Json};
+    setState(() {
+      _invoice = Future.value((updated, false));
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result['reversed'] == true
+              ? 'Receipt #${result['receipt_id']} was reversed.'
+              : 'Recorded receipt #${result['receipt_id']}',
+        ),
+      ),
+    );
+    await _saveSnapshot(updated);
+    if (mounted && revision == widget.api.sessionRevision) {
+      await _notifyChanged();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sales invoice')),
@@ -925,6 +961,13 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 cacheScope: widget.cacheScope,
                 scopeHeaders: _invoiceHeaders,
               ),
+            if (!saved && invoice['can_request_payment'] == true)
+              if (widget.cacheScope case final String scope)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Record payment received'),
+                  onPressed: () => _recordReceipt(invoice, scope),
+                ),
             for (final field in const {
               'issue_date': 'Issue date',
               'due_date': 'Due date',

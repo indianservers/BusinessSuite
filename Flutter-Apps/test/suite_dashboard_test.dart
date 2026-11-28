@@ -5555,6 +5555,84 @@ void main() {
     }
   }, variant: crmCollectionAccess);
 
+  testWidgets('GST receipt retries the saved payment after reopening', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    mockUnavailableSqlite(tester);
+    final attempts = <Json>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'GET') {
+            expect(request.path, '/srm/invoices/85');
+            return response({
+              'invoice_number': 'GST-085',
+              'document_status': 'issued',
+              'branch_id': 6,
+              'can_request_payment': true,
+              'currency': 'INR',
+              'balance_amount': '400',
+            });
+          }
+          expect(request.headers['X-Suite-Branch'], '6');
+          expect(request.path, '/srm/business/invoices/85/payments');
+          attempts.add(request.data as Json);
+          if (attempts.length == 1) {
+            return response({'detail': 'Try again'}, 503);
+          }
+          return response({
+            'receipt_id': 87,
+            'invoice': {
+              'balance_amount': '275',
+              'payment_status': 'partially_paid',
+            },
+          }, 201);
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GstInvoicePage(
+          api: api,
+          id: 85,
+          cacheScope: '["https://example.test/api/v1",501,7]',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> openReceipt() async {
+      await tester.tap(find.text('Record payment received'));
+      await tester.pumpAndSettle();
+    }
+
+    await openReceipt();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Received amount'),
+      '125',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Payment reference'),
+      'BANK-85',
+    );
+    await tester.tap(find.text('Record received payment'));
+    await tester.pumpAndSettle();
+    expect(find.text('Try again'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    await openReceipt();
+    expect(find.text('A saved payment is ready to retry.'), findsOneWidget);
+    await tester.tap(find.text('Retry saved payment'));
+    await tester.pumpAndSettle();
+    expect(attempts, hasLength(2));
+    expect(attempts.first, attempts.last);
+    expect(attempts.last['amount'], '125');
+    expect(find.text('Recorded receipt #87'), findsOneWidget);
+    expect(find.text('INR 275'), findsOneWidget);
+  });
+
   final invoiceCollectionAccess = ValueVariant({true, false});
   testWidgets('GST invoice opens Payment Requests with its seller branch', (
     tester,
