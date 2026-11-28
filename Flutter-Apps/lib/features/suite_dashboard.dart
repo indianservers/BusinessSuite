@@ -4397,6 +4397,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                             api: widget.controller.api,
                                             summary: item,
                                             canEdit: widget.canEditOrders,
+                                            canManageBilling:
+                                                widget.canEditWarehouses,
+                                            canApproveInvoices:
+                                                widget.canIssueInvoices,
+                                            canExportInvoices:
+                                                widget.canExportSalesDocuments,
                                             invoiceBuilder:
                                                 widget.canCreateOrderInvoices
                                                 ? (invoice) => GstInvoicePage(

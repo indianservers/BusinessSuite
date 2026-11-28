@@ -84,7 +84,15 @@ void main() {
             case '/notifications/unread-count':
               return response({'unread': 0});
             case '/srm/sales-orders':
-              return response([]);
+              return response([
+                {'id': 41, 'order_number': 'SO-041'},
+              ]);
+            case '/srm/sales-orders/41':
+              return response({
+                'id': 41,
+                'order_number': 'SO-041',
+                'billing_plan': plan(),
+              });
             case '/srm/engagements':
               return response([
                 {'id': 40, 'name': 'Support delivery'},
@@ -255,6 +263,25 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
+    Future<void> openPlanFromOrder() async {
+      for (final target in [
+        find.text('Sales & POS'),
+        find.text('SO-041'),
+        find.text('Billing plan'),
+      ]) {
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+      }
+    }
+
+    await openPlanFromOrder();
+    expect(find.text('invoiced · 725.5'), findsOneWidget);
+    await flushCrmDetailWrite('["$base",$id,7]:/srm/sales-orders/41');
+    for (var index = 0; index < 3; index++) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
     controller.offline = true;
     await openPlan(fromEngagement: true);
     expect(find.text('Saved billing plan'), findsOneWidget);
@@ -263,7 +290,14 @@ void main() {
     expect(checkEligibility, findsNothing);
     expect(milestoneActions, findsNothing);
     expect(find.text('invoiced · 725.5'), findsOneWidget);
-    expect(detailReads, 6);
+    for (var index = 0; index < 4; index++) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+    await openPlanFromOrder();
+    expect(find.text('Saved billing plan'), findsOneWidget);
+    expect(find.text('invoiced · 725.5'), findsOneWidget);
+    expect(detailReads, 7);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

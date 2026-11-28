@@ -5,6 +5,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'sales_billing_plan_page.dart';
 import 'sales_engagement_page.dart';
 
 class SalesOrderPage extends StatefulWidget {
@@ -16,6 +17,9 @@ class SalesOrderPage extends StatefulWidget {
     this.cacheScope,
     this.scopeHeaders = const {},
     this.canEdit = false,
+    this.canManageBilling = false,
+    this.canApproveInvoices = false,
+    this.canExportInvoices = false,
     this.onChanged,
     this.invoiceBuilder,
   });
@@ -25,6 +29,9 @@ class SalesOrderPage extends StatefulWidget {
   final String? cacheScope;
   final Map<String, String> scopeHeaders;
   final bool canEdit;
+  final bool canManageBilling;
+  final bool canApproveInvoices;
+  final bool canExportInvoices;
   final VoidCallback? onChanged;
   final Widget Function(Json)? invoiceBuilder;
 
@@ -95,6 +102,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           if (entry.key == 'engagement') 'name': record['name'],
           entry.value.$2: record[entry.value.$2],
           'status': record['status'],
+          if (entry.key == 'billing_plan')
+            for (final field in SalesBillingPlanPage.fields)
+              field: record[field],
         },
   };
 
@@ -398,30 +408,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 ),
                 for (final entry in _linkedRecords.entries)
                   if (data[entry.key] case final Json record)
-                    ListTile(
-                      title: Text(entry.value.$1),
-                      subtitle: Text(
-                        [record[entry.value.$2], record['status']]
-                            .whereType<String>()
-                            .where((value) => value.isNotEmpty)
-                            .join(' · '),
-                      ),
-                      trailing: entry.key == 'engagement' && record['id'] is int
-                          ? const Icon(Icons.chevron_right)
-                          : null,
-                      onTap: entry.key == 'engagement' && record['id'] is int
-                          ? () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => SalesEngagementPage(
-                                  api: widget.api,
-                                  summary: record,
-                                  scopeHeaders: widget.scopeHeaders,
-                                  cacheScope: widget.cacheScope,
-                                  offline: pending || snapshot.data == null,
-                                ),
-                              ),
-                            )
-                          : null,
+                    _linkedTile(
+                      entry,
+                      record,
+                      offline: pending || snapshot.data == null,
                     ),
               ],
             ],
@@ -430,4 +420,53 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       },
     ),
   );
+
+  Widget _linkedTile(
+    MapEntry<String, (String, String)> entry,
+    Json record, {
+    required bool offline,
+  }) {
+    final page = _linkedPage(entry.key, record, offline: offline);
+    return ListTile(
+      title: Text(entry.value.$1),
+      subtitle: Text(
+        [
+          record[entry.value.$2],
+          record['status'],
+        ].whereType<String>().where((value) => value.isNotEmpty).join(' · '),
+      ),
+      trailing: page == null ? null : const Icon(Icons.chevron_right),
+      onTap: page == null
+          ? null
+          : () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => page)),
+    );
+  }
+
+  Widget? _linkedPage(String kind, Json record, {required bool offline}) {
+    if (record['id'] is! int) return null;
+    return switch (kind) {
+      'engagement' => SalesEngagementPage(
+        api: widget.api,
+        summary: record,
+        scopeHeaders: widget.scopeHeaders,
+        cacheScope: widget.cacheScope,
+        offline: offline,
+      ),
+      'billing_plan' => SalesBillingPlanPage(
+        api: widget.api,
+        summary: record,
+        scopeHeaders: widget.scopeHeaders,
+        cacheScope: widget.cacheScope,
+        offline: offline,
+        canEdit: widget.canManageBilling,
+        canApprove: widget.canApproveInvoices,
+        canCreateInvoice: widget.invoiceBuilder != null,
+        canExportInvoice: widget.canExportInvoices,
+        onChanged: _refresh,
+      ),
+      _ => null,
+    };
+  }
 }
