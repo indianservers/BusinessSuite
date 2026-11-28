@@ -3530,9 +3530,10 @@ void main() {
         if (connectedInitially) expect(queuedOperation, firstOperation);
         expect(find.text('Offline edit'), findsOneWidget);
         expect(find.byTooltip('Awaiting sync'), findsOneWidget);
+        final webDetail = Completer<ResponseBody>();
         dio.httpClientAdapter = FakeAdapter((request) async {
           if (request.method == 'GET') {
-            return response({...private, 'content': 'Web edit'});
+            return webDetail.future;
           }
           expect(request.method, 'PUT');
           expect(request.path, '/project-management/notes/1');
@@ -3544,6 +3545,18 @@ void main() {
         await tester.runAsync(() => cache.sync(api));
         expect((await cache.pending(1))?['error'], 'The note changed on web');
         await tester.tap(find.text('Private QA note'));
+        if (connectedInitially) {
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 350));
+          expect(
+            tester
+                .widget<TextField>(find.byType(TextField).last)
+                .controller
+                ?.text,
+            'Offline edit',
+          );
+        }
+        webDetail.complete(response({...private, 'content': 'Web edit'}));
         await tester.pumpAndSettle();
         expect(find.text('Offline edit'), findsOneWidget);
         expect(

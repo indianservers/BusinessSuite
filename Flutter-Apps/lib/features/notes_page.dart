@@ -896,6 +896,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       _error = null;
     });
     var acceptCached = true;
+    var acceptPending = true;
     Future<void> showCached() async {
       if (_note != null) return;
       try {
@@ -908,7 +909,22 @@ class _NoteEditorState extends State<_NoteEditor> {
       }
     }
 
+    Future<void> showPending() async {
+      try {
+        final pending = await widget.cache?.pending(widget.summary!['id']);
+        if (pending != null && acceptPending && current()) {
+          setState(() {
+            _pending = pending;
+            if (_note != null) _applyPending();
+          });
+        }
+      } catch (_) {
+        // The server and saved note are still available.
+      }
+    }
+
     final local = showCached();
+    unawaited(showPending());
     try {
       if (_offline && !reconnect) {
         throw ApiFailure('Connect to refresh this note.');
@@ -933,6 +949,7 @@ class _NoteEditorState extends State<_NoteEditor> {
           error is ApiFailure && const {401, 403, 404}.contains(error.status);
       if (denied) {
         acceptCached = false;
+        acceptPending = false;
       } else {
         await local;
       }
@@ -941,6 +958,7 @@ class _NoteEditorState extends State<_NoteEditor> {
           _error = '$error';
           if (denied) {
             _note = null;
+            _pending = null;
             _savedView = false;
             _title.clear();
             _body.clear();
@@ -949,6 +967,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         if (denied) await widget.cache?.clear();
       }
     } finally {
+      acceptPending = false;
       if (mounted && revision == widget.api.sessionRevision) {
         Map<String, dynamic>? pending;
         try {
@@ -958,12 +977,12 @@ class _NoteEditorState extends State<_NoteEditor> {
         } catch (_) {}
         if (mounted && revision == widget.api.sessionRevision) {
           setState(() {
+            final hadPending = _pending != null;
             _pending = pending;
-            if (pending?['values'] case final Map<String, dynamic> values) {
-              _title.text = values['title'] as String;
-              _tags.text = (values['tags'] as List?)?.join('\n') ?? '';
-              if (!_rich) _body.text = values['content'] as String;
+            if (hadPending && pending == null && _note != null) {
+              _fillNoteFields(_note!);
             }
+            _applyPending();
             _loading = false;
           });
         }
@@ -975,12 +994,25 @@ class _NoteEditorState extends State<_NoteEditor> {
     setState(() {
       _note = note;
       _savedView = saved;
-      _title.text = note['title'] as String? ?? '';
-      _tags.text = (note['tags'] as List?)?.join('\n') ?? '';
-      _body.text = _rich
-          ? (note['preview'] as String? ?? '')
-          : (note['content'] as String? ?? '');
+      _fillNoteFields(note);
+      _applyPending();
     });
+  }
+
+  void _fillNoteFields(Json note) {
+    _title.text = note['title'] as String? ?? '';
+    _tags.text = (note['tags'] as List?)?.join('\n') ?? '';
+    _body.text = _rich
+        ? (note['preview'] as String? ?? '')
+        : (note['content'] as String? ?? '');
+  }
+
+  void _applyPending() {
+    if (_pending?['values'] case final Json values) {
+      _title.text = values['title'] as String;
+      _tags.text = (values['tags'] as List?)?.join('\n') ?? '';
+      if (!_rich) _body.text = values['content'] as String;
+    }
   }
 
   Future<void> _save() async {
