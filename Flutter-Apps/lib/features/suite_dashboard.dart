@@ -23,6 +23,7 @@ import 'crm_pipeline_page.dart';
 import 'inventory_batch_page.dart';
 import 'inventory_finance_report_page.dart';
 import 'inventory_procurement_page.dart';
+import 'inventory_price_list_form.dart';
 import 'inventory_purchase_order_form.dart';
 import 'inventory_tracking_form.dart';
 import 'crm_customer_page.dart';
@@ -1757,7 +1758,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _activityReport =>
       InventoryStockReceipts.activityReports.containsKey(widget.path);
   bool get _stockAlerts => widget.path == _reorderPath;
-  static const _priceListsPath = '/srm/pricing/price-lists';
+  static const _priceListsPath = InventoryPriceListForm.endpoint;
   bool get _priceLists => widget.path == _priceListsPath;
   static const _priceListFields = [
     'price_list_code',
@@ -3315,6 +3316,25 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             icon: const Icon(Icons.add),
             onPressed: _createTrackingRecord,
           ),
+        if (_priceLists &&
+            widget.canCreateOrder &&
+            !_offlineOnly &&
+            !_usedSavedFallback)
+          IconButton(
+            tooltip: 'Create price list',
+            icon: const Icon(Icons.add),
+            onPressed: () async {
+              final saved = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => InventoryPriceListForm(
+                    api: widget.controller.api,
+                    scopeHeaders: widget.scopeHeaders,
+                  ),
+                ),
+              );
+              if (mounted && saved == true) _refresh();
+            },
+          ),
         if (_inventory)
           IconButton(
             tooltip: 'Price Lists',
@@ -3325,6 +3345,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   title: 'Price Lists',
                   controller: widget.controller,
                   path: _priceListsPath,
+                  canCreateOrder: widget.canCreateOrder,
                   scopeHeaders: widget.scopeHeaders,
                   cachePrefix: widget.cachePrefix,
                   offlineOnly: _offlineOnly || _usedSavedFallback,

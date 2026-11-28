@@ -25,6 +25,7 @@ import 'package:business_suite_mobile/features/inventory_warehouse_form.dart';
 import 'package:business_suite_mobile/features/inventory_tracking_form.dart';
 import 'package:business_suite_mobile/features/inventory_procurement_page.dart';
 import 'package:business_suite_mobile/features/inventory_purchase_order_form.dart';
+import 'package:business_suite_mobile/features/inventory_price_list_form.dart';
 import 'package:business_suite_mobile/features/my_attendance_page.dart';
 import 'package:business_suite_mobile/features/my_leave_page.dart';
 import 'package:business_suite_mobile/features/my_payslips_page.dart';
@@ -1075,6 +1076,67 @@ void main() {
       );
     },
   );
+
+  testWidgets('Creating an inventory price list sends the shared payload', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final writes = <RequestOptions>[];
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.method == 'POST') {
+            writes.add(request);
+            return response({'id': 31});
+          }
+          expect(request.path, SalesOrderDrafts.productsEndpoint);
+          return response({
+            'items': [
+              {'id': 4, 'item_name': 'Packing carton', 'sku': 'BOX-4'},
+            ],
+          });
+        }),
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: InventoryPriceListForm(
+        api: api,
+        scopeHeaders: const {'X-Suite-Organization': '7'},
+      ),
+    ));
+    await tester.tap(find.text('Choose product'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Packing carton'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Price list name'),
+      'Dealer prices',
+    );
+    await tester.enterText(find.widgetWithText(TextFormField, 'Price'), '24');
+    final save = find.text('Save price list');
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    final request = writes.single;
+    expect(request.path, InventoryPriceListForm.endpoint);
+    expect(request.headers['X-Suite-Organization'], '7');
+    final payload = request.data as Map<String, dynamic>;
+    expect(payload['price_list_name'], 'Dealer prices');
+    expect(payload['lines'], [
+      {
+        'product_id': 4,
+        'min_quantity': '1',
+        'price': '24',
+        'discount_percent': '0',
+        'discount_amount': '0',
+        'tax_inclusive': false,
+      },
+    ]);
+  });
 
   testWidgets('Draft quotation date and terms edits use the shared record', (
     tester,
