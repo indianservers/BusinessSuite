@@ -5,6 +5,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'sales_engagement_page.dart';
 
 class SalesOrderPage extends StatefulWidget {
   const SalesOrderPage({
@@ -89,6 +90,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     for (final entry in _linkedRecords.entries)
       if (data[entry.key] case final Json record)
         entry.key: {
+          'id': record['id'],
+          if (entry.key == 'engagement') 'name': record['name'],
           entry.value.$2: record[entry.value.$2],
           'status': record['status'],
         },
@@ -389,6 +392,22 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                             .where((value) => value.isNotEmpty)
                             .join(' · '),
                       ),
+                      trailing: entry.key == 'engagement' && record['id'] is int
+                          ? const Icon(Icons.chevron_right)
+                          : null,
+                      onTap: entry.key == 'engagement' && record['id'] is int
+                          ? () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => SalesEngagementPage(
+                                  api: widget.api,
+                                  summary: record,
+                                  scopeHeaders: widget.scopeHeaders,
+                                  cacheScope: widget.cacheScope,
+                                  offline: pending || snapshot.data == null,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
               ],
             ],

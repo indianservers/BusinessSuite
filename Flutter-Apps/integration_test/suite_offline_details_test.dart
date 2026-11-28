@@ -659,6 +659,13 @@ void main() {
     var engagementStatus = 'active';
     var activations = 0;
     final transportErrors = <String>[];
+    Json engagement() => {
+      'id': 22,
+      'name': 'Site deployment',
+      'engagement_number': 'ENG-022',
+      'status': engagementStatus,
+      'billing_type': 'fixed_fee',
+    };
     Json contract() => {
       'id': 4,
       'title': 'Support renewal',
@@ -667,16 +674,10 @@ void main() {
       'terms': 'Annual maintenance',
       'customer_id': 18,
       'sales_order': {'id': 9, 'order_number': 'SO-009'},
+      'engagement': engagement(),
       'invoices': [
         {'id': 12, 'invoice_number': 'INV-012'},
       ],
-    };
-    Json engagement() => {
-      'id': 22,
-      'name': 'Site deployment',
-      'engagement_number': 'ENG-022',
-      'status': engagementStatus,
-      'billing_type': 'fixed_fee',
     };
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
@@ -737,6 +738,7 @@ void main() {
             '/srm/sales-orders/9' => response({
               'order_number': 'SO-009',
               'terms': 'Linked order terms',
+              'engagement': engagement(),
             }),
             '/srm/invoices/12' => response({
               'invoice_number': 'INV-012',
@@ -785,6 +787,7 @@ void main() {
     for (final (link, detail) in const [
       ('Open customer', 'Shared contract customer'),
       ('SO-009', 'Linked order terms'),
+      ('ENG-022', 'Site deployment'),
       ('INV-012', 'Linked invoice service'),
     ]) {
       final tile = find.widgetWithText(ListTile, link);
@@ -812,6 +815,15 @@ void main() {
             '$transportErrors | ${tester.widgetList<Text>(find.byType(Text)).map((value) => value.data).join(' | ')}',
       );
       expect(find.text('Edit customer'), findsNothing);
+      if (link == 'SO-009') {
+        final engagementLink = find.text('Engagement');
+        await tester.scrollUntilVisible(engagementLink, 200);
+        await tester.tap(engagementLink);
+        await tester.pumpAndSettle();
+        expect(find.text('Site deployment'), findsOneWidget);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
       await tester.pageBack();
       await tester.pumpAndSettle();
     }

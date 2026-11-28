@@ -13,8 +13,8 @@ class SalesEngagementPage extends StatefulWidget {
     required this.scopeHeaders,
     required this.cacheScope,
     required this.offline,
-    required this.canEdit,
-    required this.onChanged,
+    this.canEdit = false,
+    this.onChanged,
   });
 
   static const endpoint = '/srm/engagements';
@@ -24,7 +24,7 @@ class SalesEngagementPage extends StatefulWidget {
   final String? cacheScope;
   final bool offline;
   final bool canEdit;
-  final VoidCallback onChanged;
+  final VoidCallback? onChanged;
 
   @override
   State<SalesEngagementPage> createState() => _SalesEngagementPageState();
@@ -99,7 +99,7 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
       );
       if (!mounted || widget.api.sessionRevision != revision) return;
       _refresh();
-      widget.onChanged();
+      widget.onChanged?.call();
     } on ApiFailure catch (error) {
       if (mounted && widget.api.sessionRevision == revision) {
         setState(() => _error = error.message);

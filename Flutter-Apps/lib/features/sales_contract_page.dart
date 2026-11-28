@@ -6,6 +6,7 @@ import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 import 'crm_customer_page.dart';
 import 'gst_invoice_page.dart';
+import 'sales_engagement_page.dart';
 import 'sales_order_page.dart';
 
 class SalesContractPage extends StatefulWidget {
@@ -70,6 +71,11 @@ class _SalesContractPageState extends State<SalesContractPage> {
             'sales_order': {
               for (final field in ['id', 'order_number', 'title', 'status'])
                 field: order[field],
+            },
+          if (record['engagement'] case final Json engagement)
+            'engagement': {
+              for (final field in ['id', 'engagement_number', 'name', 'status'])
+                field: engagement[field],
             },
           'invoices': [
             for (final invoice
@@ -148,6 +154,7 @@ class _SalesContractPageState extends State<SalesContractPage> {
         final offline = result?.live != true;
         final customerId = record['customer_id'];
         final order = record['sales_order'] as Json?;
+        final engagement = record['engagement'] as Json?;
         final invoices = (record['invoices'] as List? ?? []).whereType<Json>();
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -180,6 +187,7 @@ class _SalesContractPageState extends State<SalesContractPage> {
                 ),
             if (customerId is int ||
                 order?['id'] is int ||
+                engagement?['id'] is int ||
                 invoices.isNotEmpty) ...[
               const Divider(),
               Text(
@@ -219,6 +227,25 @@ class _SalesContractPageState extends State<SalesContractPage> {
                         offline: offline,
                         cacheScope: widget.cacheScope,
                         scopeHeaders: widget.scopeHeaders,
+                      ),
+                    ),
+                  ),
+                ),
+              if (engagement?['id'] is int)
+                ListTile(
+                  title: Text(
+                    '${engagement!['engagement_number'] ?? 'Engagement'}',
+                  ),
+                  subtitle: const Text('Engagement'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SalesEngagementPage(
+                        api: widget.api,
+                        summary: engagement,
+                        scopeHeaders: widget.scopeHeaders,
+                        cacheScope: widget.cacheScope,
+                        offline: offline,
                       ),
                     ),
                   ),
