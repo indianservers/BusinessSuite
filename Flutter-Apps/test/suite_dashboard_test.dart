@@ -5402,6 +5402,8 @@ void main() {
     tester,
   ) async {
     final attempts = <Json>[];
+    final operations = <String>[];
+    var status = 'awaiting_gateway';
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -5421,6 +5423,8 @@ void main() {
                 'currency': 'INR',
                 'available_amount': '400.00',
                 'payable': true,
+                'gateway': {'connected': true, 'test_mode': true},
+                'can_match_receipt': true,
               });
             case ('GET', '/payment-requests'):
               return response({
@@ -5428,8 +5432,12 @@ void main() {
                   if (attempts.length == 2)
                     {
                       ...attempts.last,
+                      'id': 2,
                       'currency': 'INR',
-                      'status': 'awaiting_gateway',
+                      'status': status,
+                      if (status != 'awaiting_gateway')
+                        'payment_url': 'https://pay.example.test/2',
+                      if (status == 'receipt_recorded') 'receipt_id': 12,
                     },
                 ],
               });
@@ -5438,6 +5446,18 @@ void main() {
               return attempts.length == 1
                   ? response({'detail': 'Try again'}, 503)
                   : response({'id': 2}, 201);
+            case ('POST', '/payment-requests/2/link'):
+              operations.add('link');
+              status = 'link_ready';
+              return response({'id': 2, 'status': status});
+            case ('POST', '/payment-requests/2/refresh'):
+              operations.add('refresh');
+              status = 'gateway_paid';
+              return response({'id': 2, 'status': status});
+            case ('POST', '/payment-requests/2/reconcile-receipt'):
+              operations.add('reconcile');
+              status = 'receipt_recorded';
+              return response({'id': 2, 'status': status, 'receipt_id': 12});
             default:
               throw StateError('Unexpected request ${request.path}');
           }
@@ -5471,6 +5491,19 @@ void main() {
     expect(attempts.last['amount'], '125.50');
     expect(find.text('INR 125.50'), findsOneWidget);
     expect(find.text('Payment request saved.'), findsOneWidget);
+    for (final label in [
+      'Generate payment link',
+      'Check provider status',
+      'Match recorded receipt',
+    ]) {
+      final action = find.text(label);
+      await tester.ensureVisible(action);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+    }
+    expect(operations, ['link', 'refresh', 'reconcile']);
+    expect(find.textContaining('Matched to recorded receipt'), findsOneWidget);
+    expect(find.text('Match recorded receipt'), findsNothing);
   });
 
   testWidgets('order summary remains visible after a temporary API failure', (
