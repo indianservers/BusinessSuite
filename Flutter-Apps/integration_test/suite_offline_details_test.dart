@@ -84,8 +84,17 @@ void main() {
             case '/notifications/unread-count':
               return response({'unread': 0});
             case '/srm/sales-orders':
-            case '/srm/engagements':
               return response([]);
+            case '/srm/engagements':
+              return response([
+                {'id': 40, 'name': 'Support delivery'},
+              ]);
+            case '/srm/engagements/40':
+              return response({
+                'id': 40,
+                'name': 'Support delivery',
+                'billing_plan': plan(),
+              });
             case '/srm/billing-plans':
               return response([plan()]);
             case '/srm/billing-plans/32':
@@ -171,12 +180,17 @@ void main() {
       });
     await tester.pumpWidget(BusinessSuiteApp(controller: controller));
     await tester.pumpAndSettle();
-    Future<void> openPlan() async {
+    Future<void> openPlan({bool fromEngagement = false}) async {
       for (final target in [
         find.text('Sales & POS'),
         find.byTooltip('Engagements'),
-        find.byTooltip('Billing plans'),
-        find.text('Support billing'),
+        if (fromEngagement) ...[
+          find.text('Support delivery'),
+          find.text('Open billing plan'),
+        ] else ...[
+          find.byTooltip('Billing plans'),
+          find.text('Support billing'),
+        ],
       ]) {
         await tester.ensureVisible(target);
         await tester.tap(target);
@@ -234,15 +248,22 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
+    await openPlan(fromEngagement: true);
+    expect(find.text('invoiced · 725.5'), findsOneWidget);
+    await flushCrmDetailWrite('["$base",$id,7]:/srm/engagements/40:');
+    for (var index = 0; index < 4; index++) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
     controller.offline = true;
-    await openPlan();
+    await openPlan(fromEngagement: true);
     expect(find.text('Saved billing plan'), findsOneWidget);
     expect(find.text('First delivery'), findsOneWidget);
     expect(find.text('Pause billing plan'), findsNothing);
     expect(checkEligibility, findsNothing);
     expect(milestoneActions, findsNothing);
     expect(find.text('invoiced · 725.5'), findsOneWidget);
-    expect(detailReads, 5);
+    expect(detailReads, 6);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

@@ -5,6 +5,7 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_customer_page.dart';
 import 'pms_project_overview_page.dart';
+import 'sales_billing_plan_page.dart';
 import 'sales_order_page.dart';
 
 class SalesEngagementPage extends StatefulWidget {
@@ -16,6 +17,9 @@ class SalesEngagementPage extends StatefulWidget {
     required this.cacheScope,
     required this.offline,
     this.canEdit = false,
+    this.canApproveInvoices = false,
+    this.canCreateInvoices = false,
+    this.canExportInvoices = false,
     this.onChanged,
   });
 
@@ -26,6 +30,9 @@ class SalesEngagementPage extends StatefulWidget {
   final String? cacheScope;
   final bool offline;
   final bool canEdit;
+  final bool canApproveInvoices;
+  final bool canCreateInvoices;
+  final bool canExportInvoices;
   final VoidCallback? onChanged;
 
   @override
@@ -67,6 +74,11 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
             ..._fields.keys,
           ])
             key: record[key],
+          if (record['billing_plan'] case final Json plan)
+            'billing_plan': {
+              for (final key in ['id', 'name', ...SalesBillingPlanPage.fields])
+                key: plan[key],
+            },
         },
       );
 
@@ -239,6 +251,29 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
                   ),
                 ),
               ),
+            if (record['billing_plan'] case final Json plan)
+              if (plan['id'] is int)
+                ListTile(
+                  title: const Text('Open billing plan'),
+                  subtitle: Text('${plan['name'] ?? ''}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SalesBillingPlanPage(
+                        api: widget.api,
+                        summary: plan,
+                        scopeHeaders: widget.scopeHeaders,
+                        cacheScope: widget.cacheScope,
+                        offline: !live,
+                        canEdit: widget.canEdit,
+                        canApprove: widget.canApproveInvoices,
+                        canCreateInvoice: widget.canCreateInvoices,
+                        canExportInvoice: widget.canExportInvoices,
+                        onChanged: _refresh,
+                      ),
+                    ),
+                  ),
+                ),
             if (record['pms_project_id'] case final int id)
               ListTile(
                 title: const Text('Open delivery project'),

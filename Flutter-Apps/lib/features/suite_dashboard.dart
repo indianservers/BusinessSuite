@@ -4371,6 +4371,12 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                                 _offlineOnly ||
                                                 _usedSavedFallback,
                                             canEdit: widget.canEditOrders,
+                                            canApproveInvoices:
+                                                widget.canIssueInvoices,
+                                            canCreateInvoices:
+                                                widget.canCreateOrderInvoices,
+                                            canExportInvoices:
+                                                widget.canExportSalesDocuments,
                                             onChanged: _refresh,
                                           )
                                         : widget.path ==

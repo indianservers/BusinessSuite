@@ -3466,7 +3466,14 @@ def create_engagement_operation(data: SRMEngagementCreate, db: Session, current_
 def get_engagement(engagement_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     item = get_engagement_for_user(db, engagement_id, current_user)
     links = db.query(SRMEngagementLink).filter(SRMEngagementLink.engagement_id == item.id).all()
-    return _serialize(item) | {"links": [_serialize(link) for link in links]}
+    billing_plan = db.query(SRMBillingPlan).filter(
+        scoped(SRMBillingPlan.organization_id, current_user),
+        SRMBillingPlan.engagement_id == item.id,
+    ).order_by(SRMBillingPlan.id).first()
+    return _serialize(item) | {
+        "links": [_serialize(link) for link in links],
+        "billing_plan": _serialize(billing_plan),
+    }
 
 
 @router.patch("/engagements/{engagement_id}")

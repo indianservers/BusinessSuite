@@ -14,5 +14,8 @@ def test_srm_billing_plan_from_sales_order_is_invoice_ready(client, db, superuse
     assert plan["engagement_id"] == handoff["engagement"]["id"]
     assert plan["total_amount"] == handoff["sales_order"]["total_amount"]
     assert len(plan["milestones"]) == 2
+    engagement = client.get(f"/api/v1/srm/engagements/{plan['engagement_id']}", headers=superuser_headers)
+    assert engagement.status_code == 200, engagement.text
+    assert engagement.json()["billing_plan"]["id"] == plan["id"]
     assert db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == handoff["engagement"]["id"]).count() == 1
     assert db.query(SRMBillingMilestone).filter(SRMBillingMilestone.billing_plan_id == plan["id"]).count() == 2
