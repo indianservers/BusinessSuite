@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
+import '../core/suite_read_cache.dart';
 import 'gst_invoice_page.dart';
 
 class SalesBillingPlanPage extends StatefulWidget {
@@ -69,27 +70,29 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
           setState(() => _cached = record);
         }
       },
-      project: (record) => {
-        for (final field in ['name', ...SalesBillingPlanPage.fields])
-          field: record[field],
-        'milestones': [
-          for (final milestone in _rows(record, 'milestones'))
-            {
-              for (final field in ['name', 'status', 'due_date', 'amount'])
-                field: milestone[field],
-            },
-        ],
-        'invoices': [
-          for (final invoice in _rows(record, 'invoices'))
-            {
-              'id': invoice['id'],
-              for (final field in GstInvoicePage.summaryFields)
-                field: invoice[field],
-            },
-        ],
-      },
+      project: _projectPlan,
     );
   }
+
+  Json _projectPlan(Json record) => {
+    for (final field in ['name', ...SalesBillingPlanPage.fields])
+      field: record[field],
+    'milestones': [
+      for (final milestone in _rows(record, 'milestones'))
+        {
+          for (final field in ['id', 'name', 'status', 'due_date', 'amount'])
+            field: milestone[field],
+        },
+    ],
+    'invoices': [
+      for (final invoice in _rows(record, 'invoices'))
+        {
+          'id': invoice['id'],
+          for (final field in GstInvoicePage.summaryFields)
+            field: invoice[field],
+        },
+    ],
+  };
 
   List<Json> _rows(Json record, String key) =>
       (record[key] as List? ?? const []).whereType<Json>().toList();
@@ -222,7 +225,12 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     }
   }
 
-  Future<Json?> _mutate(String method, String path, {Json? data}) async {
+  Future<Json?> _mutate(
+    String method,
+    String path, {
+    Json? data,
+    Future<void> Function(Json)? saveResult,
+  }) async {
     if (_saving) return null;
     setState(() {
       _saving = true;
@@ -230,16 +238,20 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     });
     final revision = widget.api.sessionRevision;
     try {
-      final result = await widget.api.request(
-        method,
-        path,
-        data: data,
-        scopeHeaders: widget.scopeHeaders,
-      );
+      final result =
+          await widget.api.request(
+                method,
+                path,
+                data: data,
+                scopeHeaders: widget.scopeHeaders,
+              )
+              as Json?;
+      if (revision != widget.api.sessionRevision) return null;
+      if (result != null && saveResult != null) await saveResult(result);
       if (!mounted || revision != widget.api.sessionRevision) return null;
       _refresh();
       widget.onChanged?.call();
-      return result as Json?;
+      return result;
     } catch (error) {
       if (mounted && revision == widget.api.sessionRevision) {
         setState(() => _error = '$error');
@@ -269,7 +281,52 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
     );
   }
 
-  Widget? _milestoneActions(Json milestone, bool live) {
+  Future<void> _saveDraft(Json plan, int milestoneId, Json invoice) async {
+    final scope = widget.cacheScope;
+    final invoiceId = invoice['id'];
+    if (scope == null || invoiceId is! int) return;
+    final api = widget.api;
+    final revision = api.sessionRevision;
+    if (invoice['lines'] is List) {
+      await GstInvoicePage.saveSnapshot(
+        GstInvoicePage.cacheKey(
+          scope,
+          '${GstInvoicePage.listEndpoint}/$invoiceId',
+          widget.scopeHeaders,
+        ),
+        invoice,
+      );
+    }
+    final branch = widget.scopeHeaders['X-Suite-Branch'] ?? '';
+    final key = '$scope:$_path:$branch';
+    try {
+      await flushCrmDetailWrite(key);
+      if (revision != api.sessionRevision) return;
+      await SuiteReadCache.write(key, [
+        _projectPlan({
+          ...plan,
+          'invoiced_value': null,
+          'balance_value': null,
+          'milestones': [
+            for (final milestone in _rows(plan, 'milestones'))
+              if (milestone['id'] == milestoneId)
+                {...milestone, 'status': 'invoiced'}
+              else
+                milestone,
+          ],
+          'invoices': [
+            invoice,
+            for (final linked in _rows(plan, 'invoices'))
+              if (linked['id'] != invoiceId) linked,
+          ],
+        }),
+      ]);
+    } catch (_) {
+      // The shared backend has already created the draft.
+    }
+  }
+
+  Widget? _milestoneActions(Json plan, Json milestone, bool live) {
     final id = milestone['id'];
     final status = milestone['status'];
     if (!live ||
@@ -302,6 +359,7 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
             final invoice = await _mutate(
               'POST',
               '/srm/invoices/draft-from-billing-milestone/$id',
+              saveResult: (invoice) => _saveDraft(plan, id, invoice),
             );
             if (!mounted) return;
             if (invoice?['id'] case final int invoiceId) {
@@ -410,7 +468,7 @@ class _SalesBillingPlanPageState extends State<SalesBillingPlanPage> {
                       milestone['due_date'],
                     ].whereType<Object>().join(' · '),
                   ),
-                  trailing: _milestoneActions(milestone, live),
+                  trailing: _milestoneActions(record, milestone, live),
                 ),
               const ListTile(title: Text('Invoices')),
               if (invoices.isEmpty) const ListTile(title: Text('No invoices')),

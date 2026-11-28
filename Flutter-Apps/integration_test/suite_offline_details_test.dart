@@ -13,6 +13,7 @@ import 'package:business_suite_mobile/core/sales_order_drafts.dart';
 import 'package:business_suite_mobile/core/suite_read_cache.dart';
 import 'package:business_suite_mobile/features/crm_lead_page.dart';
 import 'package:business_suite_mobile/features/sales_contract_page.dart';
+import 'package:business_suite_mobile/features/sales_billing_plan_page.dart';
 import 'package:business_suite_mobile/features/crm_contact_page.dart';
 import 'package:business_suite_mobile/features/crm_customer_page.dart';
 import 'package:business_suite_mobile/features/crm_task_page.dart';
@@ -40,6 +41,85 @@ import '../test/api_client_test.dart' show FakeAdapter, MemoryStore, response;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   final stockConnections = ValueVariant({'offline', 'interrupted'});
+
+  testWidgets('Android saves a milestone invoice when the connection drops', (
+    tester,
+  ) async {
+    final scope = 'milestone-invoice-${DateTime.now().microsecondsSinceEpoch}';
+    var draftCreated = false;
+    var requests = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests++;
+          if (draftCreated) {
+            throw DioException(
+              requestOptions: request,
+              type: DioExceptionType.connectionError,
+            );
+          }
+          if (request.path == '/srm/billing-plans/91') {
+            return response({
+              'name': 'Delivery billing',
+              'milestones': [
+                {
+                  'id': 92,
+                  'name': 'Delivery',
+                  'status': 'approved',
+                  'amount': 50,
+                },
+              ],
+            });
+          }
+          expectSync(
+            request.path,
+            '/srm/invoices/draft-from-billing-milestone/92',
+          );
+          expectSync(request.method, 'POST');
+          draftCreated = true;
+          return response({
+            'id': 93,
+            'invoice_number': 'GST-093',
+            'status': 'draft',
+            'lines': [
+              {'description': 'Saved delivery line'},
+            ],
+          }, 201);
+        }),
+    );
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    Widget app({required bool offline}) => MaterialApp(
+      home: SalesBillingPlanPage(
+        api: api,
+        summary: const {'id': 91},
+        scopeHeaders: const {},
+        cacheScope: scope,
+        offline: offline,
+        canEdit: false,
+        canCreateInvoice: true,
+      ),
+    );
+    await tester.pumpWidget(app(offline: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Actions for Delivery'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Generate invoice draft'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved delivery line'), findsOneWidget);
+    final afterDraft = requests;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(app(offline: true));
+    await tester.pumpAndSettle();
+    expect(find.text('invoiced · 50'), findsOneWidget);
+    await tester.tap(find.text('GST-093'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved delivery line'), findsOneWidget);
+    expect(requests, afterDraft);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('Android reopens a new order invoice offline before viewing it', (
     tester,
