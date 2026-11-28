@@ -15,11 +15,25 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
   required bool offline,
   required Future<Json> Function() load,
   required Json Function(Json) project,
+  required void Function(Json) onCached,
 }) async {
   final revision = api.sessionRevision;
+  var waitingForLive = !offline;
+  final saved = key == null
+      ? Future<Json?>.value()
+      : SuiteReadCache.read(key).then((rows) {
+          final record = rows?.firstOrNull;
+          if (record != null &&
+              waitingForLive &&
+              revision == api.sessionRevision) {
+            onCached(record);
+          }
+          return record;
+        }, onError: (Object _) => null);
   if (!offline) {
     try {
       final record = await load();
+      waitingForLive = false;
       if (revision == api.sessionRevision && key != null) {
         try {
           await SuiteReadCache.write(key, [project(record)]);
@@ -32,6 +46,7 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
       }
       return (record: record, live: true);
     } on ApiFailure catch (error) {
+      waitingForLive = false;
       if (_accessDenied(error) && key != null) {
         try {
           await SuiteReadCache.clear(key);
@@ -43,16 +58,14 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
       }
     }
   }
-  final saved = key == null
-      ? null
-      : (await SuiteReadCache.read(key))?.firstOrNull;
+  final record = await saved;
   if (revision != api.sessionRevision) {
     throw ApiFailure('Your session ended. Sign in again.', 401);
   }
-  if (saved == null) {
+  if (record == null) {
     throw ApiFailure('No payment information saved on this device.');
   }
-  return (record: saved, live: false);
+  return (record: record, live: false);
 }
 
 String? _paymentCacheKey(
@@ -102,10 +115,13 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
   late var _source = _sources.first;
   late var _offline = widget.offline;
   final _search = TextEditingController();
+  Json? _cached;
+  int _loadRevision = 0;
   late var _records = _load(offline: widget.offline);
 
   Future<({Json record, bool live})> _load({bool offline = false}) {
     final source = _source;
+    final revision = ++_loadRevision;
     return _readPaymentSnapshot(
       api: widget.api,
       key: _paymentCacheKey(
@@ -114,6 +130,11 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
         'sources:${source.key}',
       ),
       offline: offline,
+      onCached: (record) {
+        if (mounted && revision == _loadRevision) {
+          setState(() => _cached = record);
+        }
+      },
       load: () async => {'items': await _loadSources(source)},
       project: (record) => {
         'items': [
@@ -155,6 +176,7 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
 
   void _refresh({bool offline = false}) => setState(() {
     _offline = offline;
+    _cached = null;
     _records = _load(offline: offline);
   });
 
@@ -205,10 +227,11 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
           child: FutureBuilder(
             future: _records,
             builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
+              final loading = snapshot.connectionState != ConnectionState.done;
+              if (loading && _cached == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              if (!loading && snapshot.hasError) {
                 return ListTile(
                   title: Text('${snapshot.error}'),
                   trailing: TextButton(
@@ -217,9 +240,12 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                   ),
                 );
               }
-              final saved = !snapshot.data!.live;
+              final data = loading
+                  ? (record: _cached!, live: false)
+                  : snapshot.data!;
+              final saved = !data.live;
               final query = _search.text.trim().toLowerCase();
-              final matches = (snapshot.data!.record['items'] as List)
+              final matches = (data.record['items'] as List)
                   .cast<Json>()
                   .where(
                     (row) =>
@@ -240,7 +266,7 @@ class _PaymentSourceDirectoryState extends State<PaymentSourceDirectory> {
                     return ListTile(
                       title: const Text('Saved payment sources'),
                       trailing: TextButton(
-                        onPressed: _refresh,
+                        onPressed: loading ? null : _refresh,
                         child: const Text('Reconnect'),
                       ),
                     );
@@ -341,34 +367,43 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
     'source_type': widget.sourceType,
     'source_id': widget.sourceId,
   };
+  Json? _cached;
+  int _loadRevision = 0;
   late var _records = _load(offline: widget.offline);
 
-  Future<({Json record, bool live})> _load({bool offline = false}) =>
-      _readPaymentSnapshot(
-        api: widget.api,
-        key: _paymentCacheKey(
-          widget.cacheScope,
-          widget.scopeHeaders,
-          '${widget.sourceType}:${widget.sourceId}',
-        ),
-        offline: offline,
-        load: _loadLive,
-        project: (record) => {
-          'context': {'reference': record['context']['reference']},
-          'items': [
-            for (final row in (record['items'] as List).cast<Json>())
-              {
-                for (final field in [
-                  'currency',
-                  'amount',
-                  'status',
-                  'request_id',
-                ])
-                  field: row[field],
-              },
-          ],
-        },
-      );
+  Future<({Json record, bool live})> _load({bool offline = false}) {
+    final revision = ++_loadRevision;
+    return _readPaymentSnapshot(
+      api: widget.api,
+      key: _paymentCacheKey(
+        widget.cacheScope,
+        widget.scopeHeaders,
+        '${widget.sourceType}:${widget.sourceId}',
+      ),
+      offline: offline,
+      onCached: (record) {
+        if (mounted && revision == _loadRevision) {
+          setState(() => _cached = record);
+        }
+      },
+      load: _loadLive,
+      project: (record) => {
+        'context': {'reference': record['context']['reference']},
+        'items': [
+          for (final row in (record['items'] as List).cast<Json>())
+            {
+              for (final field in [
+                'currency',
+                'amount',
+                'status',
+                'request_id',
+              ])
+                field: row[field],
+            },
+        ],
+      },
+    );
+  }
 
   Future<Json> _loadLive() async {
     Future<Object?> read(String path) async {
@@ -396,6 +431,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
   }
 
   void _refresh() => setState(() {
+    _cached = null;
     _records = _load();
   });
 
@@ -611,11 +647,14 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
     body: FutureBuilder(
       future: _records,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        final loading = snapshot.connectionState != ConnectionState.done;
+        if (loading && _cached == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) return Center(child: Text('${snapshot.error}'));
-        final data = snapshot.data!;
+        if (!loading && snapshot.hasError) {
+          return Center(child: Text('${snapshot.error}'));
+        }
+        final data = loading ? (record: _cached!, live: false) : snapshot.data!;
         final source = data.record['context'] as Json;
         final items = (data.record['items'] as List).cast<Json>();
         final gateway = source['gateway'] as Json?;
@@ -624,6 +663,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (loading) const LinearProgressIndicator(),
             Text(
               '${source['reference']}',
               style: Theme.of(context).textTheme.titleLarge,

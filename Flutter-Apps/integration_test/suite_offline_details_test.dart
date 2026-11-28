@@ -49,6 +49,7 @@ void main() {
     final scope = 'payments-${DateTime.now().microsecondsSinceEpoch}';
     var requests = 0;
     var accessRemoved = false;
+    final listingFailure = Completer<ResponseBody>();
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
@@ -59,8 +60,7 @@ void main() {
             return response({'detail': 'Temporary failure'}, 503);
           }
           if (accessRemoved && request.path == '/payment-requests') {
-            await Future<void>.delayed(const Duration(milliseconds: 200));
-            return response({'detail': 'Payment access removed'}, 403);
+            return listingFailure.future;
           }
           return switch (request.path) {
             '/srm/business/collection-invoices' => response({
@@ -129,6 +129,18 @@ void main() {
     expect(requests, 3);
     accessRemoved = true;
     await tester.tap(find.byTooltip('Refresh payment requests'));
+    final savedAmount = find.text('INR 100');
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    do {
+      await tester.pump(const Duration(milliseconds: 100));
+    } while (savedAmount.evaluate().isEmpty &&
+        DateTime.now().isBefore(deadline));
+    expect(savedAmount, findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('Save payment request'), findsNothing);
+    listingFailure.complete(
+      response({'detail': 'Payment access removed'}, 403),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Payment access removed'), findsOneWidget);
     expect(find.text('INR 100'), findsNothing);
