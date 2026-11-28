@@ -5398,6 +5398,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Invoice 19'), findsOneWidget);
   });
+  final invoiceCollectionAccess = ValueVariant({true, false});
+  testWidgets('GST invoice opens Payment Requests with its seller branch', (
+    tester,
+  ) async {
+    final allowed = invoiceCollectionAccess.currentValue!;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          switch (request.path) {
+            case '/srm/invoices/85':
+              return response({
+                'invoice_number': 'GST-085',
+                'document_status': 'issued',
+                'branch_id': 6,
+                'can_request_payment': allowed,
+              });
+            case '/payment-requests/context':
+            case '/payment-requests':
+              expect(request.headers['X-Suite-Branch'], '6');
+              expect(request.queryParameters, {
+                'source_type': 'srm_invoice',
+                'source_id': 85,
+              });
+              return response(
+                request.path.endsWith('/context')
+                    ? {
+                        'reference': 'GST-085',
+                        'currency': 'INR',
+                        'available_amount': '400',
+                        'payable': true,
+                      }
+                    : {'items': []},
+              );
+            default:
+              throw StateError('Unexpected request ${request.path}');
+          }
+        }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: GstInvoicePage(api: api, id: 85)),
+    );
+    await tester.pumpAndSettle();
+    final action = find.text('Request payment');
+    expect(action, allowed ? findsOneWidget : findsNothing);
+    if (allowed) {
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(find.text('Available to request · INR 400'), findsOneWidget);
+    }
+  }, variant: invoiceCollectionAccess);
+
   testWidgets('Sales order requests a payment and retries with the same ID', (
     tester,
   ) async {

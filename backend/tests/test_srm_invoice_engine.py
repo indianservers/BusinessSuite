@@ -13,6 +13,8 @@ def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuse
     draft = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
     assert draft.status_code == 201, draft.text
     invoice = draft.json()
+    path = f"/api/v1/srm/invoices/{invoice['id']}"
+    assert client.get(path, headers=superuser_headers).json()["can_request_payment"] is False
 
     duplicate = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
     assert duplicate.status_code == 409
@@ -27,6 +29,7 @@ def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuse
 
     approved = client.post(f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=superuser_headers)
     assert approved.status_code == 200, approved.text
+    assert client.get(path, headers=superuser_headers).json()["can_request_payment"] is True
     sent = client.post(f"/api/v1/srm/invoices/{invoice['id']}/send", headers=superuser_headers)
     assert sent.status_code == 200, sent.text
     assert sent.json()["status"] == "sent"

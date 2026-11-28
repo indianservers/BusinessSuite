@@ -4373,8 +4373,15 @@ def list_invoices(summary_only: bool = False, search: str = Query("", max_length
 
 @router.get("/invoices/{invoice_id}")
 def get_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+    from app.apps.srm.access import has_any_permission
     invoice = _get_invoice(db, invoice_id, current_user)
-    return _invoice_payload(invoice, db)
+    payload = _invoice_payload(invoice, db)
+    payload["can_request_payment"] = (
+        payload["document_status"] == "issued"
+        and payload["seller_id"] in {None, tenant(current_user)}
+        and has_any_permission(current_user, {"srm_collection_create", "srm_admin"})
+    )
+    return payload
 
 
 @router.patch("/invoices/{invoice_id}")

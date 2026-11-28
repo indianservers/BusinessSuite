@@ -9,6 +9,7 @@ import '../core/models.dart';
 import '../core/sales_order_drafts.dart';
 import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
+import 'payment_requests_page.dart';
 import 'sales_order_drafts_page.dart';
 
 const _invoiceDates = {'issue_date': 'Issue date', 'due_date': 'Due date'};
@@ -915,6 +916,21 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
                 onPressed: _exporting ? null : () => _export(invoice),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: Text(_exporting ? 'Preparing PDF…' : 'Save invoice PDF'),
+              ),
+            if (!saved && invoice['can_request_payment'] == true)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Request payment'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PaymentRequestsPage(
+                      api: widget.api,
+                      sourceType: 'srm_invoice',
+                      sourceId: widget.id,
+                      scopeHeaders: _invoiceHeaders,
+                    ),
+                  ),
+                ),
               ),
             for (final field in const {
               'issue_date': 'Issue date',
