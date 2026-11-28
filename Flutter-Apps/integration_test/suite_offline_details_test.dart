@@ -659,11 +659,13 @@ void main() {
     var engagementStatus = 'active';
     var activations = 0;
     var historyRequests = 0;
+    var projectRequests = 0;
     final transportErrors = <String>[];
     Json engagement() => {
       'id': 22,
       'name': 'Site deployment',
       'engagement_number': 'ENG-022',
+      'pms_project_id': 47,
       'customer_id': 18,
       'status': engagementStatus,
       'billing_type': 'fixed_fee',
@@ -699,6 +701,9 @@ void main() {
           if (request.path == '/srm/engagements/22/timeline') {
             historyRequests++;
           }
+          if (request.path == '/project-management/projects/47') {
+            projectRequests++;
+          }
           if (request.path == '/srm/engagements/22/lifecycle/close') {
             expectSync(request.method, 'POST');
             expectSync(request.data, {'reason': 'Work accepted'});
@@ -733,6 +738,12 @@ void main() {
             '/srm/contracts/4' => response(contract()),
             '/srm/engagements' => response([engagement()]),
             '/srm/engagements/22' => response(engagement()),
+            '/project-management/projects/47' => response({
+              'id': 47,
+              'name': 'Delivery rollout',
+              'project_key': 'DEPLOY',
+              'progress_percent': 65,
+            }),
             '/srm/engagements/22/timeline' => response({
               'audit': [
                 {
@@ -862,6 +873,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Site deployment'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Open delivery project'), 200);
+    await tester.tap(find.text('Open delivery project'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delivery rollout'), findsOneWidget);
+    expect(find.text('65%'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Open customer'), 200);
     await tester.tap(find.text('Open customer'));
     await tester.pumpAndSettle();
@@ -926,6 +944,14 @@ void main() {
     expect(find.text('Saved lifecycle history'), findsOneWidget);
     expect(find.textContaining('Work accepted'), findsOneWidget);
     expect(historyRequests, 1);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Open delivery project'));
+    await tester.tap(find.text('Open delivery project'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved project overview'), findsOneWidget);
+    expect(find.text('Delivery rollout'), findsOneWidget);
+    expect(projectRequests, 1);
   });
 
   testWidgets('Android reopens stock activity reports offline', (tester) async {

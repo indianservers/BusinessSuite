@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import 'crm_customer_page.dart';
+import 'pms_project_overview_page.dart';
 import 'sales_order_page.dart';
 
 class SalesEngagementPage extends StatefulWidget {
@@ -182,6 +183,22 @@ class _SalesEngagementPageState extends State<SalesEngagementPage> {
                       offline: !live,
                       cacheScope: widget.cacheScope,
                       scopeHeaders: widget.scopeHeaders,
+                    ),
+                  ),
+                ),
+              ),
+            if (record['pms_project_id'] case final int id)
+              ListTile(
+                title: const Text('Open delivery project'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PmsProjectOverviewPage(
+                      api: widget.api,
+                      projectId: id,
+                      scopeHeaders: widget.scopeHeaders,
+                      cacheScope: widget.cacheScope,
+                      offline: !live,
                     ),
                   ),
                 ),
