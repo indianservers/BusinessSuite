@@ -4289,11 +4289,19 @@ def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depe
 
 
 @router.get("/invoices")
-def list_invoices(summary_only: bool = False, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+def list_invoices(summary_only: bool = False, search: str = Query("", max_length=220),
+                  db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
     from sqlalchemy.orm import selectinload
     from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
     from app.branches.presentation import prefetch_branch_names, record_branch_id
-    query = authorized_invoice_query(db, current_user).order_by(SRMInvoice.id.desc()).limit(200)
+    query = authorized_invoice_query(db, current_user)
+    term = search.strip()
+    if term:
+        query = query.filter(or_(
+            SRMInvoice.invoice_number.icontains(term, autoescape=True),
+            SRMInvoice.status.icontains(term, autoescape=True),
+        ))
+    query = query.order_by(SRMInvoice.id.desc()).limit(200)
     items = (query if summary_only else query.options(selectinload(SRMInvoice.lines))).all()
     if not items:
         return []

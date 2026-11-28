@@ -1657,9 +1657,13 @@ void main() {
     },
   );
 
-  testWidgets('Android Sales searches older orders and falls back offline', (
+  final invoiceSearch = ValueVariant<bool>({false, true});
+  testWidgets('Android searches older sales orders and GST invoices', (
     tester,
   ) async {
+    final invoice = invoiceSearch.currentValue!;
+    final endpoint = invoice ? '/srm/invoices' : '/srm/sales-orders';
+    final numberField = invoice ? 'invoice_number' : 'order_number';
     final id = DateTime.now().microsecondsSinceEpoch;
     var requests = 0;
     final searches = <Object?>[];
@@ -1676,7 +1680,9 @@ void main() {
             });
           case '/notifications/unread-count':
             return response({'unread': 0});
-          case '/srm/sales-orders':
+          case '/srm/sales-orders' when invoice:
+            return response([]);
+          case final path when path == endpoint:
             if (request.queryParameters['search'] case final String term) {
               searches.add(term);
               if (lostConnection) {
@@ -1686,12 +1692,12 @@ void main() {
                 );
               }
               return response([
-                {'id': 2, 'order_number': 'ARCHIVED-ORDER'},
+                {'id': 2, numberField: 'ARCHIVED-RECORD'},
               ]);
             }
             requests++;
             return response([
-              {'id': 1, 'order_number': 'QA-SALE-$requests'},
+              {'id': 1, numberField: 'QA-SALE-$requests'},
             ]);
           default:
             throw StateError('Unexpected request ${request.path}');
@@ -1720,6 +1726,10 @@ void main() {
     }
 
     await openSales();
+    if (invoice) {
+      await tester.tap(find.byTooltip('GST Billing'));
+      await tester.pumpAndSettle();
+    }
     expect(find.text('QA-SALE-1'), findsOneWidget);
     expect(requests, 1);
     await tester.tap(find.byTooltip('Refresh'));
@@ -1736,15 +1746,17 @@ void main() {
     expect(requests, 2);
     final search = find.byType(TextField);
     await tester.enterText(search, 'archived');
-    await waitForOrder('ARCHIVED-ORDER');
+    await waitForOrder('ARCHIVED-RECORD');
     expect(searches, ['archived']);
     final snapshots = await SuiteReadCache.read(
-      '["https://example.test/api/v1",$id,7]:/srm/sales-orders',
+      '["https://example.test/api/v1",$id,7]:$endpoint',
     );
-    expect(snapshots?.single['order_number'], 'QA-SALE-2');
+    expect(snapshots?.single[numberField], 'QA-SALE-2');
     lostConnection = true;
     await tester.enterText(search, 'QA-SALE');
-    final savedSearch = find.text('Search saved orders');
+    final savedSearch = find.text(
+      invoice ? 'Search saved invoices' : 'Search saved orders',
+    );
     final deadline = DateTime.now().add(const Duration(seconds: 15));
     while (savedSearch.evaluate().isEmpty &&
         DateTime.now().isBefore(deadline)) {
@@ -1756,7 +1768,7 @@ void main() {
     expect(find.widgetWithText(ListTile, 'QA-SALE-2'), findsOneWidget);
     expect(searches, ['archived', 'QA-SALE']);
     await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }, variant: invoiceSearch);
 
   testWidgets(
     'Android Notes reopens a durable draft and syncs it after reconnect',

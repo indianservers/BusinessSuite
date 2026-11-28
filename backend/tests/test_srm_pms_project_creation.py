@@ -115,6 +115,27 @@ def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superu
     assert header["payment_status"] == "partially_paid"
 
 
+def test_invoice_search_finds_an_older_number_before_the_list_limit(client, db, superuser_headers):
+    older = SRMInvoice(organization_id=1, invoice_number="OLD_%_GST-42")
+    db.add(older)
+    db.flush()
+    recent = [
+        SRMInvoice(organization_id=1, invoice_number=f"RECENT-GST-{index}")
+        for index in range(200)
+    ]
+    db.add_all(recent)
+    own_workflow_records(db, older, *recent)
+    db.commit()
+
+    path = "/api/v1/srm/invoices"
+    response = client.get(path, headers=superuser_headers, params={"summary_only": True})
+    assert response.status_code == 200, response.text
+    assert older.id not in {row["id"] for row in response.json()}
+    search = client.get(path, headers=superuser_headers, params={"summary_only": True, "search": "old_%_gst"})
+    assert search.status_code == 200, search.text
+    assert [row["id"] for row in search.json()] == [older.id]
+
+
 def test_srm_engagement_rejects_pms_project_before_sales_order_confirmed(client, db, superuser_headers):
     order = client.post("/api/v1/srm/sales-orders", headers=superuser_headers, json={"title": "Unconfirmed order"}).json()
     engagement = client.post("/api/v1/srm/engagements", headers=superuser_headers, json={

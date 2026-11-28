@@ -1808,7 +1808,10 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _isEmployees => widget.path == '/employees/';
   bool get _hasPages => _cachePagedRecords || _isEmployees;
   bool get _searchOnServer =>
-      _hasPages || _inventory || widget.path == '/srm/sales-orders';
+      _hasPages ||
+      _inventory ||
+      widget.path == '/srm/sales-orders' ||
+      widget.path == GstInvoicePage.listEndpoint;
   late bool _offlineOnly = widget.offlineOnly;
   late Future<List<Json>> _records = _startLoad();
   List<Json>? _cached;
@@ -3733,7 +3736,9 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                   _valuationPath => 'Search products',
                                   _ when _activityReport => 'Search products',
                                   GstInvoicePage.listEndpoint =>
-                                    'Search invoices',
+                                    cached
+                                        ? 'Search saved invoices'
+                                        : 'Search invoices',
                                   FinancePartyPage.endpoint => 'Search parties',
                                   '/employees/' => 'Search employees',
                                   '/srm/sales-orders' =>
