@@ -6,6 +6,9 @@ import '../core/api_client.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
 
+bool _accessDenied(ApiFailure error) =>
+    const {401, 403, 404}.contains(error.status);
+
 Future<({Json record, bool live})> _readPaymentSnapshot({
   required ApiClient api,
   required String? key,
@@ -29,7 +32,7 @@ Future<({Json record, bool live})> _readPaymentSnapshot({
       }
       return (record: record, live: true);
     } on ApiFailure catch (error) {
-      if (const {401, 403, 404}.contains(error.status) && key != null) {
+      if (_accessDenied(error) && key != null) {
         try {
           await SuiteReadCache.clear(key);
         } catch (_) {}
@@ -368,18 +371,27 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage> {
       );
 
   Future<Json> _loadLive() async {
-    final result = await Future.wait([
-      for (final path in ['$_path/context', _path])
-        widget.api.request(
+    Future<Object?> read(String path) async {
+      try {
+        return await widget.api.request(
           'GET',
           path,
           query: _source,
           scopeHeaders: widget.scopeHeaders,
-        ),
-    ]);
+        );
+      } on ApiFailure catch (error) {
+        return error;
+      }
+    }
+
+    final result = await Future.wait([read('$_path/context'), read(_path)]);
+    final errors = result.whereType<ApiFailure>();
+    final failure =
+        errors.where(_accessDenied).firstOrNull ?? errors.firstOrNull;
+    if (failure != null) throw failure;
     return {
       'context': result.first as Json,
-      'items': result.last['items'] as List,
+      'items': (result.last as Json)['items'] as List,
     };
   }
 

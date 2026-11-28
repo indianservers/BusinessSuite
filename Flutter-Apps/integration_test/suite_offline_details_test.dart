@@ -48,12 +48,20 @@ void main() {
   ) async {
     final scope = 'payments-${DateTime.now().microsecondsSinceEpoch}';
     var requests = 0;
+    var accessRemoved = false;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           requests++;
+          if (accessRemoved && request.path == '/payment-requests/context') {
+            return response({'detail': 'Temporary failure'}, 503);
+          }
+          if (accessRemoved && request.path == '/payment-requests') {
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+            return response({'detail': 'Payment access removed'}, 403);
+          }
           return switch (request.path) {
             '/srm/business/collection-invoices' => response({
               'items': [
@@ -119,6 +127,21 @@ void main() {
     expect(find.text('Save payment request'), findsNothing);
     expect(find.text('Copy request text'), findsNothing);
     expect(requests, 3);
+    accessRemoved = true;
+    await tester.tap(find.byTooltip('Refresh payment requests'));
+    await tester.pumpAndSettle();
+    expect(find.text('Payment access removed'), findsOneWidget);
+    expect(find.text('INR 100'), findsNothing);
+    expect(requests, 5);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await openDirectory(offline: true);
+    expect(
+      find.text('No payment information saved on this device.'),
+      findsOneWidget,
+    );
+    expect(find.text('INR 100'), findsNothing);
+    expect(requests, 5);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
