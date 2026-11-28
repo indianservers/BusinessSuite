@@ -89,6 +89,20 @@ void main() {
             '/srm/business/invoices/17' => response({
               'invoice_number': 'GST-17',
               'currency': 'INR',
+              'deliveries': [
+                {
+                  'status': 'failed',
+                  'request_id': 'send-17',
+                  'error': 'Mailbox unavailable',
+                },
+              ],
+              'history': [
+                {
+                  'from_status': 'draft',
+                  'to_status': 'approved',
+                  'notes': 'Approved by finance',
+                },
+              ],
               'payments': [
                 {
                   'receipt_id': 43,
@@ -196,10 +210,20 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'GST-17'));
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
-    await tester.tap(find.text('Payment history'));
+    await tester.tap(find.text('Invoice history'));
     await tester.pumpAndSettle();
     expect(find.text('Receipt #43'), findsOneWidget);
     expect(find.textContaining('Reversed'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('Mailbox unavailable'),
+      180,
+    );
+    expect(find.textContaining('Reference send-17'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('Approved by finance'),
+      180,
+    );
+    expect(find.text('draft → approved'), findsOneWidget);
     await flushCrmDetailWrite(
       '$scope:/srm/business/invoices/17:4:payment-history',
     );
@@ -215,11 +239,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GstInvoicePage), findsOneWidget);
     expect(find.text('INR 200'), findsOneWidget);
-    await tester.tap(find.text('Payment history'));
+    await tester.tap(find.text('Invoice history'));
     await tester.pumpAndSettle();
-    expect(find.text('Saved payment history'), findsOneWidget);
+    expect(find.text('Saved invoice history'), findsOneWidget);
     expect(find.text('Receipt #42'), findsOneWidget);
     expect(find.textContaining('Reversed'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('Mailbox unavailable'),
+      180,
+    );
+    expect(find.textContaining('Reference send-17'), findsOneWidget);
     expect(requests, 9);
     await tester.pumpWidget(const SizedBox.shrink());
   });

@@ -10,7 +10,7 @@ import '../core/sales_order_drafts.dart';
 import '../core/suite_pdf.dart';
 import '../core/suite_read_cache.dart';
 import 'invoice_receipt_dialog.dart';
-import 'gst_payment_history_page.dart';
+import 'gst_invoice_history_page.dart';
 import 'payment_requests_page.dart';
 import 'sales_order_drafts_page.dart';
 
@@ -975,10 +975,10 @@ class _GstInvoicePageState extends State<GstInvoicePage> {
             }.contains(invoice['document_status']))
               OutlinedButton.icon(
                 icon: const Icon(Icons.history),
-                label: const Text('Payment history'),
+                label: const Text('Invoice history'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => GstPaymentHistoryPage(
+                    builder: (_) => GstInvoiceHistoryPage(
                       api: widget.api,
                       invoiceId: widget.id,
                       scopeHeaders: _invoiceHeaders,
