@@ -2874,7 +2874,7 @@ void main() {
     variant: tagConnections,
   );
 
-  testWidgets('Notes reopens previously viewed private archive notes offline', (
+  testWidgets('Notes reopens and unarchives a private note offline', (
     tester,
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
@@ -2882,6 +2882,7 @@ void main() {
     final cache = NotesOfflineCache('["https://example.test/api/v1",203,7]');
     const note = {
       'id': 4,
+      'version': 2,
       'title': 'Archived release',
       'content': 'Saved release approval',
       'archived': true,
@@ -2890,15 +2891,24 @@ void main() {
       'visibility_scope': 'private',
     };
     var requests = 0;
+    var restored = false;
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
           requests++;
+          if (request.method == 'PUT') {
+            expect(request.path, '/project-management/notes/4');
+            expect(request.data['version'], 2);
+            expect(request.data['archived'], isFalse);
+            expect(request.headers['X-Offline-Operation'], isNotEmpty);
+            restored = true;
+            return response({...note, 'archived': false, 'version': 3});
+          }
           if (request.path.endsWith('/4')) return response(note);
           return response(
-            request.queryParameters['view'] == 'archive'
+            request.queryParameters['view'] == 'archive' && !restored
                 ? [
                     note,
                     {...note, 'id': 5, 'visibility': 'shared'},
@@ -2934,9 +2944,20 @@ void main() {
     expect(find.text('Saved release approval'), findsOneWidget);
     expect(
       tester.widget<TextField>(find.byType(TextField).last).readOnly,
-      isTrue,
+      isFalse,
     );
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Archived'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect((await cache.pending(4))?['values']['archived'], isFalse);
     expect(requests, onlineRequests);
+    await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    await tester.runAsync(() => cache.sync(api));
+    await tester.pumpAndSettle();
+    expect(await cache.pending(4), isNull);
+    expect(await cache.archivedDetail(4), isNull);
+    expect((await cache.detail(4))?['content'], 'Saved release approval');
   });
 
   testWidgets('Notes moves a saved note through the shared folder action', (

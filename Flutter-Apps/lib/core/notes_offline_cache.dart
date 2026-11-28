@@ -284,7 +284,7 @@ class NotesOfflineCache {
       });
 
   bool canQueueEdit(Json note) =>
-      note['id'] is int && note['version'] is int && _eligible(note);
+      note['id'] is int && note['version'] is int && _privateNote(note);
 
   Future<void> discard(Object? id) => _serial(() async {
     final edits = await _edits();
