@@ -92,6 +92,20 @@ void main() {
                 'id': 41,
                 'order_number': 'SO-041',
                 'billing_plan': plan(),
+                'contract': {'id': 42, 'contract_number': 'CT-042'},
+                'pms_project': {'id': 43, 'name': 'Support rollout'},
+              });
+            case '/srm/contracts/42':
+              return response({
+                'id': 42,
+                'contract_number': 'CT-042',
+                'title': 'Support agreement',
+                'status': 'active',
+              });
+            case '/project-management/projects/43':
+              return response({
+                'name': 'Support rollout',
+                'progress_percent': 65,
               });
             case '/srm/engagements':
               return response([
@@ -263,21 +277,43 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
-    Future<void> openPlanFromOrder() async {
-      for (final target in [
-        find.text('Sales & POS'),
-        find.text('SO-041'),
-        find.text('Billing plan'),
-      ]) {
+    Future<void> openOrder() async {
+      for (final target in [find.text('Sales & POS'), find.text('SO-041')]) {
         await tester.ensureVisible(target);
         await tester.tap(target);
         await tester.pumpAndSettle();
       }
     }
 
-    await openPlanFromOrder();
+    Future<void> openLinkedRecord(String label) async {
+      final link = find.widgetWithText(ListTile, label);
+      await tester.ensureVisible(link);
+      await tester.tap(link);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> checkContractAndProject({required bool offline}) async {
+      await openLinkedRecord('Contract');
+      expect(find.text('Support agreement'), findsOneWidget);
+      if (offline) expect(find.text('Saved contract'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await openLinkedRecord('Project');
+      expect(find.text('65%'), findsOneWidget);
+      if (offline) expect(find.text('Saved project overview'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+
+    await openOrder();
+    await checkContractAndProject(offline: false);
+    await openLinkedRecord('Billing plan');
     expect(find.text('invoiced · 725.5'), findsOneWidget);
     await flushCrmDetailWrite('["$base",$id,7]:/srm/sales-orders/41');
+    await flushCrmDetailWrite('["$base",$id,7]:/srm/contracts/42:');
+    await flushCrmDetailWrite(
+      '["$base",$id,7]:/project-management/projects/43:',
+    );
     for (var index = 0; index < 3; index++) {
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -294,7 +330,9 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
-    await openPlanFromOrder();
+    await openOrder();
+    await checkContractAndProject(offline: true);
+    await openLinkedRecord('Billing plan');
     expect(find.text('Saved billing plan'), findsOneWidget);
     expect(find.text('invoiced · 725.5'), findsOneWidget);
     expect(detailReads, 7);

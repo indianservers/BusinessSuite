@@ -5,7 +5,9 @@ import '../core/crm_detail_snapshot.dart';
 import '../core/inventory_stock_receipts.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'pms_project_overview_page.dart';
 import 'sales_billing_plan_page.dart';
+import 'sales_contract_page.dart';
 import 'sales_engagement_page.dart';
 
 class SalesOrderPage extends StatefulWidget {
@@ -445,8 +447,18 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget? _linkedPage(String kind, Json record, {required bool offline}) {
-    if (record['id'] is! int) return null;
+    final id = record['id'];
+    if (id is! int) return null;
     return switch (kind) {
+      'contract' => SalesContractPage(
+        api: widget.api,
+        summary: record,
+        scopeHeaders: widget.scopeHeaders,
+        cacheScope: widget.cacheScope,
+        offline: offline,
+        canEdit: widget.canManageBilling,
+        onChanged: _refresh,
+      ),
       'engagement' => SalesEngagementPage(
         api: widget.api,
         summary: record,
@@ -465,6 +477,13 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         canCreateInvoice: widget.invoiceBuilder != null,
         canExportInvoice: widget.canExportInvoices,
         onChanged: _refresh,
+      ),
+      'pms_project' => PmsProjectOverviewPage(
+        api: widget.api,
+        projectId: id,
+        scopeHeaders: widget.scopeHeaders,
+        cacheScope: widget.cacheScope,
+        offline: offline,
       ),
       _ => null,
     };
