@@ -1757,6 +1757,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
   bool get _activityReport =>
       InventoryStockReceipts.activityReports.containsKey(widget.path);
   bool get _stockAlerts => widget.path == _reorderPath;
+  static const _priceListsPath = '/srm/pricing/price-lists';
+  bool get _priceLists => widget.path == _priceListsPath;
+  static const _priceListFields = [
+    'price_list_code',
+    'price_list_name',
+    'channel',
+    'customer_type',
+    'currency',
+    'priority',
+  ];
   bool get _inventory => widget.path == InventoryOfflineCreates.itemsEndpoint;
 
   num? _stockNumber(Object? value) =>
@@ -1988,6 +1998,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                   _warehouseStock ||
                   _stockSummary ||
                   _stockAlerts ||
+                  _priceLists ||
                   _valuation ||
                   _activityReport ||
                   path == '/srm/sales-orders' ||
@@ -2172,6 +2183,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               'status',
               'title',
               'name',
+              if (_priceLists) ..._priceListFields,
               'first_name',
               'last_name',
               'full_name',
@@ -2253,6 +2265,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
               ),
             if (_valuation && record['totals_by_currency'] is List)
               'totals_by_currency': record['totals_by_currency'],
+            if (_priceLists) 'active': record['active'],
           },
       ];
       Future<void> saveProjection() async {
@@ -3304,6 +3317,23 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           ),
         if (_inventory)
           IconButton(
+            tooltip: 'Price Lists',
+            icon: const Icon(LucideIcons.receipt),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _SuiteRecords(
+                  title: 'Price Lists',
+                  controller: widget.controller,
+                  path: _priceListsPath,
+                  scopeHeaders: widget.scopeHeaders,
+                  cachePrefix: widget.cachePrefix,
+                  offlineOnly: _offlineOnly || _usedSavedFallback,
+                ),
+              ),
+            ),
+          ),
+        if (_inventory)
+          IconButton(
             tooltip: 'Stock Summary',
             icon: const Icon(LucideIcons.list),
             onPressed: () => Navigator.of(context).push(
@@ -3796,6 +3826,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                               [
                                     'title',
                                     'name',
+                                    if (_priceLists) ..._priceListFields,
                                     'first_name',
                                     'last_name',
                                     'order_number',
@@ -4107,6 +4138,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                           item['last_name'],
                         ].whereType<String>().join(' ');
                         final label =
+                            (_priceLists ? item['price_list_name'] : null) ??
                             (_warehouses ? item['warehouse_name'] : null) ??
                             item['item_name'] ??
                             item['title'] ??
@@ -4124,6 +4156,16 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
                                 ? 'Record ${item['id'] ?? index + 1}'
                                 : name);
                         final subtitle = [
+                          if (_priceLists) ...[
+                            item['price_list_code'],
+                            item['channel'],
+                            item['customer_type'],
+                            item['currency'],
+                            if (item['priority'] != null)
+                              "Priority ${item['priority']}",
+                            if (item['active'] case final bool active)
+                              active ? 'Active' : 'Inactive',
+                          ],
                           if (widget.path == SalesContractPage.endpoint)
                             item['contract_number'],
                           if (widget.path == SalesEngagementPage.endpoint)

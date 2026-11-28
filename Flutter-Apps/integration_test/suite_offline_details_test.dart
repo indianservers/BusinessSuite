@@ -1767,6 +1767,20 @@ void main() {
               },
             ],
           }),
+          '/srm/pricing/price-lists' => response({
+            'items': [
+              {
+                'id': 31,
+                'price_list_name': 'Wholesale rates',
+                'price_list_code': 'PL-31',
+                'channel': 'dealer',
+                'customer_type': 'business',
+                'currency': 'INR',
+                'priority': 10,
+                'active': true,
+              },
+            ],
+          }),
           '/srm/inventory/reports/stock-summary' => response({
             'items': [
               {
@@ -1862,6 +1876,12 @@ void main() {
       await tap(find.text('Favorites (1)'));
       await tap(find.text('Sales & POS'));
       await tap(find.byTooltip('Inventory'));
+      await tap(find.byTooltip('Price Lists'));
+      expect(find.text('Wholesale rates'), findsOneWidget);
+      expect(find.textContaining('PL-31'), findsOneWidget);
+      expect(find.textContaining('Priority 10 · Active'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tap(find.byTooltip('Warehouses'));
       await tap(find.byTooltip('Warehouse Stock'));
       for (final (branch, other, value) in [
