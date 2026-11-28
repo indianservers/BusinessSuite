@@ -42,6 +42,7 @@ def test_sales_order_summary_preserves_header_and_skips_lines(client, superuser_
     detailed = next(row for row in full.json() if row["id"] == order["id"])
     assert detailed["lines"]
     assert header == {key: detailed[key] for key in header}
+    assert "updated_at" in header
     assert "lines" not in header
     found = client.get(path, headers=superuser_headers, params={
         "summary_only": True, "search": order["order_number"].lower(),
@@ -96,6 +97,7 @@ def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superu
     invoice = SRMInvoice(
         organization_id=1, invoice_number="SUMMARY-QA", total_amount=100,
         paid_amount=20, balance_amount=80,
+        updated_at=datetime(2026, 11, 28, 10),
         lines=[SRMInvoiceLine(description="Invoice line")],
     )
     db.add(invoice)
@@ -110,6 +112,7 @@ def test_invoice_summary_keeps_lifecycle_status_without_lines(client, db, superu
     detailed = next(row for row in full.json() if row["id"] == invoice.id)
     assert detailed["lines"]
     assert header == {field: detailed[field] for field in header}
+    assert datetime.fromisoformat(header["updated_at"]).replace(tzinfo=None) == datetime(2026, 11, 28, 10)
     detail = client.get(f"{path}/{invoice.id}", headers=superuser_headers)
     assert detail.status_code == 200, detail.text
     assert header["branch_id"] is not None

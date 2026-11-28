@@ -1674,6 +1674,7 @@ void main() {
     tester,
   ) async {
     final kind = commercialSearch.currentValue!;
+    final usesTimestamp = const {'sales', 'invoice', 'inventory'}.contains(kind);
     final crm = const {
       'crm',
       'customer',
@@ -1763,7 +1764,7 @@ void main() {
                   'id': 2,
                   numberField: 'ARCHIVED-RECORD',
                   if (kind == 'crm') 'version': 2,
-                  if (kind == 'inventory') 'updated_at': '2026-11-28T10:00:00Z',
+                  if (usesTimestamp) 'updated_at': '2026-11-28T10:00:00Z',
                 },
               ]);
             }
@@ -1772,10 +1773,10 @@ void main() {
               {'id': 1, numberField: 'QA-SALE-$requests'},
               if (kind == 'crm')
                 {'id': 2, numberField: 'Older lead title', 'version': 1},
-              if (kind == 'inventory')
+              if (usesTimestamp)
                 {
                   'id': 2,
-                  numberField: 'Older product title',
+                  numberField: 'Older record label',
                   'updated_at': '2026-11-28T09:00:00Z',
                 },
             ]);

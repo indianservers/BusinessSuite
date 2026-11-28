@@ -464,6 +464,7 @@ class GstInvoicePage extends StatefulWidget {
     'currency',
     'issue_date',
     'due_date',
+    'updated_at',
     'document_status',
     'delivery_status',
     'payment_status',

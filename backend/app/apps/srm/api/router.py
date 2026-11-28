@@ -706,7 +706,7 @@ def list_sales_orders(summary_only: bool = False, search: str = Query("", max_le
             SRMSalesOrder.title, SRMSalesOrder.currency, SRMSalesOrder.subtotal,
             SRMSalesOrder.discount_amount, SRMSalesOrder.tax_amount,
             SRMSalesOrder.total_amount, SRMSalesOrder.expected_start_date,
-            SRMSalesOrder.expected_end_date,
+            SRMSalesOrder.expected_end_date, SRMSalesOrder.updated_at,
         )
         return [dict(row._mapping) for row in orders.with_entities(*fields).all()]
     return [_serialize(item) | {"lines": [_serialize(line) for line in item.lines]} for item in orders.all()]
@@ -4318,7 +4318,7 @@ def list_invoices(summary_only: bool = False, search: str = Query("", max_length
     if summary_only:
         from app.business_packs.financial_projections import delivery_status
 
-        fields = ("id", "invoice_number", "status", "currency", "issue_date", "due_date",
+        fields = ("id", "invoice_number", "status", "currency", "issue_date", "due_date", "updated_at",
                   "subtotal", "tax_amount", "total_amount", "paid_amount", "balance_amount")
         summaries = []
         for item in items:
