@@ -16,6 +16,7 @@ class CrmCustomerPage extends StatefulWidget {
     required this.scopeHeaders,
     this.cacheScope,
     this.onChanged,
+    this.salesContext = false,
   });
 
   static const endpoint = '/master-data/company-directory/query';
@@ -36,13 +37,14 @@ class CrmCustomerPage extends StatefulWidget {
   final Map<String, String> scopeHeaders;
   final String? cacheScope;
   final VoidCallback? onChanged;
+  final bool salesContext;
 
   @override
   State<CrmCustomerPage> createState() => _CrmCustomerPageState();
 }
 
 class _CrmCustomerPageState extends State<CrmCustomerPage> {
-  late final _queue = widget.cacheScope == null
+  late final _queue = widget.cacheScope == null || widget.salesContext
       ? null
       : CrmOfflineEdits(widget.cacheScope!);
   int get _id => widget.summary['id'] as int;
@@ -72,35 +74,40 @@ class _CrmCustomerPageState extends State<CrmCustomerPage> {
     offline: widget.offline,
   );
 
-  Future<({Json? record, bool live})> _load({bool offline = false}) =>
-      loadCrmDetail(
-        api: widget.api,
-        path: '/master-data/companies/${widget.summary['id']}',
-        scope: widget.cacheScope,
-        headers: widget.scopeHeaders,
-        offline: offline,
-        onCached: (record) {
-          if (mounted) setState(() => _cachedDetails = record);
-        },
-        project: (record) => {
-          for (final field in [
-            'id',
-            'name',
-            'version',
-            'canEdit',
-            'phone_country_code',
-            ...CrmCustomerPage.fields.keys,
-          ])
-            field: record[field],
-          'contacts': [
-            for (final contact
-                in (record['contacts'] as List? ?? const [])
-                    .whereType<Json>()
-                    .take(30))
-              {'name': contact['name']},
-          ],
-        },
-      );
+  Future<({Json? record, bool live})> _load({
+    bool offline = false,
+  }) => loadCrmDetail(
+    api: widget.api,
+    path: '/master-data/companies/${widget.summary['id']}',
+    scope: widget.cacheScope,
+    cacheKey: widget.salesContext && widget.cacheScope != null
+        ? "${widget.cacheScope}:/master-data/companies/$_id:${widget.scopeHeaders['X-Suite-Branch'] ?? ''}:srm"
+        : null,
+    headers: widget.scopeHeaders,
+    query: widget.salesContext ? const {'source': 'srm'} : const {},
+    offline: offline,
+    onCached: (record) {
+      if (mounted) setState(() => _cachedDetails = record);
+    },
+    project: (record) => {
+      for (final field in [
+        'id',
+        'name',
+        'version',
+        'canEdit',
+        'phone_country_code',
+        ...CrmCustomerPage.fields.keys,
+      ])
+        field: record[field],
+      'contacts': [
+        for (final contact
+            in (record['contacts'] as List? ?? const []).whereType<Json>().take(
+              30,
+            ))
+          {'name': contact['name']},
+      ],
+    },
+  );
 
   void _refresh() => setState(() {
     _cachedDetails = null;
@@ -223,7 +230,8 @@ class _CrmCustomerPageState extends State<CrmCustomerPage> {
                       ),
                     ),
                   ),
-                if (snapshot.connectionState == ConnectionState.done &&
+                if (!widget.salesContext &&
+                    snapshot.connectionState == ConnectionState.done &&
                     pendingSnapshot.connectionState == ConnectionState.done &&
                     !pendingSnapshot.hasError &&
                     pending == null &&

@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/crm_detail_snapshot.dart';
 import '../core/models.dart';
 import '../core/suite_read_cache.dart';
+import 'crm_customer_page.dart';
 import 'gst_invoice_page.dart';
 import 'sales_order_page.dart';
 
@@ -145,6 +146,7 @@ class _SalesContractPageState extends State<SalesContractPage> {
         final result = loading ? null : snapshot.data;
         final record = result?.record ?? _cached ?? widget.summary;
         final offline = result?.live != true;
+        final customerId = record['customer_id'];
         final order = record['sales_order'] as Json?;
         final invoices = (record['invoices'] as List? ?? []).whereType<Json>();
         return ListView(
@@ -176,12 +178,34 @@ class _SalesContractPageState extends State<SalesContractPage> {
                         : '${record[field.key]}',
                   ),
                 ),
-            if (order?['id'] is int || invoices.isNotEmpty) ...[
+            if (customerId is int ||
+                order?['id'] is int ||
+                invoices.isNotEmpty) ...[
               const Divider(),
               Text(
                 'Related records',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+              if (customerId is int)
+                ListTile(
+                  title: const Text('Open customer'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CrmCustomerPage(
+                        api: widget.api,
+                        summary: {
+                          'id': customerId,
+                          'name': 'Customer #$customerId',
+                        },
+                        offline: offline,
+                        cacheScope: widget.cacheScope,
+                        scopeHeaders: widget.scopeHeaders,
+                        salesContext: true,
+                      ),
+                    ),
+                  ),
+                ),
               if (order?['id'] is int)
                 ListTile(
                   title: Text('${order!['order_number'] ?? 'Sales order'}'),

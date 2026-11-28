@@ -657,12 +657,14 @@ void main() {
   ) async {
     var status = 'draft';
     var activations = 0;
+    final transportErrors = <String>[];
     Json contract() => {
       'id': 4,
       'title': 'Support renewal',
       'contract_number': 'CTR-004',
       'status': status,
       'terms': 'Annual maintenance',
+      'customer_id': 18,
       'sales_order': {'id': 9, 'order_number': 'SO-009'},
       'invoices': [
         {'id': 12, 'invoice_number': 'INV-012'},
@@ -672,12 +674,25 @@ void main() {
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onError: (error, handler) {
+              transportErrors.add(
+                '${error.requestOptions.uri}: ${error.error}',
+              );
+              handler.next(error);
+            },
+          ),
+        )
         ..httpClientAdapter = FakeAdapter((request) async {
           if (request.path == '/srm/contracts/4/activate') {
-            expect(request.method, 'POST');
+            expectSync(request.method, 'POST');
             activations++;
             status = 'active';
             return response(contract());
+          }
+          if (request.path == '/master-data/companies/18') {
+            expectSync(request.queryParameters['source'], 'srm');
           }
           return switch (request.path) {
             '/access/me' => response({
@@ -696,6 +711,13 @@ void main() {
             '/srm/sales-orders' => response({'items': []}),
             '/srm/contracts' => response([contract()]),
             '/srm/contracts/4' => response(contract()),
+            '/master-data/companies/18' => response({
+              'id': 18,
+              'name': 'Shared contract customer',
+              'version': 'customer-v1',
+              'canEdit': true,
+              'industry': 'Property services',
+            }),
             '/srm/sales-orders/9' => response({
               'order_number': 'SO-009',
               'terms': 'Linked order terms',
@@ -745,6 +767,7 @@ void main() {
     expect(find.text('active', findRichText: true), findsOneWidget);
     expect(find.text('Activate contract'), findsNothing);
     for (final (link, detail) in const [
+      ('Open customer', 'Shared contract customer'),
       ('SO-009', 'Linked order terms'),
       ('INV-012', 'Linked invoice service'),
     ]) {
@@ -752,14 +775,27 @@ void main() {
       await tester.scrollUntilVisible(
         tile,
         200,
-        scrollable: find.descendant(
-          of: find.byType(ListView),
-          matching: find.byType(Scrollable),
-        ).first,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
       );
       await tester.tap(tile);
       await tester.pumpAndSettle();
-      expect(find.text(detail, findRichText: true), findsOneWidget);
+      final expected = find.text(detail, findRichText: true);
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (expected.evaluate().isEmpty && DateTime.now().isBefore(deadline)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        expected,
+        findsOneWidget,
+        reason:
+            '$transportErrors | ${tester.widgetList<Text>(find.byType(Text)).map((value) => value.data).join(' | ')}',
+      );
+      expect(find.text('Edit customer'), findsNothing);
       await tester.pageBack();
       await tester.pumpAndSettle();
     }
