@@ -3316,19 +3316,17 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             icon: const Icon(Icons.add),
             onPressed: _createTrackingRecord,
           ),
-        if (_priceLists &&
-            widget.canCreateOrder &&
-            !_offlineOnly &&
-            !_usedSavedFallback)
+        if (_priceLists && !_offlineOnly && !_usedSavedFallback)
           IconButton(
-            tooltip: 'Create price list',
-            icon: const Icon(Icons.add),
+            tooltip: widget.canCreateOrder ? 'Create price list' : 'Price lookup',
+            icon: Icon(widget.canCreateOrder ? Icons.add : Icons.search),
             onPressed: () async {
               final saved = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => InventoryPriceListForm(
                     api: widget.controller.api,
                     scopeHeaders: widget.scopeHeaders,
+                    canCreate: widget.canCreateOrder,
                   ),
                 ),
               );

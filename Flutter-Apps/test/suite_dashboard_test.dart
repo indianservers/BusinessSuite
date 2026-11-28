@@ -1085,11 +1085,25 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final writes = <RequestOptions>[];
+    final lookups = <RequestOptions>[];
     final api = ApiClient(
       baseUrl: 'https://example.test/api/v1',
       store: MemoryStore(),
       transport: Dio()
         ..httpClientAdapter = FakeAdapter((request) async {
+          if (request.path == '/srm/pricing/lookup') {
+            lookups.add(request);
+            return response({
+              'items': [
+                {
+                  'item_name': 'Packing carton',
+                  'base_price': 24,
+                  'net_price': 21,
+                  'currency': 'INR',
+                },
+              ],
+            });
+          }
           if (request.method == 'POST') {
             writes.add(request);
             return response({'id': 31});
@@ -1112,6 +1126,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Packing carton'));
     await tester.pumpAndSettle();
+    final lookup = find.text('Test lookup');
+    await tester.ensureVisible(lookup);
+    await tester.tap(lookup);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Net price 21 INR'), findsOneWidget);
+    expect(lookups.single.data['product_ids'], [4]);
+    expect(lookups.single.data['quantity'], '1');
+    expect(writes, isEmpty);
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Price list name'),
       'Dealer prices',
