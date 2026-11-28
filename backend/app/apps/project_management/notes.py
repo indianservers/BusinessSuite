@@ -11,6 +11,7 @@ from sqlalchemy import or_, update, func, cast, String
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
+from app.shared.offline_operations import perform_offline_operation
 from .access import get_project_for_action, get_task_project_for_action, can_access_project
 from .models import PMSNote, PMSNoteRevision, PMSProject, PMSTask, PMSNoteFolder, PMSNoteShare, PMSNoteEvent
 
@@ -232,8 +233,6 @@ def _insert_note(data: NoteInput, db: Session, user: User):
 def create_note(data: NoteInput, db: Session = Depends(get_db), user: User = Depends(get_current_user),
                 offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
     if isinstance(offline_operation, UUID):
-        from app.shared.offline_operations import perform_offline_operation
-
         receipt = perform_offline_operation(
             db, user, offline_operation,
             ("create_note", getattr(user, "organization_id", None)),
@@ -278,7 +277,27 @@ def versioned_owned_update(db, row, version, values):
 
 
 @router.put("/notes/{note_id}")
-def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user: User = Depends(get_current_user),
+              offline_operation: UUID | None = Header(None, alias="X-Offline-Operation")):
+    if isinstance(offline_operation, UUID):
+        def apply_edit():
+            _save_note(db, note_id, data, user)
+            return {"id": note_id}
+
+        perform_offline_operation(
+            db, user, offline_operation,
+            ("edit_note", getattr(user, "organization_id", None), note_id),
+            data.model_dump(mode="json"),
+            apply_edit,
+            lambda _: owned(db, note_id, user),
+        )
+        return result(db, owned(db, note_id, user), user)
+    note = _save_note(db, note_id, data, user)
+    db.commit()
+    return result(db, note, user)
+
+
+def _save_note(db, note_id, data, user):
     note = owned(db, note_id, user)
     if note.deleted_at:
         raise HTTPException(409, "Restore the note before editing")
@@ -294,8 +313,7 @@ def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user:
     note.project_id, note.task_id, note.folder_id = data.project_id, data.task_id, data.folder_id
     db.flush()
     revision(db, note)
-    db.commit()
-    return result(db, note, user)
+    return note
 
 
 def change_deleted(db, note_id, data, user, deleted):

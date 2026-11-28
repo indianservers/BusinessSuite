@@ -217,6 +217,29 @@ def test_save_conflict_revisions_archive_and_trash(notes_client):
     assert c.get(path).json()["content"] == "Second draft"
 
 
+def test_offline_note_edit_replay_preserves_newer_web_version(notes_client):
+    from uuid import uuid4
+
+    client, *_ = notes_client
+    note = client.post("/notes", json={"title": "Original"}).json()
+    path = f"/notes/{note['id']}"
+    headers = {"X-Offline-Operation": str(uuid4())}
+    body = {"title": "Offline edit", "version": note["version"]}
+    saved = client.put(path, json=body, headers=headers)
+    assert saved.status_code == 200, saved.text
+    retry = client.put(path, json=body, headers=headers)
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["version"] == saved.json()["version"]
+    web = client.put(path, json={"title": "Newer web edit", "version": saved.json()["version"]})
+    assert web.status_code == 200, web.text
+    retry = client.put(path, json=body, headers=headers)
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["title"] == "Newer web edit"
+    assert retry.json()["version"] == web.json()["version"]
+    assert client.put(path, json={**body, "title": "Different edit"}, headers=headers).status_code == 409
+    assert len(client.get(f"{path}/revisions").json()) == 3
+
+
 def test_project_links_do_not_share_or_export_notes(db, notes_client):
     c, owner, admin, actor = notes_client
     workspace = PMSWorkspace(name="Notes privacy workspace"); db.add(workspace); db.flush()

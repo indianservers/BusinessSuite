@@ -224,6 +224,7 @@ class NotesOfflineCache {
     }
     edits['$id'] = {
       'values': {...values, 'version': note['version']},
+      'operation': const Uuid().v4(),
     };
     await _storeEdits(edits);
   });
@@ -246,6 +247,11 @@ class NotesOfflineCache {
         final edit = edits[id] as Json;
         if (edit['error'] != null) continue;
         final create = id.startsWith('create:');
+        if (!create && edit['operation'] == null) {
+          edit['operation'] = const Uuid().v4();
+          await _storeEdits(edits);
+          if (api.sessionRevision != revision) return;
+        }
         try {
           final note =
               await api.request(
@@ -255,8 +261,9 @@ class NotesOfflineCache {
                         : '/project-management/notes/$id',
                     scopeHeaders: {
                       'X-Suite-Organization': _company,
-                      if (create)
-                        'X-Offline-Operation': id.substring('create:'.length),
+                      'X-Offline-Operation': create
+                          ? id.substring('create:'.length)
+                          : edit['operation'] as String,
                     },
                     data: edit['values'],
                   )

@@ -3141,10 +3141,15 @@ void main() {
     expect(find.text('Top note'), findsNothing);
     await cache.discard((await cache.creations()).single['key']);
     await api.acceptTokens({'access_token': 'qa', 'refresh_token': 'qa'});
+    final operations = <String>[];
     api.dio.httpClientAdapter = FakeAdapter((request) async {
       if (request.method != 'PUT') return response({'detail': 'Offline'}, 503);
       expect(request.path, '/project-management/notes/1');
       expect(request.data, move);
+      operations.add(request.headers['X-Offline-Operation'] as String);
+      if (operations.length == 1) {
+        return response({'detail': 'Response lost'}, 503);
+      }
       return response({
         ...move!,
         'id': 1,
@@ -3155,6 +3160,11 @@ void main() {
       });
     });
     await tester.runAsync(() => cache.sync(api));
+    expect(await cache.pending(1), isNotNull);
+    await tester.runAsync(() => cache.sync(api));
+    expect(operations, hasLength(2));
+    expect(operations.first, isNotEmpty);
+    expect(operations.last, operations.first);
     expect(await cache.pending(1), isNull);
     final saved = (await cache.summaries()).singleWhere(
       (row) => row['id'] == 1,
