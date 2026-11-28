@@ -1881,6 +1881,7 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final cacheKey = _cacheKey;
     final savedSearchKey =
         (_inventory ||
+                _isCrm ||
                 path == GstInvoicePage.listEndpoint ||
                 path == '/srm/sales-orders') &&
             cacheKey != null
@@ -1893,6 +1894,17 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
     final page = _page;
     final searchTerm = _serverSearch;
     Future<void> loadSavedPages() async {
+      if (_cachePagedRecords && cacheKey != null) {
+        try {
+          final saved = await SuiteReadCache.readPages(cacheKey);
+          if (mounted &&
+              api.sessionRevision == revision &&
+              loadRevision == _loadRevision &&
+              saved != null) {
+            setState(() => _cached = saved);
+          }
+        } catch (_) {}
+      }
       if (savedSearchKey != null) {
         try {
           final matches = await SuiteReadCache.read(savedSearchKey);
@@ -1913,16 +1925,6 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
           // Recent search results are optional when local storage is unavailable.
         }
       }
-      if (!_cachePagedRecords || cacheKey == null) return;
-      try {
-        final saved = await SuiteReadCache.readPages(cacheKey);
-        if (mounted &&
-            api.sessionRevision == revision &&
-            loadRevision == _loadRevision &&
-            saved != null) {
-          setState(() => _cached = saved);
-        }
-      } catch (_) {}
     }
 
     var showSavedSnapshot = true;
@@ -2036,14 +2038,14 @@ class _SuiteRecordsState extends State<_SuiteRecords> {
             await SuiteReadCache.clearPages(cacheKey);
           } else {
             await SuiteReadCache.clear(cacheKey);
-            if (savedSearchKey != null) {
-              await SuiteReadCache.clear(savedSearchKey);
-            }
             if (_inventory && widget.cachePrefix != null) {
               await SuiteReadCache.clear(
                 SalesOrderDrafts.productPickerCacheKey(widget.cachePrefix!),
               );
             }
+          }
+          if (savedSearchKey != null) {
+            await SuiteReadCache.clear(savedSearchKey);
           }
         } catch (_) {}
       } else if (error.connectionFailure ||

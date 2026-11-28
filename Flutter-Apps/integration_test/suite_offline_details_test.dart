@@ -1661,8 +1661,9 @@ void main() {
     'sales',
     'invoice',
     'inventory',
+    'crm',
   });
-  testWidgets('Android keeps Sales, GST and Inventory search results offline', (
+  testWidgets('Android keeps business record search results offline', (
     tester,
   ) async {
     final kind = commercialSearch.currentValue!;
@@ -1679,6 +1680,7 @@ void main() {
         'Inventory',
         'Search saved products',
       ),
+      'crm' => (CrmLeadPage.endpoint, 'first_name', null, 'Search saved leads'),
       _ => ('/srm/sales-orders', 'order_number', null, 'Search saved orders'),
     };
     final id = DateTime.now().microsecondsSinceEpoch;
@@ -1692,7 +1694,7 @@ void main() {
             return response({
               'companyId': 7,
               'grants': {
-                'srm': {'enabled': true},
+                (kind == 'crm' ? 'crm' : 'srm'): {'enabled': true},
               },
             });
           case '/notifications/unread-count':
@@ -1734,15 +1736,15 @@ void main() {
       ..user = SessionUser.fromJson({'id': id, 'email': 'qa@example.test'});
     await tester.pumpWidget(BusinessSuiteApp(controller: controller));
     await tester.pumpAndSettle();
-    Future<void> openSales() async {
-      final sales = find.text('Sales & POS');
-      await tester.ensureVisible(sales);
+    Future<void> openModule() async {
+      final module = find.text(kind == 'crm' ? 'VyaparaCRM' : 'Sales & POS');
+      await tester.ensureVisible(module);
       await tester.pumpAndSettle();
-      await tester.tap(sales);
+      await tester.tap(module);
       await tester.pumpAndSettle();
     }
 
-    await openSales();
+    await openModule();
     if (menu != null) {
       await tester.tap(find.byTooltip(menu));
       await tester.pumpAndSettle();
