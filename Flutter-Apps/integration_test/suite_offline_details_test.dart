@@ -1779,6 +1779,27 @@ void main() {
               },
             ],
           }),
+          InventoryStockReceipts.warehouseStockEndpoint ||
+          InventoryStockReceipts.valuationEndpoint => response({
+            'items': [
+              {
+                'id': 4,
+                'item_name': switch (request.headers['X-Suite-Branch']) {
+                  '21' => 'North warehouse item',
+                  '22' => 'South warehouse item',
+                  _ => 'Company warehouse item',
+                },
+                'stock_value':
+                    request.headers['X-Suite-Branch'] == '21' ? 120 : 240,
+                'currency': 'INR',
+              },
+            ],
+          }),
+          '/srm/inventory/warehouses' => response({
+            'items': [
+              {'id': 5, 'warehouse_name': 'Sample warehouse'},
+            ],
+          }),
           '/srm/sales-orders' ||
           '/srm/inventory/items' => response({
             'items': [
@@ -1837,6 +1858,29 @@ void main() {
       await tap(find.text('Favorites (1)'));
       await tap(find.text('Sales & POS'));
       await tap(find.byTooltip('Inventory'));
+      await tap(find.byTooltip('Warehouses'));
+      await tap(find.byTooltip('Warehouse Stock'));
+      for (final (branch, other, value) in [
+        ('North', 'South', 120),
+        ('South', 'North', 240),
+      ]) {
+        await tap(find.byTooltip('Choose inventory branch'));
+        await tap(find.text(branch));
+        expect(find.text('$branch warehouse item'), findsOneWidget);
+        expect(find.text('$other warehouse item'), findsNothing);
+        await tap(find.byTooltip('Inventory Valuation'));
+        expect(find.text('Inventory Valuation · $branch'), findsOneWidget);
+        expect(find.textContaining('Stock value $value INR'), findsOneWidget);
+        expect(find.text('$other warehouse item'), findsNothing);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+      }
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tap(find.byTooltip('Low stock alerts'));
       for (final (branch, other) in [('North', 'South'), ('South', 'North')]) {
         await tap(find.byTooltip('Choose inventory branch'));
