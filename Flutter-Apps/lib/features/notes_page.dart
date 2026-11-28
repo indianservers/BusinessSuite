@@ -168,6 +168,7 @@ class _NotesPageState extends State<NotesPage> {
       'personal',
       'recent',
       'folder',
+      'archive',
     }.contains(view);
     final revision = widget.api.sessionRevision;
     bool current() =>
@@ -187,7 +188,11 @@ class _NotesPageState extends State<NotesPage> {
         onError: (Object _) => (edits: <int, Json>{}, creations: <Json>[]),
       );
       final (summaries, changes) = await (
-        canReadSaved ? cache.summaries() : Future.value(<Json>[]),
+        view == 'archive'
+            ? cache.archivedSummaries()
+            : canReadSaved
+            ? cache.summaries()
+            : Future.value(<Json>[]),
         pending,
       ).wait;
       if (!current()) return;
@@ -254,7 +259,9 @@ class _NotesPageState extends State<NotesPage> {
           _notes.length == candidates.length) {
         return;
       }
-      final bodies = await cache.savedBodies();
+      final bodies = view == 'archive'
+          ? await cache.archivedBodies()
+          : await cache.savedBodies();
       if (current() && showSavedResults && bodies.isNotEmpty) {
         displayMatches(bodies);
       }
@@ -293,13 +300,17 @@ class _NotesPageState extends State<NotesPage> {
         _savedView = false;
         _loading = false;
       });
-      if (view == 'all' &&
+      if (const {'all', 'archive'}.contains(view) &&
           query.isEmpty &&
           tag.isEmpty &&
           !withAttachments &&
           range == null) {
         try {
-          await widget.cache?.saveSummaries(notes);
+          if (view == 'archive') {
+            await widget.cache?.saveArchivedSummaries(notes);
+          } else {
+            await widget.cache?.saveSummaries(notes);
+          }
         } catch (_) {
           // Keep the online results if the device store is unavailable.
         }
@@ -1052,7 +1063,10 @@ class _NoteEditorState extends State<_NoteEditor> {
     Future<void> showCached() async {
       if (_note != null) return;
       try {
-        final cached = await widget.cache?.detail(widget.summary!['id']);
+        final summary = widget.summary!;
+        final cached = summary['archived'] == true
+            ? await widget.cache?.archivedDetail(summary['id'])
+            : await widget.cache?.detail(summary['id']);
         if (cached != null && acceptCached && current()) {
           _show(cached, saved: true);
         }
@@ -1247,11 +1261,7 @@ class _NoteEditorState extends State<_NoteEditor> {
       if (!mounted || revision != widget.api.sessionRevision) return;
       if (updated is Map<String, dynamic>) {
         try {
-          if (updated['archived'] == true) {
-            await widget.cache?.forgetNote(updated['id']);
-          } else {
-            await widget.cache?.saveDetail(updated);
-          }
+          await widget.cache?.saveDetail(updated);
         } catch (_) {
           // A local cache failure does not undo a server save.
         }

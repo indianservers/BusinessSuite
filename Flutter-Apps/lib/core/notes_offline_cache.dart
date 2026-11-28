@@ -19,13 +19,16 @@ class NotesOfflineCache {
 
   Stream<String> get syncChanges => _synced.stream.where((key) => key == _key);
 
-  bool _eligible(Json note) =>
+  bool _privateNote(Json note) =>
       note['can_edit'] == true &&
       note['project_id'] == null &&
       note['visibility_scope'] == 'private' &&
       note['visibility'] == 'private' &&
-      note['deleted_at'] == null &&
-      note['archived'] != true;
+      note['deleted_at'] == null;
+
+  bool _eligible(Json note) => _privateNote(note) && note['archived'] != true;
+
+  bool _archived(Json note) => _privateNote(note) && note['archived'] == true;
 
   Future<List<Json>> _read(String suffix) async {
     try {
@@ -58,6 +61,21 @@ class NotesOfflineCache {
 
   Future<List<Json>> summaries() => _read('summaries');
 
+  Future<List<Json>> archivedSummaries() => _read('archive');
+
+  Future<void> saveArchivedSummaries(List<Json> notes) async {
+    final owned = notes.where(_archived).take(100).toList();
+    await _write('archive', owned);
+    final allowed = owned.map((note) => note['id']).toSet();
+    final details = await _read('archive-details');
+    final current = details
+        .where((note) => allowed.contains(note['id']))
+        .toList();
+    if (current.length != details.length) {
+      await _write('archive-details', current);
+    }
+  }
+
   Future<List<Json>> folders() async {
     final ids = (await summaries()).map((note) => note['folder_id']).toSet();
     return (await _read(
@@ -88,14 +106,28 @@ class NotesOfflineCache {
   Future<Json?> detail(Object? id) async =>
       (await _read('details')).where((note) => note['id'] == id).firstOrNull;
 
+  Future<Json?> archivedDetail(Object? id) async => (await _read(
+    'archive-details',
+  )).where((note) => note['id'] == id).firstOrNull;
+
   Future<Map<int, String>> savedBodies() async => {
     for (final note in (await _read('details')).where(_eligible))
       if (note['id'] case final int id)
         if (note['content'] case final String content) id: content,
   };
 
+  Future<Map<int, String>> archivedBodies() async => {
+    for (final note in (await _read('archive-details')).where(_archived))
+      if (note['id'] case final int id)
+        if (note['content'] case final String content) id: content,
+  };
+
   Future<void> forgetNote(Object? id) async {
-    for (final suffix in ['summaries', 'details']) {
+    await _forget(id, ['summaries', 'details', 'archive', 'archive-details']);
+  }
+
+  Future<void> _forget(Object? id, List<String> suffixes) async {
+    for (final suffix in suffixes) {
       final notes = await _read(suffix);
       final remaining = notes.where((note) => note['id'] != id).toList();
       if (remaining.length != notes.length) await _write(suffix, remaining);
@@ -103,13 +135,21 @@ class NotesOfflineCache {
   }
 
   Future<void> saveDetail(Json note) async {
+    final archived = _archived(note);
+    if (archived) {
+      await _forget(note['id'], ['summaries', 'details']);
+    } else {
+      await _forget(note['id'], ['archive', 'archive-details']);
+    }
+    final suffix = archived ? 'archive-details' : 'details';
     final details = (await _read(
-      'details',
+      suffix,
     )).where((row) => row['id'] != note['id']).toList();
-    if (_eligible(note) && (note['content'] as String? ?? '').length <= 65536) {
+    if ((_eligible(note) || archived) &&
+        (note['content'] as String? ?? '').length <= 65536) {
       details.insert(0, note);
     }
-    await _write('details', details.take(12).toList());
+    await _write(suffix, details.take(12).toList());
   }
 
   Future<void> _saveSyncedNote(Json note) async {
@@ -156,7 +196,13 @@ class NotesOfflineCache {
   }
 
   Future<void> clear() async {
-    for (final suffix in ['summaries', 'details', 'folders']) {
+    for (final suffix in [
+      'summaries',
+      'details',
+      'folders',
+      'archive',
+      'archive-details',
+    ]) {
       try {
         await _storage.delete(key: '$_key:$suffix');
       } catch (_) {}

@@ -2874,6 +2874,71 @@ void main() {
     variant: tagConnections,
   );
 
+  testWidgets('Notes reopens previously viewed private archive notes offline', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    final cache = NotesOfflineCache('["https://example.test/api/v1",203,7]');
+    const note = {
+      'id': 4,
+      'title': 'Archived release',
+      'content': 'Saved release approval',
+      'archived': true,
+      'can_edit': true,
+      'visibility': 'private',
+      'visibility_scope': 'private',
+    };
+    var requests = 0;
+    final api = ApiClient(
+      baseUrl: 'https://example.test/api/v1',
+      store: MemoryStore(),
+      transport: Dio()
+        ..httpClientAdapter = FakeAdapter((request) async {
+          requests++;
+          if (request.path.endsWith('/4')) return response(note);
+          return response(
+            request.queryParameters['view'] == 'archive'
+                ? [
+                    note,
+                    {...note, 'id': 5, 'visibility': 'shared'},
+                  ]
+                : [],
+          );
+        }),
+    );
+    Future<void> openArchive({required bool offline}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotesPage(api: api, cache: cache, offline: offline),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Filter notes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Archived'));
+      await tester.pumpAndSettle();
+    }
+
+    await openArchive(offline: false);
+    await tester.tap(find.text('Archived release').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Saved release approval'), findsOneWidget);
+    final onlineRequests = requests;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await openArchive(offline: true);
+    expect(find.text('Archived release'), findsOneWidget);
+    await tester.tap(find.text('Archived release'));
+    await tester.pumpAndSettle();
+    expect(find.text('Saved release approval'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).readOnly,
+      isTrue,
+    );
+    expect(requests, onlineRequests);
+  });
+
   testWidgets('Notes moves a saved note through the shared folder action', (
     tester,
   ) async {
